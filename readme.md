@@ -4,9 +4,9 @@
 
 This is a Golang library to manipulate subtitles. 
 
-It allows you to manipulate `srt`, `ttml` and `webvtt` files for now.
+It allows you to manipulate `srt`, `stl`, `ttml` and `webvtt` files for now.
 
-Available operations are `parsing`, `writing`, `syncing`, `fragmenting` and `merging`.
+Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfragmenting` and `merging`.
 
 # Installation
 
@@ -32,6 +32,9 @@ s1.Fragment(2*time.Second)
 // Merge subtitles
 s1.Merge(s2)
 
+// Unfragment the subtitles
+s1.Unfragment()
+
 // Write subtitles
 s1.Write("/path/to/example.srt")
 var buf = &bytes.Buffer{}
@@ -54,6 +57,10 @@ If **astisub** has been installed properly you can:
 
         astisub merge -i example.srt -i example.ttml -o example.out.srt
 
+- unfragment any type of subtitle:
+
+        astisub unfragment -i example.srt -o example.out.srt
+
 - sync any type of subtitle:
 
         astisub sync -i example.srt -s "-2s" -o example.out.srt
@@ -63,7 +70,7 @@ If **astisub** has been installed properly you can:
 - [x] parsing
 - [x] writing
 - [x] syncing
-- [x] fragmenting
+- [x] fragmenting/unfragmenting
 - [x] merging
 - [x] ordering
 - [x] .srt
