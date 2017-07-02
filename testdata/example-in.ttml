@@ -1,0 +1,46 @@
+<tt xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/2006/10/ttaf1" xmlns:tt="http://www.w3.org/2006/10/ttaf1" xmlns:tts="http://www.w3.org/2006/10/ttaf1#styling" xmlns:ttp="http://www.w3.org/2006/10/ttaf1#parameter" xmlns:ttm="http://www.w3.org/2006/10/ttaf1#metadata" xml:lang="fr-FR" ttp:timeBase="smpte" ttp:frameRate="25" ttp:frameRateMultiplier="1:1" ttp:markerMode="discontinuous">
+    <head>
+        <metadata>
+          <ttm:title>Title test</ttm:title>
+          <ttm:copyright>Copyright test</ttm:copyright>
+        </metadata>
+        <styling>
+            <style xml:id="style_0" tts:style="style_2" tts:fontFamily="sansSerif" tts:color="white" tts:fontStyle="normal" tts:textAlign="center" tts:origin="0% 90%" tts:extent="100% 10%"/>
+            <style xml:id="style_1" tts:fontFamily="sansSerif" tts:color="white" tts:fontStyle="normal" tts:textAlign="center" tts:origin="0% 87%" tts:extent="100% 13%"/>
+            <style xml:id="style_2" tts:fontFamily="sansSerif" tts:color="white" tts:fontStyle="normal" tts:textAlign="center" tts:origin="0% 80%" tts:extent="100% 20%"/>
+        </styling>
+        <layout>
+            <region xml:id="region_0" tt:style="style_0" tt:color="blue"/>
+            <region xml:id="region_1" tt:style="style_1"/>
+            <region xml:id="region_2" tt:style="style_2"/>
+        </layout>
+    </head>
+    <body>
+        <div>
+            <p xml:id="sub_1" begin="00:01:39.000" end="00:01:41.040" region="region_1" style="style_1" color="red">
+                <span style="style_1" color="black">(deep rumbling)</span>
+            </p>
+            <p xml:id="sub_2" begin="00:02:04.080" end="00:02:07.120" region="region_2">
+                MAN:
+                <tt:br/>
+                How did we <span style="style_1" color="green">end up</span> here?
+            </p>
+            <p xml:id="sub_3" begin="00:02:12.160" end="00:02:15.200" region="region_1">
+                <span style="style_1">This place is horrible.</span>
+            </p>
+            <p xml:id="sub_4" begin="00:02:20.240" end="00:02:22.280" region="region_1">
+                <span style="style_1">Smells like balls.</span>
+            </p>
+            <p xml:id="sub_5" begin="00:02:28.320" end="00:02:31.360" region="region_2">
+                <span style="style_2">We don't belong</span>
+                <tt:br/>
+                <span style="style_1">in this shithole.</span>
+            </p>
+            <p xml:id="sub_6" begin="00:02:31.400" end="00:02:33:11" region="region_2">
+                <span style="style_2">(computer playing</span>
+                <tt:br/>
+                <span style="style_1">electronic melody)</span>
+            </p>
+        </div>
+    </body>
+</tt>

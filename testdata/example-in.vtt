@@ -1,0 +1,42 @@
+﻿WEBVTT
+
+NOTE this a nice example
+NOTE of a VTT
+
+STYLE
+::cue(b) {
+  color: peachpuff;
+}
+
+Region: id=fred width=40% lines=3 regionanchor=0%,100% viewportanchor=10%,90% scroll=up
+Region: id=bill width=40% lines=3 regionanchor=100%,100% viewportanchor=90%,90% scroll=up
+
+1
+00:01:39 --> 00:01:41.04 region:bill
+(deep rumbling)
+
+NOTE This a comment inside the VTT
+and this is the second line
+
+2
+00:02:04.08 --> 00:02:07.12 region:fred position:10%,start align:left size:35%
+MAN:
+How did we end up here?
+
+00:02:12.16 --> 00:02:15.20
+This place is horrible.
+
+
+4
+00:02:20.24 --> 00:02:22.28
+Smells like balls.
+
+5
+00:02:28.32 --> 00:02:31.36
+We don't belong
+in this shithole.
+
+6
+00:02:31.40 --> 00:02:33.44
+(computer playing
+electronic melody)

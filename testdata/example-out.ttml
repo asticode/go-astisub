@@ -1,0 +1,48 @@
+<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="fr">
+    <head>
+        <metadata xmlns:ttm="http://www.w3.org/ns/ttml#metadata">
+            <ttm:copyright>Copyright test</ttm:copyright>
+            <ttm:title>Title test</ttm:title>
+        </metadata>
+        <styling xmlns:tts="http://www.w3.org/ns/ttml#styling">
+            <style xml:id="style_0" style="style_2" tts:color="white" tts:extent="100% 10%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 90%" tts:textAlign="center"></style>
+            <style xml:id="style_1" tts:color="white" tts:extent="100% 13%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 87%" tts:textAlign="center"></style>
+            <style xml:id="style_2" tts:color="white" tts:extent="100% 20%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 80%" tts:textAlign="center"></style>
+        </styling>
+        <layout xmlns:tts="http://www.w3.org/ns/ttml#styling">
+            <region xml:id="region_0" style="style_0" tts:color="blue"></region>
+            <region xml:id="region_1" style="style_1"></region>
+            <region xml:id="region_2" style="style_2"></region>
+        </layout>
+    </head>
+    <body>
+        <div>
+            <p begin="00:01:39.000" end="00:01:41.040" region="region_1" style="style_1" tts:color="red">
+                <span style="style_1" tts:color="black">(deep rumbling)</span>
+            </p>
+            <p begin="00:02:04.080" end="00:02:07.120" region="region_2">
+                <span>MAN:</span>
+                <br></br>
+                <span>How did we</span>
+                <span style="style_1" tts:color="green">end up</span>
+                <span>here?</span>
+            </p>
+            <p begin="00:02:12.160" end="00:02:15.200" region="region_1">
+                <span style="style_1">This place is horrible.</span>
+            </p>
+            <p begin="00:02:20.240" end="00:02:22.280" region="region_1">
+                <span style="style_1">Smells like balls.</span>
+            </p>
+            <p begin="00:02:28.320" end="00:02:31.360" region="region_2">
+                <span style="style_2">We don&#39;t belong</span>
+                <br></br>
+                <span style="style_1">in this shithole.</span>
+            </p>
+            <p begin="00:02:31.400" end="00:02:33.440" region="region_2">
+                <span style="style_2">(computer playing</span>
+                <br></br>
+                <span style="style_1">electronic melody)</span>
+            </p>
+        </div>
+    </body>
+</tt>
