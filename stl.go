@@ -296,7 +296,7 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		characterCodeTableNumber: stlCharacterCodeTableNumberLatin,
 		codePageNumber:           stlCodePageNumberMultilingual,
 		countryOfOrigin:          stlCountryCodeFrance,
-		creationDate:             time.Now(),
+		creationDate:             Now(),
 		diskSequenceNumber:       1,
 		displayStandardCode:      stlDisplayStandardCodeLevel1Teletext,
 		framerate:                25,

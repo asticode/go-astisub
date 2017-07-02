@@ -24,6 +24,11 @@ var (
 	ErrNoSubtitlesToWrite = errors.New("No subtitles to write")
 )
 
+// Now allows testing functions using it
+var Now = func() time.Time {
+	return time.Now()
+}
+
 // Open opens a subtitle file
 func Open(src string) (s *Subtitles, err error) {
 	// Open the file

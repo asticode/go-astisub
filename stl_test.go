@@ -5,11 +5,19 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"time"
+
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSTL(t *testing.T) {
+	// Init
+	astisub.Now = func() (t time.Time) {
+		t, _ = time.Parse("060102", "170702")
+		return
+	}
+
 	// Open
 	s, err := astisub.Open("./testdata/example-in.stl")
 	assert.NoError(t, err)
