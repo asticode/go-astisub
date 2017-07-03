@@ -102,14 +102,18 @@ func TestSubtitles_Fragment(t *testing.T) {
 	assert.Equal(t, []astisub.Line{{{Text: "subtitle-2"}}}, s.Items[4].Lines)
 
 	// Unfragment
+	s.Items = append(s.Items[:4], append([]*astisub.Item{{EndAt: 5 * time.Second, Lines: []astisub.Line{{{Text: "subtitle-3"}}}, StartAt: 4 * time.Second}}, s.Items[4:]...)...)
 	s.Unfragment()
-	assert.Len(t, s.Items, 2)
+	assert.Len(t, s.Items, 3)
 	assert.Equal(t, "subtitle-1", s.Items[0].String())
 	assert.Equal(t, time.Second, s.Items[0].StartAt)
 	assert.Equal(t, 3*time.Second, s.Items[0].EndAt)
 	assert.Equal(t, "subtitle-2", s.Items[1].String())
 	assert.Equal(t, 3*time.Second, s.Items[1].StartAt)
 	assert.Equal(t, 7*time.Second, s.Items[1].EndAt)
+	assert.Equal(t, "subtitle-3", s.Items[2].String())
+	assert.Equal(t, 4*time.Second, s.Items[2].StartAt)
+	assert.Equal(t, 5*time.Second, s.Items[2].EndAt)
 }
 
 func TestSubtitles_Merge(t *testing.T) {

@@ -272,6 +272,9 @@ func (s *Subtitles) Fragment(f time.Duration) {
 		fragmentStartAt += f
 		fragmentEndAt += f
 	}
+
+	// Order
+	s.Order()
 }
 
 // IsEmpty returns whether the subtitles are empty
@@ -330,17 +333,19 @@ func (s *Subtitles) Unfragment() {
 	}
 
 	// Loop through items
-	var previousItem = s.Items[0]
-	for index := 1; index < len(s.Items); index++ {
-		// Items are the same
-		if s.Items[index].String() == previousItem.String() && previousItem.EndAt == s.Items[index].StartAt {
-			previousItem.EndAt = s.Items[index].EndAt
-			s.Items = append(s.Items[:index], s.Items[index+1:]...)
-			index--
-		} else {
-			previousItem = s.Items[index]
+	for i := 0; i < len(s.Items)-1; i++ {
+		for j := i + 1; j < len(s.Items); j++ {
+			// Items are the same
+			if s.Items[i].String() == s.Items[j].String() && s.Items[i].EndAt == s.Items[j].StartAt {
+				s.Items[i].EndAt = s.Items[j].EndAt
+				s.Items = append(s.Items[:j], s.Items[j+1:]...)
+				j--
+			}
 		}
 	}
+
+	// Order
+	s.Order()
 }
 
 // Write writes subtitles to a file
