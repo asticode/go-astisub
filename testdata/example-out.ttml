@@ -1,15 +1,15 @@
-<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="fr">
+<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="fr" xmlns:ttm="http://www.w3.org/ns/ttml#metadata" xmlns:tts="http://www.w3.org/ns/ttml#styling">
     <head>
-        <metadata xmlns:ttm="http://www.w3.org/ns/ttml#metadata">
+        <metadata>
             <ttm:copyright>Copyright test</ttm:copyright>
             <ttm:title>Title test</ttm:title>
         </metadata>
-        <styling xmlns:tts="http://www.w3.org/ns/ttml#styling">
+        <styling>
             <style xml:id="style_0" style="style_2" tts:color="white" tts:extent="100% 10%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 90%" tts:textAlign="center"></style>
             <style xml:id="style_1" tts:color="white" tts:extent="100% 13%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 87%" tts:textAlign="center"></style>
             <style xml:id="style_2" tts:color="white" tts:extent="100% 20%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 80%" tts:textAlign="center"></style>
         </styling>
-        <layout xmlns:tts="http://www.w3.org/ns/ttml#styling">
+        <layout>
             <region xml:id="region_0" style="style_0" tts:color="blue"></region>
             <region xml:id="region_1" style="style_1"></region>
             <region xml:id="region_2" style="style_2"></region>
