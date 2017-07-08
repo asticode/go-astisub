@@ -350,19 +350,20 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 // TTMLOut represents an output TTML that must be marshaled
 // We split it from the input TTML as this time we'll add strict namespaces
 type TTMLOut struct {
-	Lang      string            `xml:"xml:lang,attr,omitempty"`
-	Metadata  *TTMLOutMetadata  `xml:"head>metadata,omitempty"`
-	Styling   TTMLOutStyling    `xml:"head>styling,omitempty"` //!\\ Order is important! Keep Styling above Layout
-	Layout    TTMLOutLayout     `xml:"head>layout,omitempty"`
-	Subtitles []TTMLOutSubtitle `xml:"body>div>p,omitempty"`
-	XMLName   xml.Name          `xml:"http://www.w3.org/ns/ttml tt"`
+	Lang            string            `xml:"xml:lang,attr,omitempty"`
+	Metadata        *TTMLOutMetadata  `xml:"head>metadata,omitempty"`
+	Styles          []TTMLOutStyle    `xml:"head>styling>style,omitempty"` //!\\ Order is important! Keep Styling above Layout
+	Regions         []TTMLOutRegion   `xml:"head>layout>region,omitempty"`
+	Subtitles       []TTMLOutSubtitle `xml:"body>div>p,omitempty"`
+	XMLName         xml.Name          `xml:"http://www.w3.org/ns/ttml tt"`
+	XMLNamespaceTTM string            `xml:"xmlns:ttm,attr"`
+	XMLNamespaceTTS string            `xml:"xmlns:tts,attr"`
 }
 
 // TTMLOutMetadata represents an output TTML Metadata
 type TTMLOutMetadata struct {
-	Copyright    string `xml:"ttm:copyright,omitempty"`
-	XMLNamespace string `xml:"xmlns:ttm,attr"`
-	Title        string `xml:"ttm:title,omitempty"`
+	Copyright string `xml:"ttm:copyright,omitempty"`
+	Title     string `xml:"ttm:title,omitempty"`
 }
 
 // TTMLOutStyleAttributes represents output TTML style attributes
@@ -426,18 +427,6 @@ func ttmlOutStyleAttributesFromStyleAttributes(s *StyleAttributes) TTMLOutStyleA
 	}
 }
 
-// TTMLOutLayout represents an output TTML layout
-type TTMLOutLayout struct {
-	Regions      []TTMLOutRegion
-	XMLNamespace string `xml:"xmlns:tts,attr"`
-}
-
-// TTMLOutStyling represents an output TTML styling
-type TTMLOutStyling struct {
-	Styles       []TTMLOutStyle
-	XMLNamespace string `xml:"xmlns:tts,attr"`
-}
-
 // TTMLOutHeader represents an output TTML header
 type TTMLOutHeader struct {
 	ID    string `xml:"xml:id,attr,omitempty"`
@@ -493,12 +482,8 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 
 	// Init TTML
 	var ttml = TTMLOut{
-		Layout: TTMLOutLayout{
-			XMLNamespace: "http://www.w3.org/ns/ttml#styling",
-		},
-		Styling: TTMLOutStyling{
-			XMLNamespace: "http://www.w3.org/ns/ttml#styling",
-		},
+		XMLNamespaceTTM: "http://www.w3.org/ns/ttml#metadata",
+		XMLNamespaceTTS: "http://www.w3.org/ns/ttml#styling",
 	}
 
 	// Add metadata
@@ -506,9 +491,8 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		ttml.Lang = ttmlLanguageMapping.A(s.Metadata.Language).(string)
 		if len(s.Metadata.Copyright) > 0 || len(s.Metadata.Title) > 0 {
 			ttml.Metadata = &TTMLOutMetadata{
-				Copyright:    s.Metadata.Copyright,
-				XMLNamespace: "http://www.w3.org/ns/ttml#metadata",
-				Title:        s.Metadata.Title,
+				Copyright: s.Metadata.Copyright,
+				Title:     s.Metadata.Title,
 			}
 		}
 	}
@@ -527,7 +511,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		if s.Regions[id].Style != nil {
 			ttmlRegion.Style = s.Regions[id].Style.ID
 		}
-		ttml.Layout.Regions = append(ttml.Layout.Regions, ttmlRegion)
+		ttml.Regions = append(ttml.Regions, ttmlRegion)
 	}
 
 	// Add styles
@@ -544,7 +528,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		if s.Styles[id].Style != nil {
 			ttmlStyle.Style = s.Styles[id].Style.ID
 		}
-		ttml.Styling.Styles = append(ttml.Styling.Styles, ttmlStyle)
+		ttml.Styles = append(ttml.Styles, ttmlStyle)
 	}
 
 	// Add items
