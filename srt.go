@@ -28,7 +28,7 @@ func parseDurationSRT(i string) (time.Duration, error) {
 // ReadFromSRT parses an .srt content
 func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	// Init
-	o = &Subtitles{}
+	o = NewSubtitles()
 	var scanner = bufio.NewScanner(i)
 
 	// Scan

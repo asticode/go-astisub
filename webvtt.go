@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"sort"
+
 	"github.com/pkg/errors"
 )
 
@@ -38,7 +40,7 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 // TODO Speaker name
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
-	o = &Subtitles{}
+	o = NewSubtitles()
 	var scanner = bufio.NewScanner(i)
 	var line string
 
@@ -54,7 +56,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var item = &Item{}
 	var blockName string
 	var comments []string
-	var regions = make(map[string]*Region)
 	for scanner.Scan() {
 		// Fetch line
 		line = scanner.Text()
@@ -102,8 +103,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			}
 
 			// Add region
-			o.Regions = append(o.Regions, r)
-			regions[r.ID] = r
+			o.Regions[r.ID] = r
 		// Style
 		case strings.HasPrefix(line, "STYLE "):
 			blockName = webvttBlockNameStyle
@@ -153,11 +153,11 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					case "position":
 						item.InlineStyle.Position = split[1]
 					case "region":
-						if _, ok := regions[split[1]]; !ok {
+						if _, ok := o.Regions[split[1]]; !ok {
 							err = fmt.Errorf("Unknown region %s", split[1])
 							return
 						}
-						item.Region = regions[split[1]]
+						item.Region = o.Regions[split[1]]
 					case "size":
 						item.InlineStyle.Size = split[1]
 					case "vertical":
@@ -208,27 +208,32 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	c = append(c, []byte("WEBVTT\n\n")...)
 
 	// Add regions
+	var k []string
 	for _, region := range s.Regions {
-		c = append(c, []byte("Region: id="+region.ID)...)
-		if region.InlineStyle.Lines != 0 {
+		k = append(k, region.ID)
+	}
+	sort.Strings(k)
+	for _, id := range k {
+		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)
+		if s.Regions[id].InlineStyle.Lines != 0 {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(region.InlineStyle.Lines))...)
+			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.Lines))...)
 		}
-		if region.InlineStyle.RegionAnchor != "" {
+		if s.Regions[id].InlineStyle.RegionAnchor != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+region.InlineStyle.RegionAnchor)...)
+			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.RegionAnchor)...)
 		}
-		if region.InlineStyle.Scroll != "" {
+		if s.Regions[id].InlineStyle.Scroll != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+region.InlineStyle.Scroll)...)
+			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.Scroll)...)
 		}
-		if region.InlineStyle.ViewportAnchor != "" {
+		if s.Regions[id].InlineStyle.ViewportAnchor != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+region.InlineStyle.ViewportAnchor)...)
+			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.ViewportAnchor)...)
 		}
-		if region.InlineStyle.Width != "" {
+		if s.Regions[id].InlineStyle.Width != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+region.InlineStyle.Width)...)
+			c = append(c, []byte("width="+s.Regions[id].InlineStyle.Width)...)
 		}
 		c = append(c, bytesLineSeparator...)
 	}

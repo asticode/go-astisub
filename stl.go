@@ -180,7 +180,7 @@ var stlUnicodeMapping = astimap.NewMap(byte('\x00'), "\x00").
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
-	o = &Subtitles{}
+	o = NewSubtitles()
 
 	// Read GSI block
 	var b []byte
@@ -247,10 +247,9 @@ func readNBytes(i io.Reader, c int) (o []byte, err error) {
 			}
 			err = errors.Wrapf(err, "reading %d bytes failed", c)
 			return
-		} else {
-			err = fmt.Errorf("Read %d bytes, should have read %d", n, c)
-			return
 		}
+		err = fmt.Errorf("Read %d bytes, should have read %d", n, c)
+		return
 	}
 	return
 }

@@ -59,8 +59,16 @@ func Open(src string) (s *Subtitles, err error) {
 type Subtitles struct {
 	Items    []*Item
 	Metadata *Metadata
-	Regions  []*Region
-	Styles   []*Style
+	Regions  map[string]*Region
+	Styles   map[string]*Style
+}
+
+// NewSubtitles creates new subtitles
+func NewSubtitles() *Subtitles {
+	return &Subtitles{
+		Regions: make(map[string]*Region),
+		Styles:  make(map[string]*Style),
+	}
 }
 
 // Item represents a text to show between 2 time boundaries with formatting
@@ -84,7 +92,7 @@ func (i Item) String() string {
 }
 
 // StyleAttributes represents style attributes
-// TODO Need more .ttml and .vtt style examples to get common patterns
+// TODO Need more .ttml, .vtt, .stl, etc. style examples to get common patterns
 type StyleAttributes struct {
 	Align           string // WebVTT
 	BackgroundColor string // TTML
@@ -273,13 +281,23 @@ func (s Subtitles) IsEmpty() bool {
 
 // Merge merges subtitles i into subtitles
 func (s *Subtitles) Merge(i *Subtitles) {
-	// Append
+	// Append items
 	s.Items = append(s.Items, i.Items...)
-	s.Regions = append(s.Regions, i.Regions...)
-	s.Styles = append(s.Styles, i.Styles...)
-
-	// Order items
 	s.Order()
+
+	// Add regions
+	for _, region := range i.Regions {
+		if _, ok := s.Regions[region.ID]; !ok {
+			s.Regions[region.ID] = region
+		}
+	}
+
+	// Add styles
+	for _, style := range i.Styles {
+		if _, ok := s.Styles[style.ID]; !ok {
+			s.Styles[style.ID] = style
+		}
+	}
 }
 
 // Order orders items

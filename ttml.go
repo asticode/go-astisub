@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"sort"
+
 	"github.com/asticode/go-astitools/map"
 	"github.com/asticode/go-astitools/string"
 	"github.com/pkg/errors"
@@ -218,7 +220,7 @@ func (d TTMLInDuration) duration() time.Duration {
 // ReadFromTTML parses a .ttml content
 func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
-	o = &Subtitles{}
+	o = NewSubtitles()
 
 	// Unmarshal XML
 	var ttml TTMLIn
@@ -236,45 +238,41 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Loop through styles
-	var styles = make(map[string]*Style)
 	var parentStyles = make(map[string]*Style)
 	for _, ts := range ttml.Styles {
 		var s = &Style{
 			ID:          ts.ID,
 			InlineStyle: ts.TTMLInStyleAttributes.styleAttributes(),
 		}
-		styles[s.ID] = s
+		o.Styles[s.ID] = s
 		if len(ts.Style) > 0 {
 			parentStyles[ts.Style] = s
 		}
-		o.Styles = append(o.Styles, s)
 	}
 
 	// Take care of parent styles
 	for id, s := range parentStyles {
-		if _, ok := styles[id]; !ok {
+		if _, ok := o.Styles[id]; !ok {
 			err = fmt.Errorf("Style %s requested by style %s doesn't exist", id, s.ID)
 			return
 		}
-		s.Style = styles[id]
+		s.Style = o.Styles[id]
 	}
 
 	// Loop through regions
-	var regions = make(map[string]*Region)
 	for _, tr := range ttml.Regions {
 		var r = &Region{
 			ID:          tr.ID,
 			InlineStyle: tr.TTMLInStyleAttributes.styleAttributes(),
 		}
 		if len(tr.Style) > 0 {
-			if _, ok := styles[tr.Style]; !ok {
+			if _, ok := o.Styles[tr.Style]; !ok {
 				err = fmt.Errorf("Style %s requested by region %s doesn't exist", tr.Style, r.ID)
 				return
 			}
-			r.Style = styles[tr.Style]
+			r.Style = o.Styles[tr.Style]
 		}
-		regions[r.ID] = r
-		o.Regions = append(o.Regions, r)
+		o.Regions[r.ID] = r
 	}
 
 	// Loop through subtitles
@@ -290,20 +288,20 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 		// Add region
 		if len(ts.Region) > 0 {
-			if _, ok := regions[ts.Region]; !ok {
+			if _, ok := o.Regions[ts.Region]; !ok {
 				err = fmt.Errorf("Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
 				return
 			}
-			s.Region = regions[ts.Region]
+			s.Region = o.Regions[ts.Region]
 		}
 
 		// Add style
 		if len(ts.Style) > 0 {
-			if _, ok := styles[ts.Style]; !ok {
+			if _, ok := o.Styles[ts.Style]; !ok {
 				err = fmt.Errorf("Style %s requested by subtitle between %s and %s doesn't exist", ts.Style, s.StartAt, s.EndAt)
 				return
 			}
-			s.Style = styles[ts.Style]
+			s.Style = o.Styles[ts.Style]
 		}
 
 		// Unmarshal items
@@ -331,11 +329,11 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 			// Add style
 			if len(tt.Style) > 0 {
-				if _, ok := styles[tt.Style]; !ok {
+				if _, ok := o.Styles[tt.Style]; !ok {
 					err = fmt.Errorf("Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
 					return
 				}
-				t.Style = styles[tt.Style]
+				t.Style = o.Styles[tt.Style]
 			}
 
 			// Append items
@@ -397,6 +395,9 @@ type TTMLOutStyleAttributes struct {
 
 // ttmlOutStyleAttributesFromStyleAttributes converts StyleAttributes into a TTMLOutStyleAttributes
 func ttmlOutStyleAttributesFromStyleAttributes(s *StyleAttributes) TTMLOutStyleAttributes {
+	if s == nil {
+		return TTMLOutStyleAttributes{}
+	}
 	return TTMLOutStyleAttributes{
 		BackgroundColor: s.BackgroundColor,
 		Color:           s.Color,
@@ -512,28 +513,38 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		}
 	}
 
-	// Add styles
-	for _, style := range s.Styles {
-		var ttmlStyle = TTMLOutStyle{TTMLOutHeader: TTMLOutHeader{
-			ID: style.ID,
-			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(style.InlineStyle),
-		}}
-		if style.Style != nil {
-			ttmlStyle.Style = style.Style.ID
-		}
-		ttml.Styling.Styles = append(ttml.Styling.Styles, ttmlStyle)
-	}
-
 	// Add regions
+	var k []string
 	for _, region := range s.Regions {
+		k = append(k, region.ID)
+	}
+	sort.Strings(k)
+	for _, id := range k {
 		var ttmlRegion = TTMLOutRegion{TTMLOutHeader: TTMLOutHeader{
-			ID: region.ID,
-			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(region.InlineStyle),
+			ID: s.Regions[id].ID,
+			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(s.Regions[id].InlineStyle),
 		}}
-		if region.Style != nil {
-			ttmlRegion.Style = region.Style.ID
+		if s.Regions[id].Style != nil {
+			ttmlRegion.Style = s.Regions[id].Style.ID
 		}
 		ttml.Layout.Regions = append(ttml.Layout.Regions, ttmlRegion)
+	}
+
+	// Add styles
+	k = []string{}
+	for _, style := range s.Styles {
+		k = append(k, style.ID)
+	}
+	sort.Strings(k)
+	for _, id := range k {
+		var ttmlStyle = TTMLOutStyle{TTMLOutHeader: TTMLOutHeader{
+			ID: s.Styles[id].ID,
+			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(s.Styles[id].InlineStyle),
+		}}
+		if s.Styles[id].Style != nil {
+			ttmlStyle.Style = s.Styles[id].Style.ID
+		}
+		ttml.Styling.Styles = append(ttml.Styling.Styles, ttmlStyle)
 	}
 
 	// Add items
