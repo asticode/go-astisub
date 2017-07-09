@@ -78,4 +78,5 @@ If **astisub** has been installed properly you can:
 - [x] .vtt
 - [x] .stl
 - [ ] .teletext
+- [ ] .ssa/.ass
 - [ ] .smi
