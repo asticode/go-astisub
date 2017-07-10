@@ -1,0 +1,23 @@
+[Script Info]
+; Comment 1
+; Comment 2
+Title: SSA test
+Original Editing: Copyright test
+
+[Unknown]
+Unknown
+
+[V4 Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, AlphaLevel, Encoding
+Style: 1,f1,4,65535,65535,65535,-2147483640,-1,0,7,1,4,7,1,4,7,0.1,0
+Style: 2,f2,5,15724527,65535,65535,986895,-1,0,8,2,5,8,2,5,8,0.2,1
+Style: 3,f3,6,&H00B4FCFC,&H00B4FCFC,&H00000008,&H00000008,0,0,9,3,6,9,3,6,9,0.3,2
+
+[Events]
+Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: Marked=0,0:01:39.00,0:01:41.04,1,Cher,1234,2345,3456,test,{\pos(400,570)}(deep rumbling)
+Dialogue: Marked=1,0:02:04.08,0:02:07.12,2,autre,0000,0000,0000,,MAN:\nHow did we end up here?
+Dialogue: Marked=1,0:02:12.16,0:02:15.20,3,autre,0000,0000,0000,,This place is horrible.
+Dialogue: Marked=1,0:02:20.24,0:02:22.28,1,autre,0000,0000,0000,,Smells like balls.
+Dialogue: Marked=1,0:02:28.32,0:02:31.36,2,autre,0000,0000,0000,,We don't belong\nin this shithole.
+Dialogue: Marked=1,0:02:31.40,0:02:33.44,3,autre,0000,0000,0000,,(computer playing\nelectronic melody)

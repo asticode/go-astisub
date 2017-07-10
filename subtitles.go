@@ -2,6 +2,7 @@ package astisub
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -50,6 +51,8 @@ func Open(o Options) (s *Subtitles, err error) {
 	switch filepath.Ext(o.Src) {
 	case ".srt":
 		s, err = ReadFromSRT(f)
+	case ".ssa", ".ass":
+		s, err = ReadFromSSA(f)
 	case ".stl":
 		s, err = ReadFromSTL(f)
 	case ".ts":
@@ -105,47 +108,104 @@ func (i Item) String() string {
 	return strings.Join(os, " - ")
 }
 
+// Color represents a color
+type Color struct {
+	Alpha, Blue, Green, Red uint8
+}
+
+// newColorFromString builds a new color based on a string
+func newColorFromString(s string, base int) (c *Color, err error) {
+	var i int64
+	if i, err = strconv.ParseInt(s, base, 64); err != nil {
+		err = errors.Wrapf(err, "parsing int %s with base %d failed", s, base)
+		return
+	}
+	c = &Color{
+		Alpha: uint8(i>>24) & 0xff,
+		Blue:  uint8(i>>16) & 0xff,
+		Green: uint8(i>>8) & 0xff,
+		Red:   uint8(i) & 0xff,
+	}
+	return
+}
+
+// String expresses the color as a string for a specific base
+func (c *Color) String(base int) string {
+	var i = uint32(c.Alpha)<<24 | uint32(c.Blue)<<16 | uint32(c.Green)<<8 | uint32(c.Red)
+	if base == 16 {
+		return fmt.Sprintf("%.8x", i)
+	}
+	return strconv.Itoa(int(i))
+}
+
 // StyleAttributes represents style attributes
-// TODO Need more .ttml, .vtt, .stl, etc. style examples to get common patterns
+// TODO Merge attributes
 type StyleAttributes struct {
-	Align           string // WebVTT
-	BackgroundColor string // TTML
-	Color           string // TTML
-	Direction       string // TTML
-	Display         string // TTML
-	DisplayAlign    string // TTML
-	Extent          string // TTML
-	FontFamily      string // TTML
-	FontSize        string // TTML
-	FontStyle       string // TTML
-	FontWeight      string // TTML
-	Line            string // WebVTT
-	LineHeight      string // TTML
-	Lines           int    // WebVTT
-	Opacity         string // TTML
-	Origin          string // TTML
-	Overflow        string // TTML
-	Padding         string // TTML
-	Position        string // WebVTT
-	RegionAnchor    string // WebVTT
-	Scroll          string // WebVTT
-	ShowBackground  string // TTML
-	Size            string // WebVTT
-	TextAlign       string // TTML
-	TextDecoration  string // TTML
-	TextOutline     string // TTML
-	UnicodeBidi     string // TTML
-	Vertical        string // WebVTT
-	ViewportAnchor  string // WebVTT
-	Visibility      string // TTML
-	Width           string // WebVTT
-	WrapOption      string // TTML
-	WritingMode     string // TTML
-	ZIndex          int    // TTML
+	SSAAlignment         *int
+	SSAAlphaLevel        *float64
+	SSAAngle             *float64 // degrees
+	SSABackColour        *Color
+	SSABold              *bool
+	SSABorderStyle       *int
+	SSAEffect            string
+	SSAEncoding          *int
+	SSAFontName          string
+	SSAFontSize          *float64
+	SSAItalic            *bool
+	SSALayer             *int
+	SSAMarginLeft        *int // pixels
+	SSAMarginRight       *int // pixels
+	SSAMarginVertical    *int // pixels
+	SSAMarked            *bool
+	SSAOutline           *int // pixels
+	SSAOutlineColour     *Color
+	SSAPrimaryColour     *Color
+	SSAScaleX            *float64 // %
+	SSAScaleY            *float64 // %
+	SSASecondaryColour   *Color
+	SSAShadow            *int // pixels
+	SSASpacing           *int // pixels
+	SSAStrikeout         *bool
+	SSAUnderline         *bool
+	TTMLBackgroundColor  string
+	TTMLColor            string
+	TTMLDirection        string
+	TTMLDisplay          string
+	TTMLDisplayAlign     string
+	TTMLExtent           string
+	TTMLFontFamily       string
+	TTMLFontSize         string
+	TTMLFontStyle        string
+	TTMLFontWeight       string
+	TTMLLineHeight       string
+	TTMLOpacity          string
+	TTMLOrigin           string
+	TTMLOverflow         string
+	TTMLPadding          string
+	TTMLShowBackground   string
+	TTMLTextAlign        string
+	TTMLTextDecoration   string
+	TTMLTextOutline      string
+	TTMLUnicodeBidi      string
+	TTMLVisibility       string
+	TTMLWrapOption       string
+	TTMLWritingMode      string
+	TTMLZIndex           int
+	WebVTTAlign          string
+	WebVTTLine           string
+	WebVTTLines          int
+	WebVTTPosition       string
+	WebVTTRegionAnchor   string
+	WebVTTScroll         string
+	WebVTTSize           string
+	WebVTTVertical       string
+	WebVTTViewportAnchor string
+	WebVTTWidth          string
 }
 
 // Metadata represents metadata
 type Metadata struct {
+	Comments  []string
 	Copyright string
 	Framerate int
 	Language  string
@@ -167,12 +227,15 @@ type Style struct {
 }
 
 // Line represents a set of formatted line items
-type Line []LineItem
+type Line struct {
+	Items     []LineItem
+	VoiceName string
+}
 
 // String implement the Stringer interface
 func (l Line) String() string {
 	var texts []string
-	for _, i := range l {
+	for _, i := range l.Items {
 		texts = append(texts, i.Text)
 	}
 	return strings.Join(texts, " ")
@@ -232,7 +295,7 @@ func (s *Subtitles) ForceDuration(d time.Duration) {
 
 	// Add dummy item with the minimum duration possible
 	if s.Duration() < d {
-		s.Items = append(s.Items, &Item{EndAt: d, Lines: []Line{{{Text: "..."}}}, StartAt: d - time.Millisecond})
+		s.Items = append(s.Items, &Item{EndAt: d, Lines: []Line{{Items: []LineItem{{Text: "..."}}}}, StartAt: d - time.Millisecond})
 	}
 }
 
@@ -376,6 +439,8 @@ func (s Subtitles) Write(dst string) (err error) {
 	switch filepath.Ext(dst) {
 	case ".srt":
 		err = s.WriteToSRT(f)
+	case ".ssa", ".ass":
+		err = s.WriteToSSA(f)
 	case ".stl":
 		err = s.WriteToSTL(f)
 	case ".ttml":
@@ -388,36 +453,33 @@ func (s Subtitles) Write(dst string) (err error) {
 	return
 }
 
-// parseDuration parses a duration in "00:00:00.000" or "00:00:00,000" format
-func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
+// parseDuration parses a duration in "00:00:00.000", "00:00:00,000" or "0:00:00:00" format
+func parseDuration(i, millisecondSep string, numberOfMillisecondDigits int) (o time.Duration, err error) {
 	// Split milliseconds
 	var parts = strings.Split(i, millisecondSep)
 	var milliseconds int
 	var s string
 	if len(parts) >= 2 {
 		// Invalid number of millisecond digits
-		if len(parts[1]) > 3 {
+		s = strings.TrimSpace(parts[len(parts)-1])
+		if len(s) > 3 {
 			err = fmt.Errorf("astisub: Invalid number of millisecond digits detected in %s", i)
 			return
 		}
 
 		// Parse milliseconds
-		s = strings.TrimSpace(parts[1])
 		if milliseconds, err = strconv.Atoi(s); err != nil {
 			err = errors.Wrapf(err, "astisub: atoi of %s failed", s)
 			return
 		}
-
-		// In case number of milliseconds digits is not 3
-		if len(s) == 2 {
-			milliseconds *= 10
-		} else if len(s) == 1 {
-			milliseconds *= 100
-		}
+		milliseconds *= int(math.Pow10(numberOfMillisecondDigits - len(s)))
+		s = strings.Join(parts[:len(parts)-1], millisecondSep)
+	} else {
+		s = i
 	}
 
 	// Split hours, minutes and seconds
-	parts = strings.Split(strings.TrimSpace(parts[0]), ":")
+	parts = strings.Split(strings.TrimSpace(s), ":")
 	var partSeconds, partMinutes, partHours string
 	if len(parts) == 2 {
 		partSeconds = parts[1]
@@ -462,8 +524,8 @@ func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
 	return
 }
 
-// formatDurationSRT formats a duration
-func formatDuration(i time.Duration, millisecondSep string) (s string) {
+// formatDuration formats a duration
+func formatDuration(i time.Duration, millisecondSep string, numberOfMillisecondDigits int) (s string) {
 	// Parse hours
 	var hours = int(i / time.Hour)
 	var n = i % time.Hour
@@ -489,12 +551,14 @@ func formatDuration(i time.Duration, millisecondSep string) (s string) {
 	s += strconv.Itoa(seconds) + millisecondSep
 
 	// Parse milliseconds
-	var milliseconds = int(n / time.Millisecond)
-	if milliseconds < 10 {
-		s += "00"
-	} else if milliseconds < 100 {
-		s += "0"
-	}
-	s += strconv.Itoa(milliseconds)
+	var milliseconds = float64(n/time.Millisecond) / float64(1000)
+	s += fmt.Sprintf("%."+strconv.Itoa(numberOfMillisecondDigits)+"f", milliseconds)[2:]
+	return
+}
+
+// appendStringToBytesWithNewLine adds a string to bytes then adds a new line
+func appendStringToBytesWithNewLine(i []byte, s string) (o []byte) {
+	o = append(i, []byte(s)...)
+	o = append(o, bytesLineSeparator...)
 	return
 }

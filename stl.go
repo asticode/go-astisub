@@ -227,7 +227,7 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			if len(text) == 0 {
 				continue
 			}
-			i.Lines = append(i.Lines, []LineItem{{Text: text}})
+			i.Lines = append(i.Lines, Line{Items: []LineItem{{Text: text}}})
 		}
 
 		// Append item

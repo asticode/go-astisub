@@ -31,7 +31,7 @@ var (
 
 // parseDurationWebVTT parses a .vtt duration
 func parseDurationWebVTT(i string) (time.Duration, error) {
-	return parseDuration(i, ".")
+	return parseDuration(i, ".", 3)
 }
 
 // ReadFromWebVTT parses a .vtt content
@@ -87,18 +87,18 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				case "id":
 					r.ID = split[1]
 				case "lines":
-					if r.InlineStyle.Lines, err = strconv.Atoi(split[1]); err != nil {
-						err = errors.Wrapf(err, "astisub: atoi of %s failed", split[1])
+					if r.InlineStyle.WebVTTLines, err = strconv.Atoi(split[1]); err != nil {
+						err = errors.Wrapf(err, "atoi of %s failed", split[1])
 						return
 					}
 				case "regionanchor":
-					r.InlineStyle.RegionAnchor = split[1]
+					r.InlineStyle.WebVTTRegionAnchor = split[1]
 				case "scroll":
-					r.InlineStyle.Scroll = split[1]
+					r.InlineStyle.WebVTTScroll = split[1]
 				case "viewportanchor":
-					r.InlineStyle.ViewportAnchor = split[1]
+					r.InlineStyle.WebVTTViewportAnchor = split[1]
 				case "width":
-					r.InlineStyle.Width = split[1]
+					r.InlineStyle.WebVTTWidth = split[1]
 				}
 			}
 
@@ -147,11 +147,11 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					// Switch on key
 					switch split[0] {
 					case "align":
-						item.InlineStyle.Align = split[1]
+						item.InlineStyle.WebVTTAlign = split[1]
 					case "line":
-						item.InlineStyle.Line = split[1]
+						item.InlineStyle.WebVTTLine = split[1]
 					case "position":
-						item.InlineStyle.Position = split[1]
+						item.InlineStyle.WebVTTPosition = split[1]
 					case "region":
 						if _, ok := o.Regions[split[1]]; !ok {
 							err = fmt.Errorf("astisub: Unknown region %s", split[1])
@@ -159,9 +159,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 						}
 						item.Region = o.Regions[split[1]]
 					case "size":
-						item.InlineStyle.Size = split[1]
+						item.InlineStyle.WebVTTSize = split[1]
 					case "vertical":
-						item.InlineStyle.Vertical = split[1]
+						item.InlineStyle.WebVTTVertical = split[1]
 					}
 				}
 			}
@@ -180,7 +180,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameStyle:
 				// TODO Do something with the style
 			case webvttBlockNameText:
-				item.Lines = append(item.Lines, Line{{Text: line}})
+				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
 			default:
 				// This is the ID
 				// TODO Do something with the id
@@ -192,7 +192,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 // formatDurationWebVTT formats a .vtt duration
 func formatDurationWebVTT(i time.Duration) string {
-	return formatDuration(i, ".")
+	return formatDuration(i, ".", 3)
 }
 
 // WriteToWebVTT writes subtitles in .vtt format
@@ -215,25 +215,25 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	sort.Strings(k)
 	for _, id := range k {
 		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)
-		if s.Regions[id].InlineStyle.Lines != 0 {
+		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.Lines))...)
+			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
 		}
-		if s.Regions[id].InlineStyle.RegionAnchor != "" {
+		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.RegionAnchor)...)
+			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
 		}
-		if s.Regions[id].InlineStyle.Scroll != "" {
+		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.Scroll)...)
+			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
 		}
-		if s.Regions[id].InlineStyle.ViewportAnchor != "" {
+		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.ViewportAnchor)...)
+			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
 		}
-		if s.Regions[id].InlineStyle.Width != "" {
+		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].InlineStyle.Width)...)
+			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
 		}
 		c = append(c, bytesLineSeparator...)
 	}
@@ -262,29 +262,29 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Add styles
 		if item.InlineStyle != nil {
-			if item.InlineStyle.Align != "" {
+			if item.InlineStyle.WebVTTAlign != "" {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("align:"+item.InlineStyle.Align)...)
+				c = append(c, []byte("align:"+item.InlineStyle.WebVTTAlign)...)
 			}
-			if item.InlineStyle.Line != "" {
+			if item.InlineStyle.WebVTTLine != "" {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("line:"+item.InlineStyle.Line)...)
+				c = append(c, []byte("line:"+item.InlineStyle.WebVTTLine)...)
 			}
-			if item.InlineStyle.Position != "" {
+			if item.InlineStyle.WebVTTPosition != "" {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("position:"+item.InlineStyle.Position)...)
+				c = append(c, []byte("position:"+item.InlineStyle.WebVTTPosition)...)
 			}
 			if item.Region != nil {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("region:"+item.Region.ID)...)
 			}
-			if item.InlineStyle.Size != "" {
+			if item.InlineStyle.WebVTTSize != "" {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("size:"+item.InlineStyle.Size)...)
+				c = append(c, []byte("size:"+item.InlineStyle.WebVTTSize)...)
 			}
-			if item.InlineStyle.Vertical != "" {
+			if item.InlineStyle.WebVTTVertical != "" {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("vertical:"+item.InlineStyle.Vertical)...)
+				c = append(c, []byte("vertical:"+item.InlineStyle.WebVTTVertical)...)
 			}
 		}
 

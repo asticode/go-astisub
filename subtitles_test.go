@@ -9,7 +9,7 @@ import (
 )
 
 func TestLine_Text(t *testing.T) {
-	var l = astisub.Line{{Text: "1"}, {Text: "2"}, {Text: "3"}}
+	var l = astisub.Line{Items: []astisub.LineItem{{Text: "1"}, {Text: "2"}, {Text: "3"}}}
 	assert.Equal(t, "1 2 3", l.String())
 }
 
@@ -40,7 +40,7 @@ func assertSubtitleItems(t *testing.T, i *astisub.Subtitles) {
 }
 
 func mockSubtitles() *astisub.Subtitles {
-	return &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 3 * time.Second, StartAt: time.Second, Lines: []astisub.Line{{{Text: "subtitle-1"}}}}, {EndAt: 7 * time.Second, StartAt: 3 * time.Second, Lines: []astisub.Line{{{Text: "subtitle-2"}}}}}}
+	return &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 3 * time.Second, StartAt: time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}}, {EndAt: 7 * time.Second, StartAt: 3 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-2"}}}}}}}
 }
 
 func TestSubtitles_Add(t *testing.T) {
@@ -69,7 +69,7 @@ func TestSubtitles_ForceDuration(t *testing.T) {
 	assert.Len(t, s.Items, 3)
 	assert.Equal(t, 10*time.Second, s.Items[2].EndAt)
 	assert.Equal(t, 10*time.Second-time.Millisecond, s.Items[2].StartAt)
-	assert.Equal(t, []astisub.Line{{{Text: "..."}}}, s.Items[2].Lines)
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "..."}}}}, s.Items[2].Lines)
 	s.Items[2].StartAt = 7 * time.Second
 	s.Items[2].EndAt = 12 * time.Second
 	s.ForceDuration(10 * time.Second)
@@ -87,22 +87,22 @@ func TestSubtitles_Fragment(t *testing.T) {
 	assert.Len(t, s.Items, 5)
 	assert.Equal(t, time.Second, s.Items[0].StartAt)
 	assert.Equal(t, 2*time.Second, s.Items[0].EndAt)
-	assert.Equal(t, []astisub.Line{{{Text: "subtitle-1"}}}, s.Items[0].Lines)
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}, s.Items[0].Lines)
 	assert.Equal(t, 2*time.Second, s.Items[1].StartAt)
 	assert.Equal(t, 3*time.Second, s.Items[1].EndAt)
-	assert.Equal(t, []astisub.Line{{{Text: "subtitle-1"}}}, s.Items[1].Lines)
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}, s.Items[1].Lines)
 	assert.Equal(t, 3*time.Second, s.Items[2].StartAt)
 	assert.Equal(t, 4*time.Second, s.Items[2].EndAt)
-	assert.Equal(t, []astisub.Line{{{Text: "subtitle-2"}}}, s.Items[2].Lines)
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-2"}}}}, s.Items[2].Lines)
 	assert.Equal(t, 4*time.Second, s.Items[3].StartAt)
 	assert.Equal(t, 6*time.Second, s.Items[3].EndAt)
-	assert.Equal(t, []astisub.Line{{{Text: "subtitle-2"}}}, s.Items[3].Lines)
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-2"}}}}, s.Items[3].Lines)
 	assert.Equal(t, 6*time.Second, s.Items[4].StartAt)
 	assert.Equal(t, 7*time.Second, s.Items[4].EndAt)
-	assert.Equal(t, []astisub.Line{{{Text: "subtitle-2"}}}, s.Items[4].Lines)
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-2"}}}}, s.Items[4].Lines)
 
 	// Unfragment
-	s.Items = append(s.Items[:4], append([]*astisub.Item{{EndAt: 5 * time.Second, Lines: []astisub.Line{{{Text: "subtitle-3"}}}, StartAt: 4 * time.Second}}, s.Items[4:]...)...)
+	s.Items = append(s.Items[:4], append([]*astisub.Item{{EndAt: 5 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-3"}}}}, StartAt: 4 * time.Second}}, s.Items[4:]...)...)
 	s.Unfragment()
 	assert.Len(t, s.Items, 3)
 	assert.Equal(t, "subtitle-1", s.Items[0].String())
