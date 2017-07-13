@@ -11,7 +11,7 @@ import (
 
 func TestWebVTT(t *testing.T) {
 	// Open
-	s, err := astisub.Open("./testdata/example-in.vtt")
+	s, err := astisub.OpenFile("./testdata/example-in.vtt")
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Comments

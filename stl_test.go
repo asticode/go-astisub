@@ -19,7 +19,7 @@ func TestSTL(t *testing.T) {
 	}
 
 	// Open
-	s, err := astisub.Open("./testdata/example-in.stl")
+	s, err := astisub.OpenFile("./testdata/example-in.stl")
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Metadata

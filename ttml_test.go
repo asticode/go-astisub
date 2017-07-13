@@ -11,7 +11,7 @@ import (
 
 func TestTTML(t *testing.T) {
 	// Open
-	s, err := astisub.Open("./testdata/example-in.ttml")
+	s, err := astisub.OpenFile("./testdata/example-in.ttml")
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Metadata

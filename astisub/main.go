@@ -36,7 +36,7 @@ func main() {
 	// Open first input path
 	var sub *astisub.Subtitles
 	var err error
-	if sub, err = astisub.Open(inputPath[0]); err != nil {
+	if sub, err = astisub.OpenFile(inputPath[0]); err != nil {
 		astilog.Fatalf("%s while opening %s", err, inputPath[0])
 	}
 

@@ -11,7 +11,7 @@ import (
 
 func TestSRT(t *testing.T) {
 	// Open
-	s, err := astisub.Open("./testdata/example-in.srt")
+	s, err := astisub.OpenFile("./testdata/example-in.srt")
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 
