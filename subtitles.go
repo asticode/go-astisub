@@ -29,22 +29,31 @@ var Now = func() time.Time {
 	return time.Now()
 }
 
-// Open opens a subtitle file
-func Open(src string) (s *Subtitles, err error) {
+// Options represents open or write options
+type Options struct {
+	Page int
+	PID  int
+	Src  string
+}
+
+// Open opens a subtitle file based on options
+func Open(o Options) (s *Subtitles, err error) {
 	// Open the file
 	var f *os.File
-	if f, err = os.Open(src); err != nil {
-		err = errors.Wrapf(err, "opening %s failed", src)
+	if f, err = os.Open(o.Src); err != nil {
+		err = errors.Wrapf(err, "opening %s failed", o.Src)
 		return
 	}
 	defer f.Close()
 
 	// Parse the content
-	switch filepath.Ext(src) {
+	switch filepath.Ext(o.Src) {
 	case ".srt":
 		s, err = ReadFromSRT(f)
 	case ".stl":
 		s, err = ReadFromSTL(f)
+	case ".ts":
+		s, err = ReadFromTeletext(f, o.PID, o.Page)
 	case ".ttml":
 		s, err = ReadFromTTML(f)
 	case ".vtt":
@@ -53,6 +62,11 @@ func Open(src string) (s *Subtitles, err error) {
 		err = ErrInvalidExtension
 	}
 	return
+}
+
+// OpenFile opens a file regardless of other options
+func OpenFile(src string) (*Subtitles, error) {
+	return Open(Options{Src: src})
 }
 
 // Subtitles represents an ordered list of items with formatting
