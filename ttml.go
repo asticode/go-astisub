@@ -314,30 +314,42 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		// Loop through texts
 		var l = &Line{}
 		for _, tt := range items {
-			// New line
+			// New line specified with the "br" tag
 			if strings.ToLower(tt.XMLName.Local) == "br" {
 				s.Lines = append(s.Lines, *l)
 				l = &Line{}
 				continue
 			}
 
-			// Init text
-			var t = LineItem{
-				InlineStyle: tt.TTMLInStyleAttributes.styleAttributes(),
-				Text:        tt.Text,
-			}
-
-			// Add style
-			if len(tt.Style) > 0 {
-				if _, ok := o.Styles[tt.Style]; !ok {
-					err = fmt.Errorf("Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
-					return
+			// New line decoded as a line break. This can happen if there's a "br" tag within the text since
+			// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
+			// chardata xml tag.
+			for idx, li := range strings.Split(tt.Text, "\n") {
+				// New line
+				if idx > 0 {
+					s.Lines = append(s.Lines, *l)
+					l = &Line{}
 				}
-				t.Style = o.Styles[tt.Style]
+
+				// Init line item
+				var t = LineItem{
+					InlineStyle: tt.TTMLInStyleAttributes.styleAttributes(),
+					Text:        strings.TrimSpace(li),
+				}
+
+				// Add style
+				if len(tt.Style) > 0 {
+					if _, ok := o.Styles[tt.Style]; !ok {
+						err = fmt.Errorf("Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
+						return
+					}
+					t.Style = o.Styles[tt.Style]
+				}
+
+				// Append items
+				*l = append(*l, t)
 			}
 
-			// Append items
-			*l = append(*l, t)
 		}
 		s.Lines = append(s.Lines, *l)
 
