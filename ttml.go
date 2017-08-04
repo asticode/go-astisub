@@ -562,6 +562,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 			ttmlSubtitle.Style = item.Style.ID
 		}
 
+		//
 		// Add lines
 		for _, line := range item.Lines {
 			// Loop through line items
@@ -587,7 +588,9 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		}
 
 		// Remove last line break
-		ttmlSubtitle.Items = ttmlSubtitle.Items[:len(ttmlSubtitle.Items)-1]
+		if len(ttmlSubtitle.Items) > 0 {
+			ttmlSubtitle.Items = ttmlSubtitle.Items[:len(ttmlSubtitle.Items)-1]
+		}
 
 		// Append subtitle
 		ttml.Subtitles = append(ttml.Subtitles, ttmlSubtitle)
