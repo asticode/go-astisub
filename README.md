@@ -21,7 +21,7 @@ WARNING: the code below doesn't handle errors for readibility purposes. However 
 
 ```go
 // Open subtitles
-s1, _ := astisub.Open("/path/to/example.ttml")
+s1, _ := astisub.OpenFile("/path/to/example.ttml")
 s2, _ := astisub.ReadFromSRT(bytes.NewReader([]byte("00:01:00.000 --> 00:02:00.000\nCredits")))
 
 // Add a duration to every subtitles (syncing)
