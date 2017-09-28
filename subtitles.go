@@ -230,9 +230,9 @@ func (s *Subtitles) ForceDuration(d time.Duration) {
 		}
 	}
 
-	// Add dummy item
+	// Add dummy item with the minimum duration possible
 	if s.Duration() < d {
-		s.Items = append(s.Items, &Item{EndAt: d, Lines: []Line{{{Text: "..."}}}, StartAt: d})
+		s.Items = append(s.Items, &Item{EndAt: d, Lines: []Line{{{Text: "..."}}}, StartAt: d - time.Millisecond})
 	}
 }
 

@@ -68,7 +68,7 @@ func TestSubtitles_ForceDuration(t *testing.T) {
 	s.ForceDuration(10 * time.Second)
 	assert.Len(t, s.Items, 3)
 	assert.Equal(t, 10*time.Second, s.Items[2].EndAt)
-	assert.Equal(t, 10*time.Second, s.Items[2].StartAt)
+	assert.Equal(t, 10*time.Second-time.Millisecond, s.Items[2].StartAt)
 	assert.Equal(t, []astisub.Line{{{Text: "..."}}}, s.Items[2].Lines)
 	s.Items[2].StartAt = 7 * time.Second
 	s.Items[2].EndAt = 12 * time.Second
