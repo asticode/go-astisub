@@ -47,7 +47,8 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Skip the header
 	for scanner.Scan() {
 		line = scanner.Text()
-		if len(line) > 0 && line != "WEBVTT" {
+		line = strings.Trim(line, "\xef\xbb\xbf") // strip BOM chars
+		if len(line) > 0 && line == "WEBVTT" {
 			break
 		}
 	}
@@ -59,7 +60,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	for scanner.Scan() {
 		// Fetch line
 		line = scanner.Text()
-
 		// Check prefixes
 		switch {
 		// Comment
