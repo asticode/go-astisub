@@ -47,7 +47,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Skip the header
 	for scanner.Scan() {
 		line = scanner.Text()
-		line = strings.Trim(line, "\xef\xbb\xbf") // strip BOM chars
+		line = strings.TrimPrefix(line, string(BytesBOM))
 		if len(line) > 0 && line == "WEBVTT" {
 			break
 		}
