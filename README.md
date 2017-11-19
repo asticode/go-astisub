@@ -1,7 +1,7 @@
 [![GoReportCard](http://goreportcard.com/badge/github.com/asticode/go-astisub)](http://goreportcard.com/report/github.com/asticode/go-astisub)
 [![GoDoc](https://godoc.org/github.com/asticode/go-astisub?status.svg)](https://godoc.org/github.com/asticode/go-astisub)
-[![GoCoverage](https://cover.run/go/github.com/asticode/go-astisub.svg)](https://cover.run/go/github.com/asticode/go-astisub)
 [![Travis](https://travis-ci.org/asticode/go-astisub.svg?branch=master)](https://travis-ci.org/asticode/go-astisub#)
+[![Coveralls](https://coveralls.io/repos/github/asticode/go-astisub/badge.svg?branch=master)](https://coveralls.io/repos/github/asticode/go-astisub)
 
 This is a Golang library to manipulate subtitles. 
 
