@@ -20,8 +20,8 @@ var (
 
 // Errors
 var (
-	ErrInvalidExtension   = errors.New("Invalid extension")
-	ErrNoSubtitlesToWrite = errors.New("No subtitles to write")
+	ErrInvalidExtension   = errors.New("astisub: invalid extension")
+	ErrNoSubtitlesToWrite = errors.New("astisub: no subtitles to write")
 )
 
 // Now allows testing functions using it
@@ -41,7 +41,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	// Open the file
 	var f *os.File
 	if f, err = os.Open(o.Src); err != nil {
-		err = errors.Wrapf(err, "opening %s failed", o.Src)
+		err = errors.Wrapf(err, "astisub: opening %s failed", o.Src)
 		return
 	}
 	defer f.Close()
@@ -367,7 +367,7 @@ func (s Subtitles) Write(dst string) (err error) {
 	// Create the file
 	var f *os.File
 	if f, err = os.Create(dst); err != nil {
-		err = errors.Wrapf(err, "creating %s failed", dst)
+		err = errors.Wrapf(err, "astisub: creating %s failed", dst)
 		return
 	}
 	defer f.Close()
@@ -397,14 +397,14 @@ func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
 	if len(parts) >= 2 {
 		// Invalid number of millisecond digits
 		if len(parts[1]) > 3 {
-			err = fmt.Errorf("Invalid number of millisecond digits detected in %s", i)
+			err = fmt.Errorf("astisub: Invalid number of millisecond digits detected in %s", i)
 			return
 		}
 
 		// Parse milliseconds
 		s = strings.TrimSpace(parts[1])
 		if milliseconds, err = strconv.Atoi(s); err != nil {
-			err = errors.Wrapf(err, "atoi of %s failed", s)
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", s)
 			return
 		}
 
@@ -427,7 +427,7 @@ func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
 		partMinutes = parts[1]
 		partHours = parts[0]
 	} else {
-		err = fmt.Errorf("No hours, minutes or seconds detected in %s", i)
+		err = fmt.Errorf("astisub: No hours, minutes or seconds detected in %s", i)
 		return
 	}
 
@@ -435,7 +435,7 @@ func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
 	var seconds int
 	s = strings.TrimSpace(partSeconds)
 	if seconds, err = strconv.Atoi(s); err != nil {
-		err = errors.Wrapf(err, "atoi of %s failed", s)
+		err = errors.Wrapf(err, "astisub: atoi of %s failed", s)
 		return
 	}
 
@@ -443,7 +443,7 @@ func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
 	var minutes int
 	s = strings.TrimSpace(partMinutes)
 	if minutes, err = strconv.Atoi(s); err != nil {
-		err = errors.Wrapf(err, "atoi of %s failed", s)
+		err = errors.Wrapf(err, "astisub: atoi of %s failed", s)
 		return
 	}
 
@@ -452,7 +452,7 @@ func parseDuration(i, millisecondSep string) (o time.Duration, err error) {
 	if len(partHours) > 0 {
 		s = strings.TrimSpace(partHours)
 		if hours, err = strconv.Atoi(s); err != nil {
-			err = errors.Wrapf(err, "atoi of %s failed", s)
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", s)
 			return
 		}
 	}
