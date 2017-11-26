@@ -68,11 +68,11 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Fetch time boundaries
 			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
 			if s.StartAt, err = parseDurationSRT(boundaries[0]); err != nil {
-				err = errors.Wrapf(err, "parsing srt duration %s failed", boundaries[0])
+				err = errors.Wrapf(err, "astisub: parsing srt duration %s failed", boundaries[0])
 				return
 			}
 			if s.EndAt, err = parseDurationSRT(boundaries[1]); err != nil {
-				err = errors.Wrapf(err, "parsing srt duration %s failed", boundaries[1])
+				err = errors.Wrapf(err, "astisub: parsing srt duration %s failed", boundaries[1])
 				return
 			}
 
@@ -128,7 +128,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 
 	// Write
 	if _, err = o.Write(c); err != nil {
-		err = errors.Wrap(err, "writing failed")
+		err = errors.Wrap(err, "astisub: writing failed")
 		return
 	}
 	return

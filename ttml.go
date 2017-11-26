@@ -152,7 +152,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 			if err == io.EOF {
 				break
 			}
-			err = errors.Wrap(err, "getting next token failed")
+			err = errors.Wrap(err, "astisub: getting next token failed")
 			return
 		}
 
@@ -160,7 +160,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 		if se, ok := t.(xml.StartElement); ok {
 			var e = TTMLInItem{}
 			if err = d.DecodeElement(&e, &se); err != nil {
-				err = errors.Wrap(err, "decoding xml.StartElement failed")
+				err = errors.Wrap(err, "astisub: decoding xml.StartElement failed")
 				return
 			}
 			*i = append(*i, e)
@@ -198,7 +198,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		// Parse frames
 		var s = text[indexes[0]+1 : indexes[1]]
 		if d.frames, err = strconv.Atoi(s); err != nil {
-			err = errors.Wrapf(err, "atoi %s failed", s)
+			err = errors.Wrapf(err, "astisub: atoi %s failed", s)
 			return
 		}
 
@@ -225,7 +225,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Unmarshal XML
 	var ttml TTMLIn
 	if err = xml.NewDecoder(i).Decode(&ttml); err != nil {
-		err = errors.Wrap(err, "xml decoding failed")
+		err = errors.Wrap(err, "astisub: xml decoding failed")
 		return
 	}
 
@@ -253,7 +253,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Take care of parent styles
 	for id, s := range parentStyles {
 		if _, ok := o.Styles[id]; !ok {
-			err = fmt.Errorf("Style %s requested by style %s doesn't exist", id, s.ID)
+			err = fmt.Errorf("astisub: Style %s requested by style %s doesn't exist", id, s.ID)
 			return
 		}
 		s.Style = o.Styles[id]
@@ -267,7 +267,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		}
 		if len(tr.Style) > 0 {
 			if _, ok := o.Styles[tr.Style]; !ok {
-				err = fmt.Errorf("Style %s requested by region %s doesn't exist", tr.Style, r.ID)
+				err = fmt.Errorf("astisub: Style %s requested by region %s doesn't exist", tr.Style, r.ID)
 				return
 			}
 			r.Style = o.Styles[tr.Style]
@@ -289,7 +289,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		// Add region
 		if len(ts.Region) > 0 {
 			if _, ok := o.Regions[ts.Region]; !ok {
-				err = fmt.Errorf("Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
+				err = fmt.Errorf("astisub: Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
 				return
 			}
 			s.Region = o.Regions[ts.Region]
@@ -298,7 +298,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		// Add style
 		if len(ts.Style) > 0 {
 			if _, ok := o.Styles[ts.Style]; !ok {
-				err = fmt.Errorf("Style %s requested by subtitle between %s and %s doesn't exist", ts.Style, s.StartAt, s.EndAt)
+				err = fmt.Errorf("astisub: Style %s requested by subtitle between %s and %s doesn't exist", ts.Style, s.StartAt, s.EndAt)
 				return
 			}
 			s.Style = o.Styles[ts.Style]
@@ -307,7 +307,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		// Unmarshal items
 		var items = TTMLInItems{}
 		if err = xml.Unmarshal([]byte("<span>"+ts.Items+"</span>"), &items); err != nil {
-			err = errors.Wrap(err, "unmarshaling items failed")
+			err = errors.Wrap(err, "astisub: unmarshaling items failed")
 			return
 		}
 
@@ -340,7 +340,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				// Add style
 				if len(tt.Style) > 0 {
 					if _, ok := o.Styles[tt.Style]; !ok {
-						err = fmt.Errorf("Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
+						err = fmt.Errorf("astisub: Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
 						return
 					}
 					t.Style = o.Styles[tt.Style]
@@ -600,7 +600,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	var e = xml.NewEncoder(o)
 	e.Indent("", "    ")
 	if err = e.Encode(ttml); err != nil {
-		err = errors.Wrap(err, "xml encoding failed")
+		err = errors.Wrap(err, "astisub: xml encoding failed")
 		return
 	}
 	return

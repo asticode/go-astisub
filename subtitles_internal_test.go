@@ -9,9 +9,9 @@ import (
 
 func TestParseDuration(t *testing.T) {
 	d, err := parseDuration("12:34:56,1234", ",")
-	assert.EqualError(t, err, "Invalid number of millisecond digits detected in 12:34:56,1234")
+	assert.EqualError(t, err, "astisub: Invalid number of millisecond digits detected in 12:34:56,1234")
 	d, err = parseDuration("12,123", ",")
-	assert.EqualError(t, err, "No hours, minutes or seconds detected in 12,123")
+	assert.EqualError(t, err, "astisub: No hours, minutes or seconds detected in 12,123")
 	d, err = parseDuration("12:34,123", ",")
 	assert.NoError(t, err)
 	assert.Equal(t, 12*time.Minute+34*time.Second+123*time.Millisecond, d)
