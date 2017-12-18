@@ -75,7 +75,7 @@ const (
 	ssaScriptInfoNamePlayDepth           = "PlayDepth"
 	ssaScriptInfoNamePlayResX            = "PlayResX"
 	ssaScriptInfoNamePlayResY            = "PlayResY"
-	ssaScriptInfoNameScriptType          = "Script Type"
+	ssaScriptInfoNameScriptType          = "ScriptType"
 	ssaScriptInfoNameScriptUpdatedBy     = "Script Updated By"
 	ssaScriptInfoNameSynchPoint          = "Synch Point"
 	ssaScriptInfoNameTimer               = "Timer"
@@ -235,11 +235,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Set metadata
-	o.Metadata = &Metadata{
-		Comments:  si.comments,
-		Copyright: si.originalEditing,
-		Title:     si.title,
-	}
+	o.Metadata = si.metadata()
 
 	// Loop through styles
 	for _, s := range ss {
@@ -294,7 +290,7 @@ type ssaScriptInfo struct {
 	originalScript      string
 	originalTiming      string
 	originalTranslation string
-	playDepth           string
+	playDepth           *int
 	playResX, playResY  *int
 	scriptType          string
 	scriptUpdatedBy     string
@@ -305,16 +301,29 @@ type ssaScriptInfo struct {
 	wrapStyle           string
 }
 
-// newSSAScriptInfo builds an SSA script info block
-func newSSAScriptInfo(s Subtitles) (o *ssaScriptInfo) {
+// newSSAScriptInfo builds an SSA script info block based on metadata
+func newSSAScriptInfo(m *Metadata) (o *ssaScriptInfo) {
 	// Init
 	o = &ssaScriptInfo{}
 
 	// Add metadata
-	if s.Metadata != nil {
-		o.comments = s.Metadata.Comments
-		o.originalEditing = s.Metadata.Copyright
-		o.title = s.Metadata.Title
+	if m != nil {
+		o.collisions = m.SSACollisions
+		o.comments = m.Comments
+		o.originalEditing = m.SSAOriginalEditing
+		o.originalScript = m.SSAOriginalScript
+		o.originalTiming = m.SSAOriginalTiming
+		o.originalTranslation = m.SSAOriginalTranslation
+		o.playDepth = m.SSAPlayDepth
+		o.playResX = m.SSAPlayResX
+		o.playResY = m.SSAPlayResY
+		o.scriptType = m.SSAScriptType
+		o.scriptUpdatedBy = m.SSAScriptUpdatedBy
+		o.synchPoint = m.SSASynchPoint
+		o.timer = m.SSATimer
+		o.title = m.Title
+		o.updateDetails = m.SSAUpdateDetails
+		o.wrapStyle = m.SSAWrapStyle
 	}
 	return
 }
@@ -332,50 +341,74 @@ func (b *ssaScriptInfo) parse(header, content string) (err error) {
 		b.originalTiming = content
 	case ssaScriptInfoNameOriginalTranslation:
 		b.originalTranslation = content
-	case ssaScriptInfoNamePlayDepth:
-		b.playDepth = content
-	case ssaScriptInfoNamePlayResX, ssaScriptInfoNamePlayResY:
-		var v int
-		if v, err = strconv.Atoi(content); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", content)
-		}
-		switch header {
-		case ssaScriptInfoNamePlayResX:
-			b.playResX = astiptr.Int(v)
-		case ssaScriptInfoNamePlayResY:
-			b.playResY = astiptr.Int(v)
-		}
 	case ssaScriptInfoNameScriptType:
 		b.scriptType = content
 	case ssaScriptInfoNameScriptUpdatedBy:
 		b.scriptUpdatedBy = content
 	case ssaScriptInfoNameSynchPoint:
 		b.synchPoint = content
-	case ssaScriptInfoNameTimer:
-		var v float64
-		if v, err = strconv.ParseFloat(strings.Replace(content, ",", ".", -1), 64); err != nil {
-			err = errors.Wrapf(err, "astisub: parseFloat of %s failed", content)
-		}
-		b.timer = astiptr.Float(v)
 	case ssaScriptInfoNameTitle:
 		b.title = content
 	case ssaScriptInfoNameUpdateDetails:
 		b.updateDetails = content
 	case ssaScriptInfoNameWrapStyle:
 		b.wrapStyle = content
+	// Int
+	case ssaScriptInfoNamePlayResX, ssaScriptInfoNamePlayResY, ssaScriptInfoNamePlayDepth:
+		var v int
+		if v, err = strconv.Atoi(content); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", content)
+		}
+		switch header {
+		case ssaScriptInfoNamePlayDepth:
+			b.playDepth = astiptr.Int(v)
+		case ssaScriptInfoNamePlayResX:
+			b.playResX = astiptr.Int(v)
+		case ssaScriptInfoNamePlayResY:
+			b.playResY = astiptr.Int(v)
+		}
+	// Float
+	case ssaScriptInfoNameTimer:
+		var v float64
+		if v, err = strconv.ParseFloat(strings.Replace(content, ",", ".", -1), 64); err != nil {
+			err = errors.Wrapf(err, "astisub: parseFloat of %s failed", content)
+		}
+		b.timer = astiptr.Float(v)
 	}
 	return
+}
+
+// metadata returns the block as Metadata
+func (b *ssaScriptInfo) metadata() *Metadata {
+	return &Metadata{
+		Comments:               b.comments,
+		SSACollisions:          b.collisions,
+		SSAOriginalEditing:     b.originalEditing,
+		SSAOriginalScript:      b.originalScript,
+		SSAOriginalTiming:      b.originalTiming,
+		SSAOriginalTranslation: b.originalTranslation,
+		SSAPlayDepth:           b.playDepth,
+		SSAPlayResX:            b.playResX,
+		SSAPlayResY:            b.playResY,
+		SSAScriptType:          b.scriptType,
+		SSAScriptUpdatedBy:     b.scriptUpdatedBy,
+		SSASynchPoint:          b.synchPoint,
+		SSATimer:               b.timer,
+		SSAUpdateDetails:       b.updateDetails,
+		SSAWrapStyle:           b.wrapStyle,
+		Title:                  b.title,
+	}
 }
 
 // bytes returns the block as bytes
 func (b *ssaScriptInfo) bytes() (o []byte) {
 	o = []byte("[Script Info]")
 	o = append(o, bytesLineSeparator...)
-	if len(b.collisions) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameCollisions+": "+b.collisions)
-	}
 	for _, c := range b.comments {
 		o = appendStringToBytesWithNewLine(o, "; "+c)
+	}
+	if len(b.collisions) > 0 {
+		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameCollisions+": "+b.collisions)
 	}
 	if len(b.originalEditing) > 0 {
 		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameOriginalEditing+": "+b.originalEditing)
@@ -389,8 +422,8 @@ func (b *ssaScriptInfo) bytes() (o []byte) {
 	if len(b.originalTranslation) > 0 {
 		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameOriginalTranslation+": "+b.originalTranslation)
 	}
-	if len(b.playDepth) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNamePlayDepth+": "+b.playDepth)
+	if b.playDepth != nil {
+		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNamePlayDepth+": "+strconv.Itoa(*b.playDepth))
 	}
 	if b.playResX != nil {
 		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNamePlayResX+": "+strconv.Itoa(*b.playResX))
@@ -1147,7 +1180,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 	}
 
 	// Write Script Info block
-	var si = newSSAScriptInfo(s)
+	var si = newSSAScriptInfo(s.Metadata)
 	if _, err = o.Write(si.bytes()); err != nil {
 		err = errors.Wrap(err, "astisub: writing script info block failed")
 		return

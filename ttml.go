@@ -45,6 +45,16 @@ type TTMLIn struct {
 	XMLName   xml.Name         `xml:"tt"`
 }
 
+// metadata returns the Metadata of the TTML
+func (t TTMLIn) metadata() *Metadata {
+	return &Metadata{
+		Framerate:     t.Framerate,
+		Language:      ttmlLanguageMapping.B(astistring.ToLength(t.Lang, " ", 2)).(string),
+		Title:         t.Metadata.Title,
+		TTMLCopyright: t.Metadata.Copyright,
+	}
+}
+
 // TTMLInMetadata represents an input TTML Metadata
 type TTMLInMetadata struct {
 	Copyright string `xml:"copyright"`
@@ -230,12 +240,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Add metadata
-	o.Metadata = &Metadata{
-		Copyright: ttml.Metadata.Copyright,
-		Framerate: ttml.Framerate,
-		Language:  ttmlLanguageMapping.B(astistring.ToLength(ttml.Lang, " ", 2)).(string),
-		Title:     ttml.Metadata.Title,
-	}
+	o.Metadata = ttml.metadata()
 
 	// Loop through styles
 	var parentStyles = make(map[string]*Style)
@@ -501,9 +506,9 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	// Add metadata
 	if s.Metadata != nil {
 		ttml.Lang = ttmlLanguageMapping.A(s.Metadata.Language).(string)
-		if len(s.Metadata.Copyright) > 0 || len(s.Metadata.Title) > 0 {
+		if len(s.Metadata.TTMLCopyright) > 0 || len(s.Metadata.Title) > 0 {
 			ttml.Metadata = &TTMLOutMetadata{
-				Copyright: s.Metadata.Copyright,
+				Copyright: s.Metadata.TTMLCopyright,
 				Title:     s.Metadata.Title,
 			}
 		}

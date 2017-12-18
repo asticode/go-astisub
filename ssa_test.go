@@ -75,7 +75,7 @@ func TestSSA(t *testing.T) {
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Metadata
-	assert.Equal(t, &astisub.Metadata{Comments: []string{"Comment 1", "Comment 2"}, Copyright: "Copyright test", Title: "SSA test"}, s.Metadata)
+	assert.Equal(t, &astisub.Metadata{Comments: []string{"Comment 1", "Comment 2"}, SSACollisions: "Normal", SSAOriginalScript: "asticode", SSAPlayDepth: astiptr.Int(0), SSAPlayResY: astiptr.Int(600), SSAScriptType: "v4.00", SSAScriptUpdatedBy: "version 2.8.01", SSATimer: astiptr.Float(100), Title: "SSA test"}, s.Metadata)
 	// Styles
 	assert.Equal(t, 3, len(s.Styles))
 	assertSSAStyle(t, astisub.Style{ID: "1", InlineStyle: &astisub.StyleAttributes{SSAAlignment: astiptr.Int(7), SSAAlphaLevel: astiptr.Float(0.1), SSABackColour: &astisub.Color{Alpha: 128, Red: 8}, SSABold: astiptr.Bool(true), SSABorderStyle: astiptr.Int(7), SSAFontName: "f1", SSAFontSize: astiptr.Float(4), SSAOutline: astiptr.Int(1), SSAOutlineColour: &astisub.Color{Green: 255, Red: 255}, SSAMarginLeft: astiptr.Int(1), SSAMarginRight: astiptr.Int(4), SSAMarginVertical: astiptr.Int(7), SSAPrimaryColour: &astisub.Color{Green: 255, Red: 255}, SSASecondaryColour: &astisub.Color{Green: 255, Red: 255}, SSAShadow: astiptr.Int(4)}}, *s.Styles["1"])

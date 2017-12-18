@@ -1,7 +1,13 @@
 [Script Info]
 ; Comment 1
 ; Comment 2
-Original Editing: Copyright test
+Collisions: Normal
+Original Script: asticode
+PlayDepth: 0
+PlayResY: 600
+ScriptType: v4.00
+Script Updated By: version 2.8.01
+Timer: 100
 Title: SSA test
 
 [V4 Styles]
