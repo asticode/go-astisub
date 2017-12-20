@@ -132,6 +132,30 @@ func TestSubtitles_Merge(t *testing.T) {
 	assert.Equal(t, len(s1.Styles), 3)
 }
 
+func TestSubtitles_Optimize(t *testing.T) {
+	var s = &astisub.Subtitles{
+		Items: []*astisub.Item{
+			{Region: &astisub.Region{ID: "1"}},
+			{Style: &astisub.Style{ID: "1"}},
+			{Lines: []astisub.Line{{Items: []astisub.LineItem{{Style: &astisub.Style{ID: "2"}}}}}},
+		},
+		Regions: map[string]*astisub.Region{
+			"1": {ID: "1", Style: &astisub.Style{ID: "3"}},
+			"2": {ID: "2", Style: &astisub.Style{ID: "4"}},
+		},
+		Styles: map[string]*astisub.Style{
+			"1": {ID: "1"},
+			"2": {ID: "2"},
+			"3": {ID: "3"},
+			"4": {ID: "4"},
+			"5": {ID: "5"},
+		},
+	}
+	s.Optimize()
+	assert.Len(t, s.Regions, 1)
+	assert.Len(t, s.Styles, 3)
+}
+
 func TestSubtitles_Order(t *testing.T) {
 	var s = &astisub.Subtitles{Items: []*astisub.Item{{StartAt: 4 * time.Second, EndAt: 5 * time.Second}, {StartAt: 2 * time.Second, EndAt: 3 * time.Second}, {StartAt: 3 * time.Second, EndAt: 4 * time.Second}, {StartAt: time.Second, EndAt: 2 * time.Second}}}
 	s.Order()

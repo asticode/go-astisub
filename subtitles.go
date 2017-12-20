@@ -395,6 +395,63 @@ func (s *Subtitles) Merge(i *Subtitles) {
 	}
 }
 
+// Optimize optimizes subtitles
+func (s *Subtitles) Optimize() {
+	// Nothing to optimize
+	if len(s.Items) == 0 {
+		return
+	}
+
+	// Remove unused regions and style
+	s.removeUnusedRegionsAndStyles()
+}
+
+// removeUnusedRegionsAndStyles removes unused regions and styles
+func (s *Subtitles) removeUnusedRegionsAndStyles() {
+	// Loop through items
+	var usedRegions, usedStyles = make(map[string]bool), make(map[string]bool)
+	for _, item := range s.Items {
+		// Add region
+		if item.Region != nil {
+			usedRegions[item.Region.ID] = true
+		}
+
+		// Add style
+		if item.Style != nil {
+			usedStyles[item.Style.ID] = true
+		}
+
+		// Loop through lines
+		for _, line := range item.Lines {
+			// Loop through line items
+			for _, lineItem := range line.Items {
+				// Add style
+				if lineItem.Style != nil {
+					usedStyles[lineItem.Style.ID] = true
+				}
+			}
+		}
+	}
+
+	// Loop through regions
+	for id, region := range s.Regions {
+		if _, ok := usedRegions[region.ID]; ok {
+			if region.Style != nil {
+				usedStyles[region.Style.ID] = true
+			}
+		} else {
+			delete(s.Regions, id)
+		}
+	}
+
+	// Loop through style
+	for id, style := range s.Styles {
+		if _, ok := usedStyles[style.ID]; !ok {
+			delete(s.Styles, id)
+		}
+	}
+}
+
 // Order orders items
 func (s *Subtitles) Order() {
 	// Nothing to do if less than 1 element

@@ -79,6 +79,14 @@ func main() {
 		if err = sub.Write(*outputPath); err != nil {
 			astilog.Fatalf("%s while writing to %s", err, *outputPath)
 		}
+	case "optimize":
+		// Optimize
+		sub.Optimize()
+
+		// Write
+		if err = sub.Write(*outputPath); err != nil {
+			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+		}
 	case "sync":
 		// Validate sync duration
 		if *syncDuration == 0 {
