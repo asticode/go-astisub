@@ -196,11 +196,12 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Update metadata
+	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Copyright: g.publisher,
-		Framerate: g.framerate,
-		Language:  stlLanguageMapping.B(g.languageCode).(string),
-		Title:     g.originalProgramTitle,
+		Framerate:    g.framerate,
+		Language:     stlLanguageMapping.B(g.languageCode).(string),
+		STLPublisher: g.publisher,
+		Title:        g.originalProgramTitle,
 	}
 
 	// Parse Text and Timing Information (TTI) blocks.
@@ -315,7 +316,7 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		g.framerate = s.Metadata.Framerate
 		g.languageCode = stlLanguageMapping.A(s.Metadata.Language).(string)
 		g.originalProgramTitle = s.Metadata.Title
-		g.publisher = s.Metadata.Copyright
+		g.publisher = s.Metadata.STLPublisher
 	}
 
 	// Timecode first in cue

@@ -15,7 +15,7 @@ func TestTTML(t *testing.T) {
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Metadata
-	assert.Equal(t, &astisub.Metadata{Copyright: "Copyright test", Framerate: 25, Language: astisub.LanguageFrench, Title: "Title test"}, s.Metadata)
+	assert.Equal(t, &astisub.Metadata{Framerate: 25, Language: astisub.LanguageFrench, Title: "Title test", TTMLCopyright: "Copyright test"}, s.Metadata)
 	// Styles
 	assert.Equal(t, 3, len(s.Styles))
 	assert.Equal(t, astisub.Style{ID: "style_0", InlineStyle: &astisub.StyleAttributes{TTMLColor: "white", TTMLExtent: "100% 10%", TTMLFontFamily: "sansSerif", TTMLFontStyle: "normal", TTMLOrigin: "0% 90%", TTMLTextAlign: "center"}, Style: s.Styles["style_2"]}, *s.Styles["style_0"])
