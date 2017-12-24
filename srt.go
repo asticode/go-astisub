@@ -22,7 +22,7 @@ var (
 
 // parseDurationSRT parses an .srt duration
 func parseDurationSRT(i string) (time.Duration, error) {
-	return parseDuration(i, ",")
+	return parseDuration(i, ",", 3)
 }
 
 // ReadFromSRT parses an .srt content
@@ -46,15 +46,15 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Remove trailing empty lines
 			if len(s.Lines) > 0 {
 				for i := len(s.Lines) - 1; i >= 0; i-- {
-					if len(s.Lines[i]) > 0 {
-						for j := len(s.Lines[i]) - 1; j >= 0; j-- {
-							if len(s.Lines[i][j].Text) == 0 {
-								s.Lines[i] = s.Lines[i][:j]
+					if len(s.Lines[i].Items) > 0 {
+						for j := len(s.Lines[i].Items) - 1; j >= 0; j-- {
+							if len(s.Lines[i].Items[j].Text) == 0 {
+								s.Lines[i].Items = s.Lines[i].Items[:j]
 							} else {
 								break
 							}
 						}
-						if len(s.Lines[i]) == 0 {
+						if len(s.Lines[i].Items) == 0 {
 							s.Lines = s.Lines[:i]
 						}
 
@@ -80,7 +80,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			s.Lines = append(s.Lines, []LineItem{{Text: line}})
+			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: line}}})
 		}
 	}
 	return
@@ -88,7 +88,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 // formatDurationSRT formats an .srt duration
 func formatDurationSRT(i time.Duration) string {
-	return formatDuration(i, ",")
+	return formatDuration(i, ",", 3)
 }
 
 // WriteToSRT writes subtitles in .srt format

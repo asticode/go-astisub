@@ -82,30 +82,30 @@ type TTMLInStyleAttributes struct {
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
 func (s TTMLInStyleAttributes) styleAttributes() *StyleAttributes {
 	return &StyleAttributes{
-		BackgroundColor: s.BackgroundColor,
-		Color:           s.Color,
-		Direction:       s.Direction,
-		Display:         s.Display,
-		DisplayAlign:    s.DisplayAlign,
-		Extent:          s.Extent,
-		FontFamily:      s.FontFamily,
-		FontSize:        s.FontSize,
-		FontStyle:       s.FontStyle,
-		FontWeight:      s.FontWeight,
-		LineHeight:      s.LineHeight,
-		Opacity:         s.Opacity,
-		Origin:          s.Origin,
-		Overflow:        s.Overflow,
-		Padding:         s.Padding,
-		ShowBackground:  s.ShowBackground,
-		TextAlign:       s.TextAlign,
-		TextDecoration:  s.TextDecoration,
-		TextOutline:     s.TextOutline,
-		UnicodeBidi:     s.UnicodeBidi,
-		Visibility:      s.Visibility,
-		WrapOption:      s.WrapOption,
-		WritingMode:     s.WritingMode,
-		ZIndex:          s.ZIndex,
+		TTMLBackgroundColor: s.BackgroundColor,
+		TTMLColor:           s.Color,
+		TTMLDirection:       s.Direction,
+		TTMLDisplay:         s.Display,
+		TTMLDisplayAlign:    s.DisplayAlign,
+		TTMLExtent:          s.Extent,
+		TTMLFontFamily:      s.FontFamily,
+		TTMLFontSize:        s.FontSize,
+		TTMLFontStyle:       s.FontStyle,
+		TTMLFontWeight:      s.FontWeight,
+		TTMLLineHeight:      s.LineHeight,
+		TTMLOpacity:         s.Opacity,
+		TTMLOrigin:          s.Origin,
+		TTMLOverflow:        s.Overflow,
+		TTMLPadding:         s.Padding,
+		TTMLShowBackground:  s.ShowBackground,
+		TTMLTextAlign:       s.TextAlign,
+		TTMLTextDecoration:  s.TextDecoration,
+		TTMLTextOutline:     s.TextOutline,
+		TTMLUnicodeBidi:     s.UnicodeBidi,
+		TTMLVisibility:      s.Visibility,
+		TTMLWrapOption:      s.WrapOption,
+		TTMLWritingMode:     s.WritingMode,
+		TTMLZIndex:          s.ZIndex,
 	}
 }
 
@@ -205,7 +205,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		// Update text
 		text = text[:indexes[0]] + ".000"
 	}
-	d.d, err = parseDuration(text, ".")
+	d.d, err = parseDuration(text, ".", 3)
 	return
 }
 
@@ -347,7 +347,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				}
 
 				// Append items
-				*l = append(*l, t)
+				l.Items = append(l.Items, t)
 			}
 
 		}
@@ -412,30 +412,30 @@ func ttmlOutStyleAttributesFromStyleAttributes(s *StyleAttributes) TTMLOutStyleA
 		return TTMLOutStyleAttributes{}
 	}
 	return TTMLOutStyleAttributes{
-		BackgroundColor: s.BackgroundColor,
-		Color:           s.Color,
-		Direction:       s.Direction,
-		Display:         s.Display,
-		DisplayAlign:    s.DisplayAlign,
-		Extent:          s.Extent,
-		FontFamily:      s.FontFamily,
-		FontSize:        s.FontSize,
-		FontStyle:       s.FontStyle,
-		FontWeight:      s.FontWeight,
-		LineHeight:      s.LineHeight,
-		Opacity:         s.Opacity,
-		Origin:          s.Origin,
-		Overflow:        s.Overflow,
-		Padding:         s.Padding,
-		ShowBackground:  s.ShowBackground,
-		TextAlign:       s.TextAlign,
-		TextDecoration:  s.TextDecoration,
-		TextOutline:     s.TextOutline,
-		UnicodeBidi:     s.UnicodeBidi,
-		Visibility:      s.Visibility,
-		WrapOption:      s.WrapOption,
-		WritingMode:     s.WritingMode,
-		ZIndex:          s.ZIndex,
+		BackgroundColor: s.TTMLBackgroundColor,
+		Color:           s.TTMLColor,
+		Direction:       s.TTMLDirection,
+		Display:         s.TTMLDisplay,
+		DisplayAlign:    s.TTMLDisplayAlign,
+		Extent:          s.TTMLExtent,
+		FontFamily:      s.TTMLFontFamily,
+		FontSize:        s.TTMLFontSize,
+		FontStyle:       s.TTMLFontStyle,
+		FontWeight:      s.TTMLFontWeight,
+		LineHeight:      s.TTMLLineHeight,
+		Opacity:         s.TTMLOpacity,
+		Origin:          s.TTMLOrigin,
+		Overflow:        s.TTMLOverflow,
+		Padding:         s.TTMLPadding,
+		ShowBackground:  s.TTMLShowBackground,
+		TextAlign:       s.TTMLTextAlign,
+		TextDecoration:  s.TTMLTextDecoration,
+		TextOutline:     s.TTMLTextOutline,
+		UnicodeBidi:     s.TTMLUnicodeBidi,
+		Visibility:      s.TTMLVisibility,
+		WrapOption:      s.TTMLWrapOption,
+		WritingMode:     s.TTMLWritingMode,
+		ZIndex:          s.TTMLZIndex,
 	}
 }
 
@@ -482,7 +482,7 @@ type TTMLOutDuration time.Duration
 
 // MarshalText implements the TextMarshaler interface
 func (t TTMLOutDuration) MarshalText() ([]byte, error) {
-	return []byte(formatDuration(time.Duration(t), ".")), nil
+	return []byte(formatDuration(time.Duration(t), ".", 3)), nil
 }
 
 // WriteToTTML writes subtitles in .ttml format
@@ -566,7 +566,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		// Add lines
 		for _, line := range item.Lines {
 			// Loop through line items
-			for _, lineItem := range line {
+			for _, lineItem := range line.Items {
 				// Init ttml item
 				var ttmlItem = TTMLOutItem{
 					Text: lineItem.Text,

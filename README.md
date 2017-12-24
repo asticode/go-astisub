@@ -5,7 +5,7 @@
 
 This is a Golang library to manipulate subtitles. 
 
-It allows you to manipulate `srt`, `stl`, `ttml` and `webvtt` files for now.
+It allows you to manipulate `srt`, `stl`, `ttml`, `ssa/ass` and `webvtt` files for now.
 
 Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfragmenting` and `merging`.
 
@@ -78,6 +78,6 @@ If **astisub** has been installed properly you can:
 - [x] .ttml
 - [x] .vtt
 - [x] .stl
+- [x] .ssa/.ass
 - [ ] .teletext
-- [ ] .ssa/.ass
 - [ ] .smi
