@@ -567,7 +567,6 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 			ttmlSubtitle.Style = item.Style.ID
 		}
 
-		//
 		// Add lines
 		for _, line := range item.Lines {
 			// Loop through line items
