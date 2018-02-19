@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,8 +31,11 @@ const (
 var ttmlLanguageMapping = astimap.NewMap(ttmlLanguageEnglish, LanguageEnglish).
 	Set(ttmlLanguageFrench, LanguageFrench)
 
-// TTML regexp
-var ttmlRegexpDurationFrames = regexp.MustCompile("\\:[\\d]+$")
+// TTML Clock Time Frames and Offset Time
+var (
+	ttmlRegexpClockTimeFrames = regexp.MustCompile("\\:[\\d]+$")
+	ttmlRegexpOffsetTime      = regexp.MustCompile("^(\\d+)(\\.(\\d+))?(h|m|s|ms|f|t)$")
+)
 
 // TTMLIn represents an input TTML that must be unmarshaled
 // We split it from the output TTML as we can't add strict namespace without breaking retrocompatibility
@@ -204,7 +208,62 @@ type TTMLInDuration struct {
 // - hh:mm:ss:fff (fff being frames)
 func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 	var text = string(i)
-	if indexes := ttmlRegexpDurationFrames.FindStringIndex(text); indexes != nil {
+	if matches := ttmlRegexpOffsetTime.FindStringSubmatch(text); matches != nil {
+		metric := matches[4]
+		value, err := strconv.Atoi(matches[1])
+
+		if err != nil {
+			err = errors.Wrapf(err, "astisub: failed to parse value %s", matches[1])
+			return err
+		}
+
+		d.d = time.Duration(0)
+
+		var (
+			nsBase       int64
+			fraction     int
+			fractionBase float64
+		)
+
+		if len(matches[3]) > 0 {
+			fraction, err = strconv.Atoi(matches[3])
+			fractionBase = math.Pow10(len(matches[3]))
+
+			if err != nil {
+				err = errors.Wrapf(err, "astisub: failed to parse fraction %s", matches[3])
+				return err
+			}
+		}
+
+		switch metric {
+		case "h":
+			nsBase = time.Hour.Nanoseconds()
+		case "m":
+			nsBase = time.Minute.Nanoseconds()
+		case "s":
+			nsBase = time.Second.Nanoseconds()
+		case "ms":
+			nsBase = time.Millisecond.Nanoseconds()
+		case "f":
+			nsBase = time.Second.Nanoseconds()
+			d.frames = value % d.framerate
+			value = value / d.framerate
+			// TODO: fraction of frames
+		case "t":
+			// TODO: implement ticks
+			return errors.New("astisub: offset time in ticks not implemented")
+		}
+
+		d.d += time.Duration(nsBase * int64(value))
+
+		if fractionBase > 0 {
+			d.d += time.Duration(nsBase * int64(fraction) / int64(fractionBase))
+		}
+
+		return nil
+
+	}
+	if indexes := ttmlRegexpClockTimeFrames.FindStringIndex(text); indexes != nil {
 		// Parse frames
 		var s = text[indexes[0]+1 : indexes[1]]
 		if d.frames, err = strconv.Atoi(s); err != nil {
@@ -215,6 +274,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		// Update text
 		text = text[:indexes[0]] + ".000"
 	}
+
 	d.d, err = parseDuration(text, ".", 3)
 	return
 }
