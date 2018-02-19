@@ -31,11 +31,11 @@ const (
 var ttmlLanguageMapping = astimap.NewMap(ttmlLanguageEnglish, LanguageEnglish).
 	Set(ttmlLanguageFrench, LanguageFrench)
 
-// TTML regexp
-var ttmlRegexpDurationFrames = regexp.MustCompile("\\:[\\d]+$")
-
-// TTML offset time
-var ttmlRegexpOffsetTime = regexp.MustCompile("(\\d+)(\\.(\\d+))?(h|m|s|ms|f)$")
+// TTML Clock Time Frames and Offset Time
+var (
+	ttmlRegexpClockTimeFrames = regexp.MustCompile("\\:[\\d]+$")
+	ttmlRegexpOffsetTime      = regexp.MustCompile("^(\\d+)(\\.(\\d+))?(h|m|s|ms|f|t)$")
+)
 
 // TTMLIn represents an input TTML that must be unmarshaled
 // We split it from the output TTML as we can't add strict namespace without breaking retrocompatibility
@@ -212,6 +212,11 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		metric := matches[4]
 		value, err := strconv.Atoi(matches[1])
 
+		if err != nil {
+			err = errors.Wrapf(err, "astisub: failed to parse value %s", matches[1])
+			return err
+		}
+
 		d.d = time.Duration(0)
 
 		var (
@@ -219,13 +224,15 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 			fraction     int
 			fractionBase float64
 		)
+
 		if len(matches[3]) > 0 {
 			fraction, err = strconv.Atoi(matches[3])
 			fractionBase = math.Pow10(len(matches[3]))
-		}
 
-		if err != nil {
-			return err
+			if err != nil {
+				err = errors.Wrapf(err, "astisub: failed to parse fraction %s", matches[3])
+				return err
+			}
 		}
 
 		switch metric {
@@ -241,7 +248,10 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 			nsBase = time.Second.Nanoseconds()
 			d.frames = value % d.framerate
 			value = value / d.framerate
-			// TODO, fraction of frames
+			// TODO: fraction of frames
+		case "t":
+			// TODO: implement ticks
+			return errors.New("astisub: offset time in ticks not implemented")
 		}
 
 		d.d += time.Duration(nsBase * int64(value))
@@ -253,7 +263,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		return nil
 
 	}
-	if indexes := ttmlRegexpDurationFrames.FindStringIndex(text); indexes != nil {
+	if indexes := ttmlRegexpClockTimeFrames.FindStringIndex(text); indexes != nil {
 		// Parse frames
 		var s = text[indexes[0]+1 : indexes[1]]
 		if d.frames, err = strconv.Atoi(s); err != nil {
