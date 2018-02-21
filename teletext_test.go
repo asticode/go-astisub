@@ -42,7 +42,7 @@ func TestTeletextPageParse(t *testing.T) {
 	}}, s.Items)
 }
 
-func TestTeletextPageParseRow(t *testing.T) {
+func TestParseTeletextRow(t *testing.T) {
 	b := []byte("start")
 	b = append(b, 0x0, 0xb)
 	b = append(b, []byte("black")...)
@@ -148,7 +148,7 @@ func TestTeletextPageParseRow(t *testing.T) {
 	}, i.Lines[0].Items)
 }
 
-func TestTeletextPageAppendLineItem(t *testing.T) {
+func TestAppendTeletextLineItem(t *testing.T) {
 	// Init
 	l := Line{}
 

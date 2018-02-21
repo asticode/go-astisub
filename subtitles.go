@@ -24,9 +24,17 @@ var (
 	ColorBlack   = &Color{}
 	ColorBlue    = &Color{Blue: 255}
 	ColorCyan    = &Color{Blue: 255, Green: 255}
-	ColorGreen   = &Color{Green: 255}
+	ColorGray    = &Color{Blue: 128, Green: 128, Red: 128}
+	ColorGreen   = &Color{Green: 128}
+	ColorLime    = &Color{Green: 255}
 	ColorMagenta = &Color{Blue: 255, Red: 255}
+	ColorMaroon  = &Color{Red: 128}
+	ColorNavy    = &Color{Blue: 128}
+	ColorOlive   = &Color{Green: 128, Red: 128}
+	ColorPurple  = &Color{Blue: 128, Red: 128}
 	ColorRed     = &Color{Red: 255}
+	ColorSilver  = &Color{Blue: 192, Green: 192, Red: 192}
+	ColorTeal    = &Color{Blue: 128, Green: 128}
 	ColorYellow  = &Color{Green: 255, Red: 255}
 	ColorWhite   = &Color{Blue: 255, Green: 255, Red: 255}
 )
@@ -150,7 +158,7 @@ func (c *Color) String(base int) string {
 }
 
 // StyleAttributes represents style attributes
-// TODO Convert styles+inline styles form different formats as well
+// TODO Convert styles+inline styles from different formats as well
 type StyleAttributes struct {
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
@@ -187,7 +195,7 @@ type StyleAttributes struct {
 	TeletextDoubleWidth  *bool
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
-	TTMLBackgroundColor  string
+	TTMLBackgroundColor  string // https://htmlcolorcodes.com/fr/
 	TTMLColor            string
 	TTMLDirection        string
 	TTMLDisplay          string
