@@ -73,8 +73,7 @@ func TestTeletextPageParseRow(t *testing.T) {
 	i := Item{}
 	d := newTeletextCharacterDecoder()
 	d.updateCharset(astiptr.UInt8(0), false)
-	p := teletextPage{}
-	p.parseRow(&i, d, b)
+	parseTeletextRow(&i, d, nil, b)
 	assert.Equal(t, 1, len(i.Lines))
 	assert.Equal(t, []LineItem{
 		{Text: "black", InlineStyle: &StyleAttributes{
@@ -152,14 +151,13 @@ func TestTeletextPageParseRow(t *testing.T) {
 func TestTeletextPageAppendLineItem(t *testing.T) {
 	// Init
 	l := Line{}
-	p := &teletextPage{}
 
 	// Empty
-	p.appendLineItem(&l, LineItem{})
+	appendTeletextLineItem(&l, LineItem{})
 	assert.Equal(t, 0, len(l.Items))
 
 	// Not empty
-	p.appendLineItem(&l, LineItem{Text: " test  "})
+	appendTeletextLineItem(&l, LineItem{Text: " test  "})
 	assert.Equal(t, "test", l.Items[0].Text)
 	assert.Equal(t, StyleAttributes{
 		TeletextSpacesAfter:  astiptr.Int(2),

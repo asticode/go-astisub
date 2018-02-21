@@ -330,6 +330,7 @@ type TeletextOptions struct {
 // ReadFromTeletext parses a teletext content
 // http://www.etsi.org/deliver/etsi_en/300400_300499/300472/01.03.01_60/en_300472v010301p.pdf
 // http://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf
+// TODO Add more tests
 func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) {
 	// Init
 	s = &Subtitles{}
@@ -827,19 +828,36 @@ func (p *teletextPage) parse(s *Subtitles, d *teletextCharacterDecoder, firstTim
 
 	// Loop through rows
 	for _, idxRow := range p.rows {
-		p.parseRow(i, d, p.data[uint8(idxRow)])
+		parseTeletextRow(i, d, nil, p.data[uint8(idxRow)])
 	}
 
 	// Append item
 	s.Items = append(s.Items, i)
 }
 
-func (p *teletextPage) parseRow(i *Item, d *teletextCharacterDecoder, row []byte) {
+type decoder interface {
+	decode(i byte) []byte
+}
+
+type styler interface {
+	hasBeenSet() bool
+	hasChanged(s *StyleAttributes) bool
+	parseSpacingAttribute(i byte)
+	update(sa *StyleAttributes)
+}
+
+func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	// Loop through columns
 	var l = Line{}
 	var li = LineItem{InlineStyle: &StyleAttributes{}}
 	var started bool
 	for _, v := range row {
+		// Create specific styler
+		var s styler
+		if fs != nil {
+			s = fs()
+		}
+
 		// Get spacing attributes
 		var color *Color
 		var doubleHeight, doubleSize, doubleWidth *bool
@@ -874,17 +892,22 @@ func (p *teletextPage) parseRow(i *Item, d *teletextCharacterDecoder, row []byte
 			doubleWidth = astiptr.Bool(true)
 		case 0xf:
 			doubleSize = astiptr.Bool(true)
+		default:
+			if s != nil {
+				s.parseSpacingAttribute(v)
+			}
 		}
 
 		// Style has been set
-		if color != nil || doubleHeight != nil || doubleSize != nil || doubleWidth != nil {
+		if color != nil || doubleHeight != nil || doubleSize != nil || doubleWidth != nil || (s != nil && s.hasBeenSet()) {
 			// Style has changed
 			if color != li.InlineStyle.TeletextColor || doubleHeight != li.InlineStyle.TeletextDoubleHeight ||
-				doubleSize != li.InlineStyle.TeletextDoubleSize || doubleWidth != li.InlineStyle.TeletextDoubleWidth {
+				doubleSize != li.InlineStyle.TeletextDoubleSize || doubleWidth != li.InlineStyle.TeletextDoubleWidth ||
+				(s != nil && s.hasChanged(li.InlineStyle)) {
 				// Line has started
 				if started {
 					// Append line item
-					p.appendLineItem(&l, li)
+					appendTeletextLineItem(&l, li)
 
 					// Create new line item
 					sa := &StyleAttributes{}
@@ -905,6 +928,9 @@ func (p *teletextPage) parseRow(i *Item, d *teletextCharacterDecoder, row []byte
 				if doubleWidth != nil && doubleWidth != li.InlineStyle.TeletextDoubleWidth {
 					li.InlineStyle.TeletextDoubleWidth = doubleWidth
 				}
+				if s != nil {
+					s.update(li.InlineStyle)
+				}
 			}
 		} else if started {
 			// Append text
@@ -913,7 +939,7 @@ func (p *teletextPage) parseRow(i *Item, d *teletextCharacterDecoder, row []byte
 	}
 
 	// Append line item
-	p.appendLineItem(&l, li)
+	appendTeletextLineItem(&l, li)
 
 	// Append line
 	if len(l.Items) > 0 {
@@ -921,7 +947,7 @@ func (p *teletextPage) parseRow(i *Item, d *teletextCharacterDecoder, row []byte
 	}
 }
 
-func (p *teletextPage) appendLineItem(l *Line, li LineItem) {
+func appendTeletextLineItem(l *Line, li LineItem) {
 	// There's some text
 	if len(strings.TrimSpace(li.Text)) > 0 {
 		// Make sure inline style exists
