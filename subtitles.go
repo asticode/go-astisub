@@ -19,6 +19,18 @@ var (
 	bytesSpace         = []byte(" ")
 )
 
+// Colors
+var (
+	ColorBlack   = &Color{}
+	ColorBlue    = &Color{Blue: 255}
+	ColorCyan    = &Color{Blue: 255, Green: 255}
+	ColorGreen   = &Color{Green: 255}
+	ColorMagenta = &Color{Blue: 255, Red: 255}
+	ColorRed     = &Color{Red: 255}
+	ColorYellow  = &Color{Green: 255, Red: 255}
+	ColorWhite   = &Color{Blue: 255, Green: 255, Red: 255}
+)
+
 // Errors
 var (
 	ErrInvalidExtension   = errors.New("astisub: invalid extension")
@@ -32,23 +44,22 @@ var Now = func() time.Time {
 
 // Options represents open or write options
 type Options struct {
-	Page int
-	PID  int
-	Src  string
+	Filename string
+	Teletext TeletextOptions
 }
 
-// Open opens a subtitle file based on options
+// Open opens a subtitle reader based on options
 func Open(o Options) (s *Subtitles, err error) {
 	// Open the file
 	var f *os.File
-	if f, err = os.Open(o.Src); err != nil {
-		err = errors.Wrapf(err, "astisub: opening %s failed", o.Src)
+	if f, err = os.Open(o.Filename); err != nil {
+		err = errors.Wrapf(err, "astisub: opening %s failed", o.Filename)
 		return
 	}
 	defer f.Close()
 
 	// Parse the content
-	switch filepath.Ext(o.Src) {
+	switch filepath.Ext(o.Filename) {
 	case ".srt":
 		s, err = ReadFromSRT(f)
 	case ".ssa", ".ass":
@@ -56,7 +67,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	case ".stl":
 		s, err = ReadFromSTL(f)
 	case ".ts":
-		s, err = ReadFromTeletext(f, o.PID, o.Page)
+		s, err = ReadFromTeletext(f, o.Teletext)
 	case ".ttml":
 		s, err = ReadFromTTML(f)
 	case ".vtt":
@@ -68,8 +79,8 @@ func Open(o Options) (s *Subtitles, err error) {
 }
 
 // OpenFile opens a file regardless of other options
-func OpenFile(src string) (*Subtitles, error) {
-	return Open(Options{Src: src})
+func OpenFile(filename string) (*Subtitles, error) {
+	return Open(Options{Filename: filename})
 }
 
 // Subtitles represents an ordered list of items with formatting
@@ -139,7 +150,7 @@ func (c *Color) String(base int) string {
 }
 
 // StyleAttributes represents style attributes
-// TODO Merge attributes
+// TODO Convert styles+inline styles form different formats as well
 type StyleAttributes struct {
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
@@ -167,6 +178,12 @@ type StyleAttributes struct {
 	SSASpacing           *int // pixels
 	SSAStrikeout         *bool
 	SSAUnderline         *bool
+	TeletextColor        *Color
+	TeletextDoubleHeight *bool
+	TeletextDoubleSize   *bool
+	TeletextDoubleWidth  *bool
+	TeletextSpacesAfter  *int
+	TeletextSpacesBefore *int
 	TTMLBackgroundColor  string
 	TTMLColor            string
 	TTMLDirection        string

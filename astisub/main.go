@@ -12,6 +12,7 @@ import (
 var (
 	fragmentDuration = flag.Duration("f", 0, "the fragment duration")
 	inputPath        = astiflag.Strings{}
+	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
 )
@@ -36,7 +37,7 @@ func main() {
 	// Open first input path
 	var sub *astisub.Subtitles
 	var err error
-	if sub, err = astisub.OpenFile(inputPath[0]); err != nil {
+	if sub, err = astisub.Open(astisub.Options{Filename: inputPath[0], Teletext: astisub.TeletextOptions{Page: *teletextPage}}); err != nil {
 		astilog.Fatalf("%s while opening %s", err, inputPath[0])
 	}
 
@@ -68,7 +69,7 @@ func main() {
 
 		// Open second input path
 		var sub2 *astisub.Subtitles
-		if sub2, err = astisub.OpenFile(inputPath[1]); err != nil {
+		if sub2, err = astisub.Open(astisub.Options{Filename: inputPath[1], Teletext: astisub.TeletextOptions{Page: *teletextPage}}); err != nil {
 			astilog.Fatalf("%s while opening %s", err, inputPath[1])
 		}
 
