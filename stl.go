@@ -351,87 +351,99 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	}
 
 	// Creation date
-	var cd = string(b[224:230])
-	if g.creationDate, err = time.Parse("060102", cd); err != nil {
-		err = errors.Wrapf(err, "astisub: parsing date %s failed", cd)
-		return
+	if v := strings.TrimSpace(string(b[224:230])); len(v) > 0 {
+		if g.creationDate, err = time.Parse("060102", v); err != nil {
+			err = errors.Wrapf(err, "astisub: parsing date %s failed", v)
+			return
+		}
 	}
 
 	// Revision date
-	var rd = string(b[230:236])
-	if g.revisionDate, err = time.Parse("060102", rd); err != nil {
-		err = errors.Wrapf(err, "astisub: parsing date %s failed", rd)
-		return
+	if v := strings.TrimSpace(string(b[230:236])); len(v) > 0 {
+		if g.revisionDate, err = time.Parse("060102", v); err != nil {
+			err = errors.Wrapf(err, "astisub: parsing date %s failed", v)
+			return
+		}
 	}
 
 	// Revision number
-	var rn = string(b[236:238])
-	if g.revisionNumber, err = strconv.Atoi(strings.TrimSpace(rn)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", rn)
-		return
+	if v := strings.TrimSpace(string(b[236:238])); len(v) > 0 {
+		if g.revisionNumber, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Total number of TTI blocks
-	var tnb = string(b[238:243])
-	if g.totalNumberOfTTIBlocks, err = strconv.Atoi(strings.TrimSpace(tnb)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", tnb)
-		return
+	if v := strings.TrimSpace(string(b[238:243])); len(v) > 0 {
+		if g.totalNumberOfTTIBlocks, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Total number of subtitles
-	var tns = string(b[243:248])
-	if g.totalNumberOfSubtitles, err = strconv.Atoi(strings.TrimSpace(tns)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", tns)
-		return
+	if v := strings.TrimSpace(string(b[243:248])); len(v) > 0 {
+		if g.totalNumberOfSubtitles, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Total number of subtitle groups
-	var tng = string(b[248:251])
-	if g.totalNumberOfSubtitleGroups, err = strconv.Atoi(strings.TrimSpace(tng)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", tng)
-		return
+	if v := strings.TrimSpace(string(b[248:251])); len(v) > 0 {
+		if g.totalNumberOfSubtitleGroups, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Maximum number of displayable characters in any text row
-	var mnc = string(b[251:253])
-	if g.maximumNumberOfDisplayableCharactersInAnyTextRow, err = strconv.Atoi(strings.TrimSpace(mnc)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", mnc)
-		return
+	if v := strings.TrimSpace(string(b[251:253])); len(v) > 0 {
+		if g.maximumNumberOfDisplayableCharactersInAnyTextRow, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Maximum number of displayable rows
-	var mnr = string(b[253:255])
-	if g.maximumNumberOfDisplayableRows, err = strconv.Atoi(strings.TrimSpace(mnr)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", mnr)
-		return
+	if v := strings.TrimSpace(string(b[253:255])); len(v) > 0 {
+		if g.maximumNumberOfDisplayableRows, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Timecode start of programme
-	var tcp = string(b[256:264])
-	if g.timecodeStartOfProgramme, err = parseDurationSTL(tcp, g.framerate); err != nil {
-		err = errors.Wrapf(err, "astisub: parsing of stl duration %s failed", tcp)
-		return
+	if v := strings.TrimSpace(string(b[256:264])); len(v) > 0 {
+		if g.timecodeStartOfProgramme, err = parseDurationSTL(v, g.framerate); err != nil {
+			err = errors.Wrapf(err, "astisub: parsing of stl duration %s failed", v)
+			return
+		}
 	}
 
 	// Timecode first in cue
-	var tcf = string(b[264:272])
-	if g.timecodeFirstInCue, err = parseDurationSTL(tcf, g.framerate); err != nil {
-		err = errors.Wrapf(err, "astisub: parsing of stl duration %s failed", tcf)
-		return
+	if v := strings.TrimSpace(string(b[264:272])); len(v) > 0 {
+		if g.timecodeFirstInCue, err = parseDurationSTL(v, g.framerate); err != nil {
+			err = errors.Wrapf(err, "astisub: parsing of stl duration %s failed", v)
+			return
+		}
 	}
 
 	// Total number of disks
-	var tnd = string(b[272])
-	if g.totalNumberOfDisks, err = strconv.Atoi(strings.TrimSpace(tnd)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", tnd)
-		return
+	if v := strings.TrimSpace(string(b[272])); len(v) > 0 {
+		if g.totalNumberOfDisks, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 
 	// Disk sequence number
-	var dsn = string(b[273])
-	if g.diskSequenceNumber, err = strconv.Atoi(strings.TrimSpace(dsn)); err != nil {
-		err = errors.Wrapf(err, "astisub: atoi of %s failed", dsn)
-		return
+	if v := strings.TrimSpace(string(b[273])); len(v) > 0 {
+		if g.diskSequenceNumber, err = strconv.Atoi(v); err != nil {
+			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			return
+		}
 	}
 	return
 }
