@@ -178,6 +178,9 @@ type StyleAttributes struct {
 	SSASpacing           *int // pixels
 	SSAStrikeout         *bool
 	SSAUnderline         *bool
+	STLBoxing            *bool
+	STLItalics           *bool
+	STLUnderline         *bool
 	TeletextColor        *Color
 	TeletextDoubleHeight *bool
 	TeletextDoubleSize   *bool

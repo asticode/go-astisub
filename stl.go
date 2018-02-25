@@ -12,6 +12,7 @@ import (
 
 	"github.com/asticode/go-astitools/byte"
 	"github.com/asticode/go-astitools/map"
+	"github.com/asticode/go-astitools/ptr"
 	"github.com/pkg/errors"
 	"golang.org/x/text/unicode/norm"
 )
@@ -27,20 +28,78 @@ const (
 
 // STL character code table number
 const (
-	stlCharacterCodeTableNumberLatin         = "00"
-	stlCharacterCodeTableNumberLatinCyrillic = "01"
-	stlCharacterCodeTableNumberLatinArabic   = "02"
-	stlCharacterCodeTableNumberLatinGreek    = "03"
-	stlCharacterCodeTableNumberLatinHebrew   = "04"
+	stlCharacterCodeTableNumberLatin         uint16 = 12336
+	stlCharacterCodeTableNumberLatinCyrillic        = 12337
+	stlCharacterCodeTableNumberLatinArabic          = 12338
+	stlCharacterCodeTableNumberLatinGreek           = 12339
+	stlCharacterCodeTableNumberLatinHebrew          = 12340
+)
+
+// STL character code tables
+// TODO Add missing tables
+var (
+	stlCharacterCodeTables = map[uint16]*astimap.Map{
+		stlCharacterCodeTableNumberLatin: astimap.NewMap(0x0, "").
+			Set(0x20, " ").Set(0x21, "!").Set(0x22, "\"").Set(0x23, "#").
+			Set(0x24, "¤").Set(0x25, "%").Set(0x26, "&").Set(0x27, "'").
+			Set(0x28, "(").Set(0x29, ")").Set(0x2a, "*").Set(0x2b, "+").
+			Set(0x2c, ",").Set(0x2d, "-").Set(0x2e, ".").Set(0x2f, "/").
+			Set(0x30, "0").Set(0x31, "1").Set(0x32, "2").Set(0x33, "3").
+			Set(0x34, "4").Set(0x35, "5").Set(0x36, "6").Set(0x37, "7").
+			Set(0x38, "8").Set(0x39, "9").Set(0x3a, ":").Set(0x3b, ";").
+			Set(0x3c, "<").Set(0x3d, "=").Set(0x3e, ">").Set(0x3f, "?").
+			Set(0x40, "@").Set(0x41, "A").Set(0x42, "B").Set(0x43, "C").
+			Set(0x44, "D").Set(0x45, "E").Set(0x46, "F").Set(0x47, "G").
+			Set(0x48, "H").Set(0x49, "I").Set(0x4a, "J").Set(0x4b, "K").
+			Set(0x4c, "L").Set(0x4d, "M").Set(0x4e, "N").Set(0x4f, "O").
+			Set(0x50, "P").Set(0x51, "Q").Set(0x52, "R").Set(0x53, "S").
+			Set(0x54, "T").Set(0x55, "U").Set(0x56, "V").Set(0x57, "W").
+			Set(0x58, "X").Set(0x59, "Y").Set(0x5a, "Z").Set(0x5b, "[").
+			Set(0x5c, "\\").Set(0x5d, "]").Set(0x5e, "^").Set(0x5f, "_").
+			Set(0x60, "`").Set(0x61, "a").Set(0x62, "b").Set(0x63, "c").
+			Set(0x64, "d").Set(0x65, "e").Set(0x66, "f").Set(0x67, "g").
+			Set(0x68, "h").Set(0x69, "i").Set(0x6a, "j").Set(0x6b, "k").
+			Set(0x6c, "l").Set(0x6d, "m").Set(0x6e, "n").Set(0x6f, "o").
+			Set(0x70, "p").Set(0x71, "q").Set(0x72, "r").Set(0x73, "s").
+			Set(0x74, "t").Set(0x75, "u").Set(0x76, "v").Set(0x77, "w").
+			Set(0x78, "x").Set(0x79, "y").Set(0x7a, "z").Set(0x7b, "{").
+			Set(0x7c, "|").Set(0x7d, "}").Set(0x7e, "~").
+			Set(0xa0, string([]byte{0xC2, 0xA0})).Set(0xa1, "¡").Set(0xa2, "¢").
+			Set(0xa3, "£").Set(0xa4, "$").Set(0xa5, "¥").Set(0xa7, "§").
+			Set(0xa9, "‘").Set(0xaa, "“").Set(0xab, "«").Set(0xac, "←").
+			Set(0xad, "↑").Set(0xae, "→").Set(0xaf, "↓").
+			Set(0xb0, "°").Set(0xb1, "±").Set(0xb2, "²").Set(0xb3, "³").
+			Set(0xb4, "×").Set(0xb5, "µ").Set(0xb6, "¶").Set(0xb7, "·").
+			Set(0xb8, "÷").Set(0xb9, "’").Set(0xba, "”").Set(0xbb, "»").
+			Set(0xbc, "¼").Set(0xbd, "½").Set(0xbe, "¾").Set(0xbf, "¿").
+			Set(0xc1, string([]byte{0xCC, 0x80})).Set(0xc2, string([]byte{0xCC, 0x81})).
+			Set(0xc3, string([]byte{0xCC, 0x82})).Set(0xc4, string([]byte{0xCC, 0x83})).
+			Set(0xc5, string([]byte{0xCC, 0x84})).Set(0xc6, string([]byte{0xCC, 0x86})).
+			Set(0xc7, string([]byte{0xCC, 0x87})).Set(0xc8, string([]byte{0xCC, 0x88})).
+			Set(0xca, string([]byte{0xCC, 0x8A})).Set(0xcb, string([]byte{0xCC, 0xA7})).
+			Set(0xcd, string([]byte{0xCC, 0x8B})).Set(0xce, string([]byte{0xCC, 0xA8})).
+			Set(0xcf, string([]byte{0xCC, 0x8C})).
+			Set(0xd0, "―").Set(0xd1, "¹").Set(0xd2, "®").Set(0xd3, "©").
+			Set(0xd4, "™").Set(0xd5, "♪").Set(0xd6, "¬").Set(0xd7, "¦").
+			Set(0xdc, "⅛").Set(0xdd, "⅜").Set(0xde, "⅝").Set(0xdf, "⅞").
+			Set(0xe0, "Ω").Set(0xe1, "Æ").Set(0xe2, "Đ").Set(0xe3, "ª").
+			Set(0xe4, "Ħ").Set(0xe6, "Ĳ").Set(0xe7, "Ŀ").Set(0xe8, "Ł").
+			Set(0xe9, "Ø").Set(0xea, "Œ").Set(0xeb, "º").Set(0xec, "Þ").
+			Set(0xed, "Ŧ").Set(0xee, "Ŋ").Set(0xef, "ŉ").
+			Set(0xf0, "ĸ").Set(0xf1, "æ").Set(0xf2, "đ").Set(0xf3, "ð").
+			Set(0xf4, "ħ").Set(0xf5, "ı").Set(0xf6, "ĳ").Set(0xf7, "ŀ").
+			Set(0xf8, "ł").Set(0xf9, "ø").Set(0xfa, "œ").Set(0xfb, "ß").
+			Set(0xfc, "þ").Set(0xfd, "ŧ").Set(0xfe, "ŋ").Set(0xff, string([]byte{0xC2, 0xAD})),
+	}
 )
 
 // STL code page numbers
 const (
-	stlCodePageNumberCanadaFrench = "863"
-	stlCodePageNumberMultilingual = "850"
-	stlCodePageNumberNordic       = "865"
-	stlCodePageNumberPortugal     = "860"
-	stlCodePageNumberUnitedStates = "437"
+	stlCodePageNumberCanadaFrench uint32 = 3683891
+	stlCodePageNumberMultilingual        = 3683632
+	stlCodePageNumberNordic              = 3683893
+	stlCodePageNumberPortugal            = 3683888
+	stlCodePageNumberUnitedStates        = 3420983
 )
 
 // STL comment flag
@@ -98,85 +157,6 @@ const (
 	stlTimecodeStatusIntendedForUse    = "1"
 )
 
-// STL unicode diacritic
-var stlUnicodeDiacritic = astimap.NewMap(byte('\x00'), "\x00").
-	Set(byte('\xc1'), "\u0300"). // Grave accent
-	Set(byte('\xc2'), "\u0301"). // Acute accent
-	Set(byte('\xc3'), "\u0302"). // Circumflex
-	Set(byte('\xc4'), "\u0303"). // Tilde
-	Set(byte('\xc5'), "\u0304"). // Macron
-	Set(byte('\xc6'), "\u0306"). // Breve
-	Set(byte('\xc7'), "\u0307"). // Dot
-	Set(byte('\xc8'), "\u0308"). // Umlaut
-	Set(byte('\xca'), "\u030a"). // Ring
-	Set(byte('\xcb'), "\u0327"). // Cedilla
-	Set(byte('\xcd'), "\u030B"). // Double acute accent
-	Set(byte('\xce'), "\u0328"). // Ogonek
-	Set(byte('\xcf'), "\u030c")  // Caron
-
-// STL unicode mapping
-var stlUnicodeMapping = astimap.NewMap(byte('\x00'), "\x00").
-	Set(byte('\x8a'), "\u000a"). // Line break
-	Set(byte('\xa8'), "\u00a4"). // ¤
-	Set(byte('\xa9'), "\u2018"). // ‘
-	Set(byte('\xaa'), "\u201C"). // “
-	Set(byte('\xab'), "\u00AB"). // «
-	Set(byte('\xac'), "\u2190"). // ←
-	Set(byte('\xad'), "\u2191"). // ↑
-	Set(byte('\xae'), "\u2192"). // →
-	Set(byte('\xaf'), "\u2193"). // ↓
-	Set(byte('\xb4'), "\u00D7"). // ×
-	Set(byte('\xb8'), "\u00F7"). // ÷
-	Set(byte('\xb9'), "\u2019"). // ’
-	Set(byte('\xba'), "\u201D"). // ”
-	Set(byte('\xbc'), "\u00BC"). // ¼
-	Set(byte('\xbd'), "\u00BD"). // ½
-	Set(byte('\xbe'), "\u00BE"). // ¾
-	Set(byte('\xbf'), "\u00BF"). // ¿
-	Set(byte('\xd0'), "\u2015"). // ―
-	Set(byte('\xd1'), "\u00B9"). // ¹
-	Set(byte('\xd2'), "\u00AE"). // ®
-	Set(byte('\xd3'), "\u00A9"). // ©
-	Set(byte('\xd4'), "\u2122"). // ™
-	Set(byte('\xd5'), "\u266A"). // ♪
-	Set(byte('\xd6'), "\u00AC"). // ¬
-	Set(byte('\xd7'), "\u00A6"). // ¦
-	Set(byte('\xdc'), "\u215B"). // ⅛
-	Set(byte('\xdd'), "\u215C"). // ⅜
-	Set(byte('\xde'), "\u215D"). // ⅝
-	Set(byte('\xdf'), "\u215E"). // ⅞
-	Set(byte('\xe0'), "\u2126"). // Ohm Ω
-	Set(byte('\xe1'), "\u00C6"). // Æ
-	Set(byte('\xe2'), "\u0110"). // Đ
-	Set(byte('\xe3'), "\u00AA"). // ª
-	Set(byte('\xe4'), "\u0126"). // Ħ
-	Set(byte('\xe6'), "\u0132"). // Ĳ
-	Set(byte('\xe7'), "\u013F"). // Ŀ
-	Set(byte('\xe8'), "\u0141"). // Ł
-	Set(byte('\xe9'), "\u00D8"). // Ø
-	Set(byte('\xea'), "\u0152"). // Œ
-	Set(byte('\xeb'), "\u00BA"). // º
-	Set(byte('\xec'), "\u00DE"). // Þ
-	Set(byte('\xed'), "\u0166"). // Ŧ
-	Set(byte('\xee'), "\u014A"). // Ŋ
-	Set(byte('\xef'), "\u0149"). // ŉ
-	Set(byte('\xf0'), "\u0138"). // ĸ
-	Set(byte('\xf1'), "\u00E6"). // æ
-	Set(byte('\xf2'), "\u0111"). // đ
-	Set(byte('\xf3'), "\u00F0"). // ð
-	Set(byte('\xf4'), "\u0127"). // ħ
-	Set(byte('\xf5'), "\u0131"). // ı
-	Set(byte('\xf6'), "\u0133"). // ĳ
-	Set(byte('\xf7'), "\u0140"). // ŀ
-	Set(byte('\xf8'), "\u0142"). // ł
-	Set(byte('\xf9'), "\u00F8"). // ø
-	Set(byte('\xfa'), "\u0153"). // œ
-	Set(byte('\xfb'), "\u00DF"). // ß
-	Set(byte('\xfc'), "\u00FE"). // þ
-	Set(byte('\xfd'), "\u0167"). // ŧ
-	Set(byte('\xfe'), "\u014B"). // ŋ
-	Set(byte('\xff'), "\u00AD")  // Soft hyphen
-
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -192,6 +172,13 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	var g *gsiBlock
 	if g, err = parseGSIBlock(b); err != nil {
 		err = errors.Wrap(err, "astisub: building gsi block failed")
+		return
+	}
+
+	// Create character handler
+	var ch *stlCharacterHandler
+	if ch, err = newSTLCharacterHandler(g.characterCodeTableNumber); err != nil {
+		err = errors.Wrap(err, "astisub: creating stl character handler failed")
 		return
 	}
 
@@ -215,20 +202,18 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			return
 		}
 
-		// Init item
+		// Parse TTI block
 		var t = parseTTIBlock(b, g.framerate)
+
+		// Create item
 		var i = &Item{
 			EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
 			StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
 		}
 
-		// Add lines
-		for _, text := range strings.Split(t.text, "\n") {
-			text = strings.TrimSpace(text)
-			if len(text) == 0 {
-				continue
-			}
-			i.Lines = append(i.Lines, Line{Items: []LineItem{{Text: text}}})
+		// Loop through rows
+		for _, text := range bytes.Split(t.text, []byte{0x8a}) {
+			parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
 		}
 
 		// Append item
@@ -257,8 +242,8 @@ func readNBytes(i io.Reader, c int) (o []byte, err error) {
 
 // gsiBlock represents a GSI block
 type gsiBlock struct {
-	characterCodeTableNumber                         string
-	codePageNumber                                   string
+	characterCodeTableNumber                         uint16
+	codePageNumber                                   uint32
 	countryOfOrigin                                  string
 	creationDate                                     time.Time
 	diskSequenceNumber                               int
@@ -330,9 +315,9 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Init
 	g = &gsiBlock{
-		characterCodeTableNumber:  string(bytes.TrimSpace(b[12:14])),
+		characterCodeTableNumber:  binary.BigEndian.Uint16(b[12:14]),
 		countryOfOrigin:           string(bytes.TrimSpace(b[274:277])),
-		codePageNumber:            string(bytes.TrimSpace(b[0:3])),
+		codePageNumber:            binary.BigEndian.Uint32(append([]byte{0x0}, b[0:3]...)),
 		displayStandardCode:       string(bytes.TrimSpace([]byte{b[11]})),
 		editorName:                string(bytes.TrimSpace(b[309:341])),
 		editorContactDetails:      string(bytes.TrimSpace(b[341:373])),
@@ -450,10 +435,13 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 
 // bytes transforms the GSI block into []byte
 func (b gsiBlock) bytes() (o []byte) {
-	o = append(o, astibyte.ToLength([]byte(b.codePageNumber), ' ', 3)...)                                                                           // Code page number
-	o = append(o, astibyte.ToLength([]byte(stlFramerateMapping.A(b.framerate).(string)), ' ', 8)...)                                                // Disk format code
-	o = append(o, astibyte.ToLength([]byte(b.displayStandardCode), ' ', 1)...)                                                                      // Display standard code
-	o = append(o, astibyte.ToLength([]byte(b.characterCodeTableNumber), ' ', 2)...)                                                                 // Character code table number
+	bs := make([]byte, 4)
+	binary.BigEndian.PutUint32(bs, b.codePageNumber)
+	o = append(o, astibyte.ToLength(bs[1:], ' ', 3)...)                                              // Code page number
+	o = append(o, astibyte.ToLength([]byte(stlFramerateMapping.A(b.framerate).(string)), ' ', 8)...) // Disk format code
+	o = append(o, astibyte.ToLength([]byte(b.displayStandardCode), ' ', 1)...)                       // Display standard code
+	binary.BigEndian.PutUint16(bs, b.characterCodeTableNumber)
+	o = append(o, astibyte.ToLength(bs[:2], ' ', 2)...)                                                                                             // Character code table number
 	o = append(o, astibyte.ToLength([]byte(b.languageCode), ' ', 2)...)                                                                             // Language code
 	o = append(o, astibyte.ToLength([]byte(b.originalProgramTitle), ' ', 32)...)                                                                    // Original program title
 	o = append(o, astibyte.ToLength([]byte(b.originalEpisodeTitle), ' ', 32)...)                                                                    // Original episode title
@@ -561,7 +549,7 @@ type ttiBlock struct {
 	justificationCode    byte
 	subtitleGroupNumber  int
 	subtitleNumber       int
-	text                 string
+	text                 []byte
 	timecodeIn           time.Duration
 	timecodeOut          time.Duration
 	verticalPosition     int
@@ -587,7 +575,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	for _, l := range i.Lines {
 		lines = append(lines, l.String())
 	}
-	t.text = strings.Join(lines, "\n")
+	t.text = []byte(strings.Join(lines, "\n"))
 	return
 }
 
@@ -600,7 +588,7 @@ func parseTTIBlock(p []byte, framerate int) *ttiBlock {
 		justificationCode:    p[14],
 		subtitleGroupNumber:  int(uint8(p[0])),
 		subtitleNumber:       int(binary.LittleEndian.Uint16(p[1:3])),
-		text:                 strings.TrimSpace(decodeTextSTL(p[16:128])),
+		text:                 p[16:128],
 		timecodeIn:           parseDurationSTLBytes(p[5:9], framerate),
 		timecodeOut:          parseDurationSTLBytes(p[9:13], framerate),
 		verticalPosition:     int(uint8(p[13])),
@@ -612,15 +600,15 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
 	var b = make([]byte, 2)
 	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
-	o = append(o, b...)                                                     // Subtitle number
-	o = append(o, byte(uint8(t.extensionBlockNumber)))                      // Extension block number
-	o = append(o, t.cumulativeStatus)                                       // Cumulative status
-	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)     // Timecode in
-	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)    // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                          // Vertical position
-	o = append(o, t.justificationCode)                                      // Justification code
-	o = append(o, t.commentFlag)                                            // Comment flag
-	o = append(o, astibyte.ToLength(encodeTextSTL(t.text), '\x8f', 112)...) // Text field
+	o = append(o, b...)                                                             // Subtitle number
+	o = append(o, byte(uint8(t.extensionBlockNumber)))                              // Extension block number
+	o = append(o, t.cumulativeStatus)                                               // Cumulative status
+	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)             // Timecode in
+	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)            // Timecode out
+	o = append(o, byte(uint8(t.verticalPosition)))                                  // Vertical position
+	o = append(o, t.justificationCode)                                              // Justification code
+	o = append(o, t.commentFlag)                                                    // Comment flag
+	o = append(o, astibyte.ToLength(encodeTextSTL(string(t.text)), '\x8f', 112)...) // Text field
 	return
 }
 
@@ -652,37 +640,89 @@ func parseDurationSTLBytes(b []byte, framerate int) time.Duration {
 	return time.Duration(uint8(b[0]))*time.Hour + time.Duration(uint8(b[1]))*time.Minute + time.Duration(uint8(b[2]))*time.Second + time.Duration(1e9*int(uint8(b[3]))/framerate)*time.Nanosecond
 }
 
-// encodeTextSTL encodes the STL text
-func encodeTextSTL(i string) (o []byte) {
-	i = string(norm.NFD.Bytes([]byte(i)))
-	for _, c := range i {
-		if stlUnicodeMapping.InB(string(c)) {
-			o = append(o, stlUnicodeMapping.A(string(c)).(byte))
-		} else if stlUnicodeDiacritic.InB(string(c)) {
-			o = append(o[:len(o)-1], stlUnicodeDiacritic.A(string(c)).(byte), o[len(o)-1])
-		} else {
-			o = append(o, byte(c))
-		}
-	}
-	return
+type stlCharacterHandler struct {
+	accent string
+	c      uint16
+	m      *astimap.Map
 }
 
-// decodeTextSTL decodes the STL text
-func decodeTextSTL(i []byte) (o string) {
-	var state = ""
-	for _, c := range i {
-		if len(state) == 0 && stlUnicodeMapping.InA(c) {
-			o += stlUnicodeMapping.B(c).(string)
-		} else if len(state) == 0 && stlUnicodeDiacritic.InA(c) {
-			state = stlUnicodeDiacritic.B(c).(string)
-		} else if len(state) > 0 {
-			o += string(norm.NFC.Bytes([]byte(string(c) + state)))
-			state = ""
-		} else if c != '\x8f' {
-			o += string(c)
-		}
+func newSTLCharacterHandler(characterCodeTable uint16) (*stlCharacterHandler, error) {
+	if v, ok := stlCharacterCodeTables[characterCodeTable]; ok {
+		return &stlCharacterHandler{
+			c: characterCodeTable,
+			m: v,
+		}, nil
 	}
-	return
+	return nil, fmt.Errorf("astisub: table doesn't exist for character code table %d", characterCodeTable)
+}
+
+// TODO Use this instead of encodeTextSTL
+func (h *stlCharacterHandler) encode(i []byte) byte {
+	return ' '
+}
+
+func (h *stlCharacterHandler) decode(i byte) (o []byte) {
+	k := int(i)
+	if !h.m.InA(k) {
+		return
+	}
+	v := h.m.B(k).(string)
+	if len(h.accent) > 0 {
+		o = norm.NFC.Bytes([]byte(v + h.accent))
+		h.accent = ""
+		return
+	} else if h.c == stlCharacterCodeTableNumberLatin && k >= 0xc0 && k <= 0xcf {
+		h.accent = v
+		return
+	}
+	return []byte(v)
+}
+
+type stlStyler struct {
+	boxing    *bool
+	italics   *bool
+	underline *bool
+}
+
+func newSTLStyler() *stlStyler {
+	return &stlStyler{}
+}
+
+func (s *stlStyler) parseSpacingAttribute(i byte) {
+	switch i {
+	case 0x80:
+		s.italics = astiptr.Bool(true)
+	case 0x81:
+		s.italics = astiptr.Bool(false)
+	case 0x82:
+		s.underline = astiptr.Bool(true)
+	case 0x83:
+		s.underline = astiptr.Bool(false)
+	case 0x84:
+		s.boxing = astiptr.Bool(true)
+	case 0x85:
+		s.boxing = astiptr.Bool(false)
+	}
+}
+
+func (s *stlStyler) hasBeenSet() bool {
+	return s.italics != nil || s.boxing != nil || s.underline != nil
+}
+
+func (s *stlStyler) hasChanged(sa *StyleAttributes) bool {
+	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline
+}
+
+func (s *stlStyler) update(sa *StyleAttributes) {
+	if s.boxing != nil && s.boxing != sa.STLBoxing {
+		sa.STLBoxing = s.boxing
+	}
+	if s.italics != nil && s.italics != sa.STLItalics {
+		sa.STLItalics = s.italics
+	}
+	if s.underline != nil && s.underline != sa.STLUnderline {
+		sa.STLUnderline = s.underline
+	}
 }
 
 // WriteToSTL writes subtitles in .stl format
@@ -706,6 +746,102 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 		if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
 			err = errors.Wrapf(err, "astisub: writing tti block #%d failed", idx+1)
 			return
+		}
+	}
+	return
+}
+
+// TODO Remove below
+
+// STL unicode diacritic
+var stlUnicodeDiacritic = astimap.NewMap(byte('\x00'), "\x00").
+	Set(byte('\xc1'), "\u0300"). // Grave accent
+	Set(byte('\xc2'), "\u0301"). // Acute accent
+	Set(byte('\xc3'), "\u0302"). // Circumflex
+	Set(byte('\xc4'), "\u0303"). // Tilde
+	Set(byte('\xc5'), "\u0304"). // Macron
+	Set(byte('\xc6'), "\u0306"). // Breve
+	Set(byte('\xc7'), "\u0307"). // Dot
+	Set(byte('\xc8'), "\u0308"). // Umlaut
+	Set(byte('\xca'), "\u030a"). // Ring
+	Set(byte('\xcb'), "\u0327"). // Cedilla
+	Set(byte('\xcd'), "\u030B"). // Double acute accent
+	Set(byte('\xce'), "\u0328"). // Ogonek
+	Set(byte('\xcf'), "\u030c")  // Caron
+
+// STL unicode mapping
+var stlUnicodeMapping = astimap.NewMap(byte('\x00'), "\x00").
+	Set(byte('\x8a'), "\u000a"). // Line break
+	Set(byte('\xa8'), "\u00a4"). // ¤
+	Set(byte('\xa9'), "\u2018"). // ‘
+	Set(byte('\xaa'), "\u201C"). // “
+	Set(byte('\xab'), "\u00AB"). // «
+	Set(byte('\xac'), "\u2190"). // ←
+	Set(byte('\xad'), "\u2191"). // ↑
+	Set(byte('\xae'), "\u2192"). // →
+	Set(byte('\xaf'), "\u2193"). // ↓
+	Set(byte('\xb4'), "\u00D7"). // ×
+	Set(byte('\xb8'), "\u00F7"). // ÷
+	Set(byte('\xb9'), "\u2019"). // ’
+	Set(byte('\xba'), "\u201D"). // ”
+	Set(byte('\xbc'), "\u00BC"). // ¼
+	Set(byte('\xbd'), "\u00BD"). // ½
+	Set(byte('\xbe'), "\u00BE"). // ¾
+	Set(byte('\xbf'), "\u00BF"). // ¿
+	Set(byte('\xd0'), "\u2015"). // ―
+	Set(byte('\xd1'), "\u00B9"). // ¹
+	Set(byte('\xd2'), "\u00AE"). // ®
+	Set(byte('\xd3'), "\u00A9"). // ©
+	Set(byte('\xd4'), "\u2122"). // ™
+	Set(byte('\xd5'), "\u266A"). // ♪
+	Set(byte('\xd6'), "\u00AC"). // ¬
+	Set(byte('\xd7'), "\u00A6"). // ¦
+	Set(byte('\xdc'), "\u215B"). // ⅛
+	Set(byte('\xdd'), "\u215C"). // ⅜
+	Set(byte('\xde'), "\u215D"). // ⅝
+	Set(byte('\xdf'), "\u215E"). // ⅞
+	Set(byte('\xe0'), "\u2126"). // Ohm Ω
+	Set(byte('\xe1'), "\u00C6"). // Æ
+	Set(byte('\xe2'), "\u0110"). // Đ
+	Set(byte('\xe3'), "\u00AA"). // ª
+	Set(byte('\xe4'), "\u0126"). // Ħ
+	Set(byte('\xe6'), "\u0132"). // Ĳ
+	Set(byte('\xe7'), "\u013F"). // Ŀ
+	Set(byte('\xe8'), "\u0141"). // Ł
+	Set(byte('\xe9'), "\u00D8"). // Ø
+	Set(byte('\xea'), "\u0152"). // Œ
+	Set(byte('\xeb'), "\u00BA"). // º
+	Set(byte('\xec'), "\u00DE"). // Þ
+	Set(byte('\xed'), "\u0166"). // Ŧ
+	Set(byte('\xee'), "\u014A"). // Ŋ
+	Set(byte('\xef'), "\u0149"). // ŉ
+	Set(byte('\xf0'), "\u0138"). // ĸ
+	Set(byte('\xf1'), "\u00E6"). // æ
+	Set(byte('\xf2'), "\u0111"). // đ
+	Set(byte('\xf3'), "\u00F0"). // ð
+	Set(byte('\xf4'), "\u0127"). // ħ
+	Set(byte('\xf5'), "\u0131"). // ı
+	Set(byte('\xf6'), "\u0133"). // ĳ
+	Set(byte('\xf7'), "\u0140"). // ŀ
+	Set(byte('\xf8'), "\u0142"). // ł
+	Set(byte('\xf9'), "\u00F8"). // ø
+	Set(byte('\xfa'), "\u0153"). // œ
+	Set(byte('\xfb'), "\u00DF"). // ß
+	Set(byte('\xfc'), "\u00FE"). // þ
+	Set(byte('\xfd'), "\u0167"). // ŧ
+	Set(byte('\xfe'), "\u014B"). // ŋ
+	Set(byte('\xff'), "\u00AD")  // Soft hyphen
+
+// encodeTextSTL encodes the STL text
+func encodeTextSTL(i string) (o []byte) {
+	i = string(norm.NFD.Bytes([]byte(i)))
+	for _, c := range i {
+		if stlUnicodeMapping.InB(string(c)) {
+			o = append(o, stlUnicodeMapping.A(string(c)).(byte))
+		} else if stlUnicodeDiacritic.InB(string(c)) {
+			o = append(o[:len(o)-1], stlUnicodeDiacritic.A(string(c)).(byte), o[len(o)-1])
+		} else {
+			o = append(o, byte(c))
 		}
 	}
 	return
