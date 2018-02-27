@@ -523,6 +523,23 @@ func (s *Subtitles) Order() {
 	}
 }
 
+// RemoveStyling removes the styling from the subtitles
+func (s *Subtitles) RemoveStyling() {
+	s.Regions = map[string]*Region{}
+	s.Styles = map[string]*Style{}
+	for _, i := range s.Items {
+		i.Region = nil
+		i.Style = nil
+		i.InlineStyle = nil
+		for idxLine, l := range i.Lines {
+			for idxLineItem := range l.Items {
+				i.Lines[idxLine].Items[idxLineItem].InlineStyle = nil
+				i.Lines[idxLine].Items[idxLineItem].Style = nil
+			}
+		}
+	}
+}
+
 // Unfragment unfragments subtitles
 func (s *Subtitles) Unfragment() {
 	// Nothing to do if less than 1 element
