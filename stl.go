@@ -662,7 +662,6 @@ func (h *stlCharacterHandler) encode(i []byte) byte {
 	return ' '
 }
 
-// TODO Test
 func (h *stlCharacterHandler) decode(i byte) (o []byte) {
 	k := int(i)
 	if !h.m.InA(k) {
@@ -690,7 +689,6 @@ func newSTLStyler() *stlStyler {
 	return &stlStyler{}
 }
 
-// TODO Test
 func (s *stlStyler) parseSpacingAttribute(i byte) {
 	switch i {
 	case 0x80:
@@ -708,12 +706,10 @@ func (s *stlStyler) parseSpacingAttribute(i byte) {
 	}
 }
 
-// TODO Test
 func (s *stlStyler) hasBeenSet() bool {
 	return s.italics != nil || s.boxing != nil || s.underline != nil
 }
 
-// TODO Test
 func (s *stlStyler) hasChanged(sa *StyleAttributes) bool {
 	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline
 }
@@ -722,7 +718,6 @@ func (s *stlStyler) propagateStyleAttributes(sa *StyleAttributes) {
 	sa.propagateSTLAttributes()
 }
 
-// TODO Test
 func (s *stlStyler) update(sa *StyleAttributes) {
 	if s.boxing != nil && s.boxing != sa.STLBoxing {
 		sa.STLBoxing = s.boxing
