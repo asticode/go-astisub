@@ -94,8 +94,8 @@ type TTMLInStyleAttributes struct {
 }
 
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
-func (s TTMLInStyleAttributes) styleAttributes() *StyleAttributes {
-	return &StyleAttributes{
+func (s TTMLInStyleAttributes) styleAttributes() (o *StyleAttributes) {
+	o = &StyleAttributes{
 		TTMLBackgroundColor: s.BackgroundColor,
 		TTMLColor:           s.Color,
 		TTMLDirection:       s.Direction,
@@ -121,6 +121,8 @@ func (s TTMLInStyleAttributes) styleAttributes() *StyleAttributes {
 		TTMLWritingMode:     s.WritingMode,
 		TTMLZIndex:          s.ZIndex,
 	}
+	o.propagateTTMLAttributes()
+	return
 }
 
 // TTMLInHeader represents an input TTML header

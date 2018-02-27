@@ -149,16 +149,22 @@ func newColorFromString(s string, base int) (c *Color, err error) {
 }
 
 // String expresses the color as a string for a specific base
-func (c *Color) String(base int) string {
-	var i = uint32(c.Alpha)<<24 | uint32(c.Blue)<<16 | uint32(c.Green)<<8 | uint32(c.Red)
+func (c *Color) String(base int, showAlpha bool) string {
+	var i = uint32(c.Blue)<<16 | uint32(c.Green)<<8 | uint32(c.Red)
+	if showAlpha {
+		i |= uint32(c.Alpha) << 24
+	}
 	if base == 16 {
-		return fmt.Sprintf("%.8x", i)
+		if showAlpha {
+			return fmt.Sprintf("%.8x", i)
+		} else {
+			return fmt.Sprintf("%.6x", i)
+		}
 	}
 	return strconv.Itoa(int(i))
 }
 
 // StyleAttributes represents style attributes
-// TODO Convert styles+inline styles from different formats as well
 type StyleAttributes struct {
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
@@ -195,6 +201,7 @@ type StyleAttributes struct {
 	TeletextDoubleWidth  *bool
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
+	// TODO Use pointers with real types below
 	TTMLBackgroundColor  string // https://htmlcolorcodes.com/fr/
 	TTMLColor            string
 	TTMLDirection        string
@@ -230,6 +237,20 @@ type StyleAttributes struct {
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
 }
+
+func (sa *StyleAttributes) propagateSSAAttributes() {}
+
+func (sa *StyleAttributes) propagateSTLAttributes() {}
+
+func (sa *StyleAttributes) propagateTeletextAttributes() {
+	if sa.TeletextColor != nil {
+		sa.TTMLColor = "#" + sa.TeletextColor.String(16, false)
+	}
+}
+
+func (sa *StyleAttributes) propagateTTMLAttributes() {}
+
+func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 
 // Metadata represents metadata
 // TODO Merge attributes

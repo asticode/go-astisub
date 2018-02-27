@@ -80,47 +80,56 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextColor:        ColorBlack,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#000000",
 		}},
 		{Text: "red", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorRed,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#0000ff",
 		}},
 		{Text: "green", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorGreen,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#008000",
 		}},
 		{Text: "yellow", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorYellow,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#00ffff",
 		}},
 		{Text: "blue", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorBlue,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ff0000",
 		}},
 		{Text: "magenta", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorMagenta,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ff00ff",
 		}},
 		{Text: "cyan", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorCyan,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ffff00",
 		}},
 		{Text: "white", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ffffff",
 		}},
 		{Text: "double height", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
 			TeletextDoubleHeight: astiptr.Bool(true),
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ffffff",
 		}},
 		{Text: "double width", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -128,6 +137,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleWidth:  astiptr.Bool(true),
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ffffff",
 		}},
 		{Text: "double size", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -136,6 +146,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleSize:   astiptr.Bool(true),
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ffffff",
 		}},
 		{Text: "reset", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -144,6 +155,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleSize:   astiptr.Bool(false),
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
+			TTMLColor:            "#ffffff",
 		}},
 	}, i.Lines[0].Items)
 }
@@ -153,11 +165,11 @@ func TestAppendTeletextLineItem(t *testing.T) {
 	l := Line{}
 
 	// Empty
-	appendTeletextLineItem(&l, LineItem{})
+	appendTeletextLineItem(&l, LineItem{}, nil)
 	assert.Equal(t, 0, len(l.Items))
 
 	// Not empty
-	appendTeletextLineItem(&l, LineItem{Text: " test  "})
+	appendTeletextLineItem(&l, LineItem{Text: " test  "}, nil)
 	assert.Equal(t, "test", l.Items[0].Text)
 	assert.Equal(t, StyleAttributes{
 		TeletextSpacesAfter:  astiptr.Int(2),
