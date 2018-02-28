@@ -279,7 +279,7 @@ func newColorFromSSAColor(i string) (_ *Color, _ error) {
 
 // newSSAColorFromColor builds a new SSA color based on a color
 func newSSAColorFromColor(i *Color) string {
-	return "&H" + i.String(16)
+	return "&H" + i.String(16, true)
 }
 
 // ssaScriptInfo represents an SSA script info block
@@ -831,8 +831,8 @@ func (s ssaStyle) string(format []string) string {
 }
 
 // style converts ssaStyle to Style
-func (s ssaStyle) style() *Style {
-	return &Style{
+func (s ssaStyle) style() (o *Style) {
+	o = &Style{
 		ID: s.name,
 		InlineStyle: &StyleAttributes{
 			SSAAlignment:       s.alignment,
@@ -860,6 +860,8 @@ func (s ssaStyle) style() *Style {
 			SSAUnderline:       s.underline,
 		},
 	}
+	o.InlineStyle.propagateSSAAttributes()
+	return
 }
 
 // ssaEvent represents an SSA event

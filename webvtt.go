@@ -101,6 +101,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					r.InlineStyle.WebVTTWidth = split[1]
 				}
 			}
+			r.InlineStyle.propagateWebVTTAttributes()
 
 			// Add region
 			o.Regions[r.ID] = r
@@ -165,6 +166,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					}
 				}
 			}
+			item.InlineStyle.propagateWebVTTAttributes()
 
 			// Reset comments
 			comments = []string{}
@@ -257,7 +259,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		c = append(c, []byte(strconv.Itoa(index+1))...)
 		c = append(c, bytesLineSeparator...)
 		c = append(c, []byte(formatDurationWebVTT(item.StartAt))...)
-		c = append(c, bytesSRTTimeBoundariesSeparator...)
+		c = append(c, bytesWebVTTTimeBoundariesSeparator...)
 		c = append(c, []byte(formatDurationWebVTT(item.EndAt))...)
 
 		// Add styles

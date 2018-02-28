@@ -19,6 +19,26 @@ var (
 	bytesSpace         = []byte(" ")
 )
 
+// Colors
+var (
+	ColorBlack   = &Color{}
+	ColorBlue    = &Color{Blue: 255}
+	ColorCyan    = &Color{Blue: 255, Green: 255}
+	ColorGray    = &Color{Blue: 128, Green: 128, Red: 128}
+	ColorGreen   = &Color{Green: 128}
+	ColorLime    = &Color{Green: 255}
+	ColorMagenta = &Color{Blue: 255, Red: 255}
+	ColorMaroon  = &Color{Red: 128}
+	ColorNavy    = &Color{Blue: 128}
+	ColorOlive   = &Color{Green: 128, Red: 128}
+	ColorPurple  = &Color{Blue: 128, Red: 128}
+	ColorRed     = &Color{Red: 255}
+	ColorSilver  = &Color{Blue: 192, Green: 192, Red: 192}
+	ColorTeal    = &Color{Blue: 128, Green: 128}
+	ColorYellow  = &Color{Green: 255, Red: 255}
+	ColorWhite   = &Color{Blue: 255, Green: 255, Red: 255}
+)
+
 // Errors
 var (
 	ErrInvalidExtension   = errors.New("astisub: invalid extension")
@@ -32,23 +52,22 @@ var Now = func() time.Time {
 
 // Options represents open or write options
 type Options struct {
-	Page int
-	PID  int
-	Src  string
+	Filename string
+	Teletext TeletextOptions
 }
 
-// Open opens a subtitle file based on options
+// Open opens a subtitle reader based on options
 func Open(o Options) (s *Subtitles, err error) {
 	// Open the file
 	var f *os.File
-	if f, err = os.Open(o.Src); err != nil {
-		err = errors.Wrapf(err, "astisub: opening %s failed", o.Src)
+	if f, err = os.Open(o.Filename); err != nil {
+		err = errors.Wrapf(err, "astisub: opening %s failed", o.Filename)
 		return
 	}
 	defer f.Close()
 
 	// Parse the content
-	switch filepath.Ext(o.Src) {
+	switch filepath.Ext(o.Filename) {
 	case ".srt":
 		s, err = ReadFromSRT(f)
 	case ".ssa", ".ass":
@@ -56,7 +75,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	case ".stl":
 		s, err = ReadFromSTL(f)
 	case ".ts":
-		s, err = ReadFromTeletext(f, o.PID, o.Page)
+		s, err = ReadFromTeletext(f, o.Teletext)
 	case ".ttml":
 		s, err = ReadFromTTML(f)
 	case ".vtt":
@@ -68,8 +87,8 @@ func Open(o Options) (s *Subtitles, err error) {
 }
 
 // OpenFile opens a file regardless of other options
-func OpenFile(src string) (*Subtitles, error) {
-	return Open(Options{Src: src})
+func OpenFile(filename string) (*Subtitles, error) {
+	return Open(Options{Filename: filename})
 }
 
 // Subtitles represents an ordered list of items with formatting
@@ -130,16 +149,22 @@ func newColorFromString(s string, base int) (c *Color, err error) {
 }
 
 // String expresses the color as a string for a specific base
-func (c *Color) String(base int) string {
-	var i = uint32(c.Alpha)<<24 | uint32(c.Blue)<<16 | uint32(c.Green)<<8 | uint32(c.Red)
+func (c *Color) String(base int, showAlpha bool) string {
+	var i = uint32(c.Blue)<<16 | uint32(c.Green)<<8 | uint32(c.Red)
+	if showAlpha {
+		i |= uint32(c.Alpha) << 24
+	}
 	if base == 16 {
-		return fmt.Sprintf("%.8x", i)
+		if showAlpha {
+			return fmt.Sprintf("%.8x", i)
+		} else {
+			return fmt.Sprintf("%.6x", i)
+		}
 	}
 	return strconv.Itoa(int(i))
 }
 
 // StyleAttributes represents style attributes
-// TODO Merge attributes
 type StyleAttributes struct {
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
@@ -167,7 +192,17 @@ type StyleAttributes struct {
 	SSASpacing           *int // pixels
 	SSAStrikeout         *bool
 	SSAUnderline         *bool
-	TTMLBackgroundColor  string
+	STLBoxing            *bool
+	STLItalics           *bool
+	STLUnderline         *bool
+	TeletextColor        *Color
+	TeletextDoubleHeight *bool
+	TeletextDoubleSize   *bool
+	TeletextDoubleWidth  *bool
+	TeletextSpacesAfter  *int
+	TeletextSpacesBefore *int
+	// TODO Use pointers with real types below
+	TTMLBackgroundColor  string // https://htmlcolorcodes.com/fr/
 	TTMLColor            string
 	TTMLDirection        string
 	TTMLDisplay          string
@@ -202,6 +237,20 @@ type StyleAttributes struct {
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
 }
+
+func (sa *StyleAttributes) propagateSSAAttributes() {}
+
+func (sa *StyleAttributes) propagateSTLAttributes() {}
+
+func (sa *StyleAttributes) propagateTeletextAttributes() {
+	if sa.TeletextColor != nil {
+		sa.TTMLColor = "#" + sa.TeletextColor.String(16, false)
+	}
+}
+
+func (sa *StyleAttributes) propagateTTMLAttributes() {}
+
+func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 
 // Metadata represents metadata
 // TODO Merge attributes
@@ -469,6 +518,23 @@ func (s *Subtitles) Order() {
 				s.Items[index-1] = s.Items[index]
 				s.Items[index] = tmp
 				swapped = true
+			}
+		}
+	}
+}
+
+// RemoveStyling removes the styling from the subtitles
+func (s *Subtitles) RemoveStyling() {
+	s.Regions = map[string]*Region{}
+	s.Styles = map[string]*Style{}
+	for _, i := range s.Items {
+		i.Region = nil
+		i.Style = nil
+		i.InlineStyle = nil
+		for idxLine, l := range i.Lines {
+			for idxLineItem := range l.Items {
+				i.Lines[idxLine].Items[idxLineItem].InlineStyle = nil
+				i.Lines[idxLine].Items[idxLineItem].Style = nil
 			}
 		}
 	}
