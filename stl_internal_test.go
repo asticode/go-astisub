@@ -36,6 +36,61 @@ func TestSTLCharacterHandler(t *testing.T) {
 	assert.Equal(t, []byte("è"), o)
 }
 
+func TestSTLCharacterHandlerUmlaut(t *testing.T) {
+	h, err := newSTLCharacterHandler(stlCharacterCodeTableNumberLatin)
+	assert.NoError(t, err)
+
+	o := h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x61)
+	assert.Equal(t, []byte("ä"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x41)
+	assert.Equal(t, []byte("Ä"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x6f)
+	assert.Equal(t, []byte("ö"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x4f)
+	assert.Equal(t, []byte("Ö"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x75)
+	assert.Equal(t, []byte("ü"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x55)
+	assert.Equal(t, []byte("Ü"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x65)
+	assert.Equal(t, []byte("ë"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x45)
+	assert.Equal(t, []byte("Ë"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x69)
+	assert.Equal(t, []byte("ï"), o)
+
+	o = h.decode(0xc8)
+	assert.Equal(t, []byte(nil), o)
+	o = h.decode(0x49)
+	assert.Equal(t, []byte("Ï"), o)
+}
+
 func TestSTLStyler(t *testing.T) {
 	// Parse spacing attributes
 	s := newSTLStyler()
