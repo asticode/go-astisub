@@ -843,6 +843,7 @@ type styler interface {
 	hasBeenSet() bool
 	hasChanged(s *StyleAttributes) bool
 	parseSpacingAttribute(i byte)
+	propagateStyleAttributes(s *StyleAttributes)
 	update(sa *StyleAttributes)
 }
 
@@ -851,9 +852,9 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	var l = Line{}
 	var li = LineItem{InlineStyle: &StyleAttributes{}}
 	var started bool
+	var s styler
 	for _, v := range row {
 		// Create specific styler
-		var s styler
 		if fs != nil {
 			s = fs()
 		}
@@ -907,7 +908,7 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 				// Line has started
 				if started {
 					// Append line item
-					appendTeletextLineItem(&l, li)
+					appendTeletextLineItem(&l, li, s)
 
 					// Create new line item
 					sa := &StyleAttributes{}
@@ -939,7 +940,7 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	}
 
 	// Append line item
-	appendTeletextLineItem(&l, li)
+	appendTeletextLineItem(&l, li, s)
 
 	// Append line
 	if len(l.Items) > 0 {
@@ -947,7 +948,7 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	}
 }
 
-func appendTeletextLineItem(l *Line, li LineItem) {
+func appendTeletextLineItem(l *Line, li LineItem, s styler) {
 	// There's some text
 	if len(strings.TrimSpace(li.Text)) > 0 {
 		// Make sure inline style exists
@@ -973,6 +974,12 @@ func appendTeletextLineItem(l *Line, li LineItem) {
 			} else {
 				break
 			}
+		}
+
+		// Propagate style attributes
+		li.InlineStyle.propagateTeletextAttributes()
+		if s != nil {
+			s.propagateStyleAttributes(li.InlineStyle)
 		}
 
 		// Append line item

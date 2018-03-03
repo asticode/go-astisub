@@ -718,6 +718,10 @@ func (s *stlStyler) hasChanged(sa *StyleAttributes) bool {
 	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline
 }
 
+func (s *stlStyler) propagateStyleAttributes(sa *StyleAttributes) {
+	sa.propagateSTLAttributes()
+}
+
 // TODO Test
 func (s *stlStyler) update(sa *StyleAttributes) {
 	if s.boxing != nil && s.boxing != sa.STLBoxing {
