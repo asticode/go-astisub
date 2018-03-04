@@ -168,3 +168,35 @@ func TestSubtitles_Order(t *testing.T) {
 	assert.Equal(t, 4*time.Second, s.Items[3].StartAt)
 	assert.Equal(t, 5*time.Second, s.Items[3].EndAt)
 }
+
+func TestSubtitles_RemoveStyling(t *testing.T) {
+	s := &astisub.Subtitles{
+		Items: []*astisub.Item{
+			{
+				Lines: []astisub.Line{{
+					Items: []astisub.LineItem{{
+						InlineStyle: &astisub.StyleAttributes{},
+						Style:       &astisub.Style{},
+					}},
+				}},
+				InlineStyle: &astisub.StyleAttributes{},
+				Region:      &astisub.Region{},
+				Style:       &astisub.Style{},
+			},
+		},
+		Regions: map[string]*astisub.Region{"region": {}},
+		Styles:  map[string]*astisub.Style{"style": {}},
+	}
+	s.RemoveStyling()
+	assert.Equal(t, &astisub.Subtitles{
+		Items: []*astisub.Item{
+			{
+				Lines: []astisub.Line{{
+					Items: []astisub.LineItem{{}},
+				}},
+			},
+		},
+		Regions: map[string]*astisub.Region{},
+		Styles:  map[string]*astisub.Style{},
+	}, s)
+}
