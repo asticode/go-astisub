@@ -656,7 +656,7 @@ func newSTLCharacterHandler(characterCodeTable uint16) (*stlCharacterHandler, er
 	return nil, fmt.Errorf("astisub: table doesn't exist for character code table %d", characterCodeTable)
 }
 
-// TODO Use this instead of encodeTextSTL
+// TODO Use this instead of encodeTextSTL => use in teletext process like for decode
 // TODO Test
 func (h *stlCharacterHandler) encode(i []byte) byte {
 	return ' '

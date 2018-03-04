@@ -330,7 +330,8 @@ type TeletextOptions struct {
 // ReadFromTeletext parses a teletext content
 // http://www.etsi.org/deliver/etsi_en/300400_300499/300472/01.03.01_60/en_300472v010301p.pdf
 // http://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf
-// TODO Add more tests
+// TODO Update README
+// TODO Add tests
 func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) {
 	// Init
 	s = &Subtitles{}
@@ -404,6 +405,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 	return
 }
 
+// TODO Add tests
 func teletextDataTime(d *astits.Data) time.Time {
 	if d.PES.Header != nil && d.PES.Header.OptionalHeader != nil && d.PES.Header.OptionalHeader.PTS != nil {
 		return d.PES.Header.OptionalHeader.PTS.Time()
@@ -415,6 +417,7 @@ func teletextDataTime(d *astits.Data) time.Time {
 
 // If the PID teletext option is not indicated, it will walk through the ts data until it reaches a PMT packet to
 // detect the first valid teletext PID
+// TODO Add tests
 func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error) {
 	// PID is in the options
 	if o.PID > 0 {
@@ -485,6 +488,7 @@ func newTeletextPageBuffer(page int, cd *teletextCharacterDecoder) *teletextPage
 	}
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) dump(lastTime time.Time) (ps []*teletextPage) {
 	if b.currentPage != nil {
 		b.currentPage.end = lastTime
@@ -493,6 +497,7 @@ func (b *teletextPageBuffer) dump(lastTime time.Time) (ps []*teletextPage) {
 	return
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) process(d *astits.PESData, t time.Time) (ps []*teletextPage) {
 	// Data identifier
 	var offset int
@@ -533,6 +538,7 @@ func (b *teletextPageBuffer) process(d *astits.PESData, t time.Time) (ps []*tele
 	return ps
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) parseDataUnit(i []byte, id uint8, t time.Time) {
 	// Check id
 	if id != teletextPESDataUnitIDEBUSubtitleData {
@@ -570,6 +576,7 @@ func (b *teletextPageBuffer) parseDataUnit(i []byte, id uint8, t time.Time) {
 	return
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) parsePacket(i []byte, magazineNumber, packetNumber uint8, t time.Time) {
 	if packetNumber == 0 {
 		b.parsePacketHeader(i, magazineNumber, t)
@@ -595,6 +602,7 @@ func (b *teletextPageBuffer) parsePacket(i []byte, magazineNumber, packetNumber 
 	}
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t time.Time) (transmissionDone bool) {
 	// Page number units
 	pageNumberUnits, ok := astibits.Hamming84Decode(i[0])
@@ -663,6 +671,7 @@ func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t
 	return
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) parsePacketData(i []byte, packetNumber uint8) {
 	// Make sure the map is initialized
 	if _, ok := b.currentPage.data[packetNumber]; !ok {
@@ -680,6 +689,7 @@ func (b *teletextPageBuffer) parsePacketData(i []byte, packetNumber uint8) {
 	}
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) parsePacket28And29(i []byte, packetNumber, designationCode uint8) {
 	// Invalid designation code
 	if designationCode != 0 && designationCode != 4 {
@@ -707,6 +717,7 @@ func (b *teletextPageBuffer) parsePacket28And29(i []byte, packetNumber, designat
 	return
 }
 
+// TODO Add tests
 func (b *teletextPageBuffer) parsePacket30(i []byte, designationCode uint8) {
 	// Switch on designation code to determine format
 	switch designationCode {
@@ -737,6 +748,7 @@ func newTeletextCharacterDecoder() *teletextCharacterDecoder {
 	return &teletextCharacterDecoder{}
 }
 
+// TODO Add tests
 func (d *teletextCharacterDecoder) setTripletM29(i uint32) {
 	if *d.tripletM29 != i {
 		d.tripletM29 = astiptr.UInt32(i)
@@ -744,6 +756,7 @@ func (d *teletextCharacterDecoder) setTripletM29(i uint32) {
 	}
 }
 
+// TODO Add tests
 func (d *teletextCharacterDecoder) setTripletX28(i uint32) {
 	if *d.tripletX28 != i {
 		d.tripletX28 = astiptr.UInt32(i)
@@ -751,6 +764,7 @@ func (d *teletextCharacterDecoder) setTripletX28(i uint32) {
 	}
 }
 
+// TODO Add tests
 func (d *teletextCharacterDecoder) decode(i byte) []byte {
 	if i < 0x20 {
 		return []byte{}
@@ -758,6 +772,7 @@ func (d *teletextCharacterDecoder) decode(i byte) []byte {
 	return d.c[i-0x20]
 }
 
+// TODO Add tests
 func (d *teletextCharacterDecoder) updateCharset(pageCharsetCode *uint8, force bool) {
 	// Charset is up to date
 	if d.lastPageCharsetCode != nil && *pageCharsetCode == *d.lastPageCharsetCode && !force {
