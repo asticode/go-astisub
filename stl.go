@@ -158,7 +158,7 @@ const (
 )
 
 // TTI Special Extension Block Number
-const extensionBlockNumberReserverdUserData = 254
+const extensionBlockNumberReservedUserData = 0xfe
 
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
@@ -208,7 +208,7 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		// Parse TTI block
 		var t = parseTTIBlock(b, g.framerate)
 
-		if t.extensionBlockNumber != extensionBlockNumberReserverdUserData {
+		if t.extensionBlockNumber != extensionBlockNumberReservedUserData {
 
 			// Create item
 			var i = &Item{
