@@ -157,6 +157,9 @@ const (
 	stlTimecodeStatusIntendedForUse    = "1"
 )
 
+// TTI Special Extension Block Number
+const extensionBlockNumberReserverdUserData = 254
+
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -216,8 +219,11 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
 		}
 
-		// Append item
-		o.Items = append(o.Items, i)
+		if t.extensionBlockNumber != extensionBlockNumberReserverdUserData {
+			// Append item
+			o.Items = append(o.Items, i)
+		}
+
 	}
 	return
 }
