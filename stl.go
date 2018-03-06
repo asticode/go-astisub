@@ -157,6 +157,9 @@ const (
 	stlTimecodeStatusIntendedForUse    = "1"
 )
 
+// TTI Special Extension Block Number
+const extensionBlockNumberReservedUserData = 0xfe
+
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -205,19 +208,23 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		// Parse TTI block
 		var t = parseTTIBlock(b, g.framerate)
 
-		// Create item
-		var i = &Item{
-			EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
-			StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
+		if t.extensionBlockNumber != extensionBlockNumberReservedUserData {
+
+			// Create item
+			var i = &Item{
+				EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
+				StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
+			}
+
+			// Loop through rows
+			for _, text := range bytes.Split(t.text, []byte{0x8a}) {
+				parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
+			}
+
+			// Append item
+			o.Items = append(o.Items, i)
 		}
 
-		// Loop through rows
-		for _, text := range bytes.Split(t.text, []byte{0x8a}) {
-			parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
-		}
-
-		// Append item
-		o.Items = append(o.Items, i)
 	}
 	return
 }
