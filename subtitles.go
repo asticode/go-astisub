@@ -149,8 +149,8 @@ func newColorFromString(s string, base int) (c *Color, err error) {
 }
 
 // String expresses the color as a string for a specific base
-func (c *Color) String(base int, showAlpha bool) string {
-	var i = uint32(c.Blue)<<16 | uint32(c.Green)<<8 | uint32(c.Red)
+func (c *Color) String(base int, showAlpha bool) (o string) {
+	var i = uint32(c.Red)<<16 | uint32(c.Green)<<8 | uint32(c.Blue)
 	if showAlpha {
 		i |= uint32(c.Alpha) << 24
 	}
