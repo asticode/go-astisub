@@ -86,7 +86,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextColor:        ColorRed,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
-			TTMLColor:            "#0000ff",
+			TTMLColor:            "#ff0000",
 		}},
 		{Text: "green", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorGreen,
@@ -98,13 +98,13 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextColor:        ColorYellow,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
-			TTMLColor:            "#00ffff",
+			TTMLColor:            "#ffff00",
 		}},
 		{Text: "blue", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorBlue,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
-			TTMLColor:            "#ff0000",
+			TTMLColor:            "#0000ff",
 		}},
 		{Text: "magenta", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorMagenta,
@@ -116,7 +116,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextColor:        ColorCyan,
 			TeletextSpacesAfter:  astiptr.Int(0),
 			TeletextSpacesBefore: astiptr.Int(0),
-			TTMLColor:            "#ffff00",
+			TTMLColor:            "#00ffff",
 		}},
 		{Text: "white", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,

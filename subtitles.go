@@ -132,8 +132,8 @@ type Color struct {
 	Alpha, Blue, Green, Red uint8
 }
 
-// newColorFromString builds a new color based on a string
-func newColorFromString(s string, base int) (c *Color, err error) {
+// newColorFromSSAString builds a new color based on an SSA string
+func newColorFromSSAString(s string, base int) (c *Color, err error) {
 	var i int64
 	if i, err = strconv.ParseInt(s, base, 64); err != nil {
 		err = errors.Wrapf(err, "parsing int %s with base %d failed", s, base)
@@ -148,20 +148,14 @@ func newColorFromString(s string, base int) (c *Color, err error) {
 	return
 }
 
-// String expresses the color as a string for a specific base
-func (c *Color) String(base int, showAlpha bool) (o string) {
-	var i = uint32(c.Red)<<16 | uint32(c.Green)<<8 | uint32(c.Blue)
-	if showAlpha {
-		i |= uint32(c.Alpha) << 24
-	}
-	if base == 16 {
-		if showAlpha {
-			return fmt.Sprintf("%.8x", i)
-		} else {
-			return fmt.Sprintf("%.6x", i)
-		}
-	}
-	return strconv.Itoa(int(i))
+// SSAString expresses the color as an SSA string
+func (c *Color) SSAString() string {
+	return fmt.Sprintf("%.8x", uint32(c.Alpha)<<24|uint32(c.Blue)<<16|uint32(c.Green)<<8|uint32(c.Red))
+}
+
+// TTMLString expresses the color as a TTML string
+func (c *Color) TTMLString() string {
+	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
 // StyleAttributes represents style attributes
@@ -244,7 +238,7 @@ func (sa *StyleAttributes) propagateSTLAttributes() {}
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
-		sa.TTMLColor = "#" + sa.TeletextColor.String(16, false)
+		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
 	}
 }
 

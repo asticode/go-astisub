@@ -8,14 +8,14 @@ import (
 )
 
 func TestColor(t *testing.T) {
-	c, err := newColorFromString("305419896", 10)
+	c, err := newColorFromSSAString("305419896", 10)
 	assert.NoError(t, err)
 	assert.Equal(t, Color{Alpha: 0x12, Blue: 0x34, Green: 0x56, Red: 0x78}, *c)
-	assert.Equal(t, "305419896", c.String(10, true))
-	c, err = newColorFromString("12345678", 16)
+	c, err = newColorFromSSAString("12345678", 16)
 	assert.NoError(t, err)
 	assert.Equal(t, Color{Alpha: 0x12, Blue: 0x34, Green: 0x56, Red: 0x78}, *c)
-	assert.Equal(t, "12345678", c.String(16, true))
+	assert.Equal(t, "785634", c.TTMLString())
+	assert.Equal(t, "12345678", c.SSAString())
 }
 
 func TestParseDuration(t *testing.T) {

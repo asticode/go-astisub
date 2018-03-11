@@ -274,12 +274,12 @@ func newColorFromSSAColor(i string) (_ *Color, _ error) {
 		s = i[2:]
 		base = 16
 	}
-	return newColorFromString(s, base)
+	return newColorFromSSAString(s, base)
 }
 
 // newSSAColorFromColor builds a new SSA color based on a color
 func newSSAColorFromColor(i *Color) string {
-	return "&H" + i.String(16, true)
+	return "&H" + i.SSAString()
 }
 
 // ssaScriptInfo represents an SSA script info block
