@@ -329,7 +329,7 @@ func (s Subtitles) Duration() time.Duration {
 // ForceDuration updates the subtitles duration.
 // If requested duration is bigger, then we create a dummy item.
 // If requested duration is smaller, then we remove useless items and we cut the last item or add a dummy item.
-func (s *Subtitles) ForceDuration(d time.Duration) {
+func (s *Subtitles) ForceDuration(d time.Duration, addDummyItem bool) {
 	// Requested duration is the same as the subtitles'one
 	if s.Duration() == d {
 		return
@@ -356,7 +356,7 @@ func (s *Subtitles) ForceDuration(d time.Duration) {
 	}
 
 	// Add dummy item with the minimum duration possible
-	if s.Duration() < d {
+	if addDummyItem && s.Duration() < d {
 		s.Items = append(s.Items, &Item{EndAt: d, Lines: []Line{{Items: []LineItem{{Text: "..."}}}}, StartAt: d - time.Millisecond})
 	}
 }

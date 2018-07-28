@@ -68,14 +68,17 @@ func TestSubtitles_IsEmpty(t *testing.T) {
 
 func TestSubtitles_ForceDuration(t *testing.T) {
 	var s = mockSubtitles()
-	s.ForceDuration(10 * time.Second)
+	s.ForceDuration(10*time.Second, false)
+	assert.Len(t, s.Items, 2)
+	s = mockSubtitles()
+	s.ForceDuration(10*time.Second, true)
 	assert.Len(t, s.Items, 3)
 	assert.Equal(t, 10*time.Second, s.Items[2].EndAt)
 	assert.Equal(t, 10*time.Second-time.Millisecond, s.Items[2].StartAt)
 	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "..."}}}}, s.Items[2].Lines)
 	s.Items[2].StartAt = 7 * time.Second
 	s.Items[2].EndAt = 12 * time.Second
-	s.ForceDuration(10 * time.Second)
+	s.ForceDuration(10*time.Second, true)
 	assert.Len(t, s.Items, 3)
 	assert.Equal(t, 10*time.Second, s.Items[2].EndAt)
 	assert.Equal(t, 7*time.Second, s.Items[2].StartAt)
