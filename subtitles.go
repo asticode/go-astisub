@@ -311,9 +311,11 @@ func (s *Subtitles) Add(d time.Duration) {
 	for idx := 0; idx < len(s.Items); idx++ {
 		s.Items[idx].EndAt += d
 		s.Items[idx].StartAt += d
-		if s.Items[idx].EndAt <= 0 || s.Items[idx].StartAt <= 0 {
+		if s.Items[idx].EndAt <= 0 && s.Items[idx].StartAt <= 0 {
 			s.Items = append(s.Items[:idx], s.Items[idx+1:]...)
 			idx--
+		} else if s.Items[idx].StartAt <= 0 {
+			s.Items[idx].StartAt = time.Duration(0)
 		}
 	}
 }
