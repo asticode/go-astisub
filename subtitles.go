@@ -308,9 +308,13 @@ type LineItem struct {
 
 // Add adds a duration to each time boundaries. As in the time package, duration can be negative.
 func (s *Subtitles) Add(d time.Duration) {
-	for _, v := range s.Items {
-		v.EndAt += d
-		v.StartAt += d
+	for idx := 0; idx < len(s.Items); idx++ {
+		s.Items[idx].EndAt += d
+		s.Items[idx].StartAt += d
+		if s.Items[idx].EndAt <= 0 || s.Items[idx].StartAt <= 0 {
+			s.Items = append(s.Items[:idx], s.Items[idx+1:]...)
+			idx--
+		}
 	}
 }
 

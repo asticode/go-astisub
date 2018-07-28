@@ -51,6 +51,9 @@ func TestSubtitles_Add(t *testing.T) {
 	assert.Equal(t, 4*time.Second, s.Items[0].EndAt)
 	assert.Equal(t, 2*time.Second, s.Items[0].StartAt)
 	assert.Equal(t, 4*time.Second, s.Items[0].EndAt)
+	s.Add(-3 * time.Second)
+	assert.Len(t, s.Items, 1)
+	assert.Equal(t, "subtitle-2", s.Items[0].Lines[0].Items[0].Text)
 }
 
 func TestSubtitles_Duration(t *testing.T) {
