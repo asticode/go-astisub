@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"regexp"
@@ -136,7 +135,7 @@ var ssaRegexpEffect = regexp.MustCompile("\\{[^\\{]+\\}")
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
+	var scanner = NewBomAwareScanner(i)
 	var si = &ssaScriptInfo{}
 	var ss = []*ssaStyle{}
 	var es = []*ssaEvent{}
