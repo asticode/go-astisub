@@ -186,6 +186,11 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		// Split on ":"
 		var split = strings.Split(line, ":")
 		if len(split) < 2 {
+			switch sectionName {
+			case ssaSectionNameScriptInfo, ssaSectionNameStyles:
+				// Ignore line without a descriptor
+				continue
+			}
 			err = fmt.Errorf("astisub: line '%s' should contain at least one ':'", line)
 			return
 		}
