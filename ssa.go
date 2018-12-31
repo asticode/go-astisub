@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astitools/ptr"
 	"github.com/pkg/errors"
 )
@@ -144,9 +145,16 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 	// Scan
 	var line, sectionName string
 	var format map[int]string
+	isFirstLine := true
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
+
+		// Remove BOM header
+		if isFirstLine {
+			line = strings.TrimPrefix(line, string(BytesBOM))
+			isFirstLine = false
+		}
 
 		// Empty line
 		if len(line) == 0 {
@@ -168,6 +176,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 				format = make(map[int]string)
 				continue
 			default:
+				astilog.Debugf("astisub: unknown section: %s", line)
 				sectionName = ssaSectionNameUnknown
 				continue
 			}
@@ -186,9 +195,9 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 
 		// Split on ":"
 		var split = strings.Split(line, ":")
-		if len(split) < 2 {
-			err = fmt.Errorf("astisub: line '%s' should contain at least one ':'", line)
-			return
+		if len(split) < 2 || split[0] == "" {
+			astilog.Debugf("astisub: not understood: '%s', ignoring", line)
+			continue
 		}
 		var header = strings.TrimSpace(split[0])
 		var content = strings.TrimSpace(strings.Join(split[1:], ":"))
@@ -467,7 +476,7 @@ type ssaStyle struct {
 	fontName        string
 	fontSize        *float64
 	italic          *bool
-	outline         *int // pixels
+	outline         *float64 // pixels
 	outlineColour   *Color
 	marginLeft      *int // pixels
 	marginRight     *int // pixels
@@ -477,8 +486,8 @@ type ssaStyle struct {
 	scaleX          *float64 // %
 	scaleY          *float64 // %
 	secondaryColour *Color
-	shadow          *int // pixels
-	spacing         *int // pixels
+	shadow          *float64 // pixels
+	spacing         *float64 // pixels
 	strikeout       *bool
 	underline       *bool
 }
@@ -574,7 +583,8 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			}
 		// Float
 		case ssaStyleFormatNameAlphaLevel, ssaStyleFormatNameAngle, ssaStyleFormatNameFontSize,
-			ssaStyleFormatNameScaleX, ssaStyleFormatNameScaleY:
+			ssaStyleFormatNameScaleX, ssaStyleFormatNameScaleY,
+			ssaStyleFormatNameOutline, ssaStyleFormatNameShadow, ssaStyleFormatNameSpacing:
 			// Parse float
 			var f float64
 			if f, err = strconv.ParseFloat(item, 64); err != nil {
@@ -594,11 +604,16 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 				s.scaleX = astiptr.Float(f)
 			case ssaStyleFormatNameScaleY:
 				s.scaleY = astiptr.Float(f)
+			case ssaStyleFormatNameOutline:
+				s.outline = astiptr.Float(f)
+			case ssaStyleFormatNameShadow:
+				s.shadow = astiptr.Float(f)
+			case ssaStyleFormatNameSpacing:
+				s.spacing = astiptr.Float(f)
 			}
 		// Int
 		case ssaStyleFormatNameAlignment, ssaStyleFormatNameBorderStyle, ssaStyleFormatNameEncoding,
-			ssaStyleFormatNameMarginL, ssaStyleFormatNameMarginR, ssaStyleFormatNameMarginV,
-			ssaStyleFormatNameOutline, ssaStyleFormatNameShadow, ssaStyleFormatNameSpacing:
+			ssaStyleFormatNameMarginL, ssaStyleFormatNameMarginR, ssaStyleFormatNameMarginV:
 			// Parse int
 			var i int
 			if i, err = strconv.Atoi(item); err != nil {
@@ -620,12 +635,6 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 				s.marginRight = astiptr.Int(i)
 			case ssaStyleFormatNameMarginV:
 				s.marginVertical = astiptr.Int(i)
-			case ssaStyleFormatNameOutline:
-				s.outline = astiptr.Int(i)
-			case ssaStyleFormatNameShadow:
-				s.shadow = astiptr.Int(i)
-			case ssaStyleFormatNameSpacing:
-				s.spacing = astiptr.Int(i)
 			}
 		// String
 		case ssaStyleFormatNameFontName, ssaStyleFormatNameName:
@@ -769,7 +778,8 @@ func (s ssaStyle) string(format []string) string {
 			}
 		// Float
 		case ssaStyleFormatNameAlphaLevel, ssaStyleFormatNameAngle, ssaStyleFormatNameFontSize,
-			ssaStyleFormatNameScaleX, ssaStyleFormatNameScaleY:
+			ssaStyleFormatNameScaleX, ssaStyleFormatNameScaleY,
+			ssaStyleFormatNameOutline, ssaStyleFormatNameShadow, ssaStyleFormatNameSpacing:
 			var f *float64
 			switch attr {
 			case ssaStyleFormatNameAlphaLevel:
@@ -782,14 +792,19 @@ func (s ssaStyle) string(format []string) string {
 				f = s.scaleX
 			case ssaStyleFormatNameScaleY:
 				f = s.scaleY
+			case ssaStyleFormatNameOutline:
+				f = s.outline
+			case ssaStyleFormatNameShadow:
+				f = s.shadow
+			case ssaStyleFormatNameSpacing:
+				f = s.spacing
 			}
 			if f != nil {
 				v = strconv.FormatFloat(*f, 'f', 3, 64)
 			}
 		// Int
 		case ssaStyleFormatNameAlignment, ssaStyleFormatNameBorderStyle, ssaStyleFormatNameEncoding,
-			ssaStyleFormatNameMarginL, ssaStyleFormatNameMarginR, ssaStyleFormatNameMarginV,
-			ssaStyleFormatNameOutline, ssaStyleFormatNameShadow, ssaStyleFormatNameSpacing:
+			ssaStyleFormatNameMarginL, ssaStyleFormatNameMarginR, ssaStyleFormatNameMarginV:
 			var i *int
 			switch attr {
 			case ssaStyleFormatNameAlignment:
@@ -804,12 +819,6 @@ func (s ssaStyle) string(format []string) string {
 				i = s.marginRight
 			case ssaStyleFormatNameMarginV:
 				i = s.marginVertical
-			case ssaStyleFormatNameOutline:
-				i = s.outline
-			case ssaStyleFormatNameShadow:
-				i = s.shadow
-			case ssaStyleFormatNameSpacing:
-				i = s.spacing
 			}
 			if i != nil {
 				v = strconv.Itoa(*i)

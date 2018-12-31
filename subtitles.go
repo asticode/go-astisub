@@ -176,14 +176,14 @@ type StyleAttributes struct {
 	SSAMarginRight       *int // pixels
 	SSAMarginVertical    *int // pixels
 	SSAMarked            *bool
-	SSAOutline           *int // pixels
+	SSAOutline           *float64 // pixels
 	SSAOutlineColour     *Color
 	SSAPrimaryColour     *Color
 	SSAScaleX            *float64 // %
 	SSAScaleY            *float64 // %
 	SSASecondaryColour   *Color
-	SSAShadow            *int // pixels
-	SSASpacing           *int // pixels
+	SSAShadow            *float64 // pixels
+	SSASpacing           *float64 // pixels
 	SSAStrikeout         *bool
 	SSAUnderline         *bool
 	STLBoxing            *bool
