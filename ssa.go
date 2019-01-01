@@ -187,7 +187,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 
 		// Split on ":"
 		var split = strings.Split(line, ":")
-		if len(split) < 2 {
+		if len(split) < 2 || split[0] == "" {
 			switch sectionName {
 			case ssaSectionNameScriptInfo, ssaSectionNameStyles: // Do nothing
 			default:
