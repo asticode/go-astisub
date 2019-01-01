@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astitools/ptr"
 	"github.com/pkg/errors"
 )
@@ -167,6 +168,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 				format = make(map[int]string)
 				continue
 			default:
+				astilog.Debugf("astisub: unknown section: %s", line)
 				sectionName = ssaSectionNameUnknown
 				continue
 			}
@@ -187,12 +189,11 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		var split = strings.Split(line, ":")
 		if len(split) < 2 {
 			switch sectionName {
-			case ssaSectionNameScriptInfo, ssaSectionNameStyles:
-				// Ignore line without a descriptor
-				continue
+			case ssaSectionNameScriptInfo, ssaSectionNameStyles: // Do nothing
+			default:
+				astilog.Debugf("astisub: not understood: '%s', ignoring", line)
 			}
-			err = fmt.Errorf("astisub: line '%s' should contain at least one ':'", line)
-			return
+			continue
 		}
 		var header = strings.TrimSpace(split[0])
 		var content = strings.TrimSpace(strings.Join(split[1:], ":"))
