@@ -613,7 +613,6 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			// Parse int
 			var i int
 			if i, err = strconv.Atoi(item); err != nil {
-				fmt.Printf("%q\n", attr)
 				err = errors.Wrapf(err, "astisub: atoi of %s failed", item)
 				return
 			}

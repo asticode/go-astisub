@@ -12,9 +12,9 @@ Title: SSA test
 
 [V4 Styles]
 Format: Name, Alignment, AlphaLevel, BackColour, Bold, BorderStyle, Encoding, Fontname, Fontsize, Italic, MarginL, MarginR, MarginV, Outline, OutlineColour, PrimaryColour, SecondaryColour, Shadow
-Style: 1,7,0.100,&H80000008,1,7,0,f1,4.000,0,1,4,7,1,&H0000ffff,&H0000ffff,&H0000ffff,4
-Style: 2,8,0.200,&H000f0f0f,1,8,1,f2,5.000,0,2,5,8,2,&H0000ffff,&H00efefef,&H0000ffff,5
-Style: 3,9,0.300,&H00000008,0,9,2,f3,6.000,0,3,6,9,3,&H00000008,&H00b4fcfc,&H00b4fcfc,6
+Style: 1,7,0.100,&H80000008,1,7,0,f1,4.000,0,1,4,7,1.000,&H0000ffff,&H0000ffff,&H0000ffff,4.000
+Style: 2,8,0.200,&H000f0f0f,1,8,1,f2,5.000,0,2,5,8,2.000,&H0000ffff,&H00efefef,&H0000ffff,5.000
+Style: 3,9,0.300,&H00000008,0,9,2,f3,6.000,0,3,6,9,3.000,&H00000008,&H00b4fcfc,&H00b4fcfc,6.000
 
 [Events]
 Format: Start, End, Effect, MarginL, MarginR, MarginV, Marked, Name, Style, Text
