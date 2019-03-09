@@ -15,6 +15,7 @@ import (
 	"github.com/asticode/go-astitools/map"
 	"github.com/asticode/go-astitools/string"
 	"github.com/pkg/errors"
+	"golang.org/x/net/html/charset"
 )
 
 // https://www.w3.org/TR/ttaf1-dfxp/
@@ -289,6 +290,12 @@ func (d TTMLInDuration) duration() time.Duration {
 	return d.d
 }
 
+// Bypass XML charset reader that will fail io.Reader is not UTF-8
+// @see https://groups.google.com/forum/#!topic/golang-nuts/tXcECEKC2rs
+func bypassXMLReader(label string, input io.Reader) (io.Reader, error) {
+	return input, nil
+}
+
 // ReadFromTTML parses a .ttml content
 func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -296,7 +303,18 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 	// Unmarshal XML
 	var ttml TTMLIn
-	if err = xml.NewDecoder(i).Decode(&ttml); err != nil {
+
+	// Convert content or i to UTF-8 if needed
+	nr, err := charset.NewReader(i, "")
+	if err != nil {
+		err = errors.Wrap(err, "astisub: could not detect or convert character set to UTF-8")
+		return
+	}
+
+	decoder := xml.NewDecoder(nr)
+	decoder.CharsetReader = bypassXMLReader
+
+	if err = decoder.Decode(&ttml); err != nil {
 		err = errors.Wrap(err, "astisub: xml decoding failed")
 		return
 	}
@@ -584,7 +602,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	sort.Strings(k)
 	for _, id := range k {
 		var ttmlRegion = TTMLOutRegion{TTMLOutHeader: TTMLOutHeader{
-			ID: s.Regions[id].ID,
+			ID:                     s.Regions[id].ID,
 			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(s.Regions[id].InlineStyle),
 		}}
 		if s.Regions[id].Style != nil {
@@ -601,7 +619,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	sort.Strings(k)
 	for _, id := range k {
 		var ttmlStyle = TTMLOutStyle{TTMLOutHeader: TTMLOutHeader{
-			ID: s.Styles[id].ID,
+			ID:                     s.Styles[id].ID,
 			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(s.Styles[id].InlineStyle),
 		}}
 		if s.Styles[id].Style != nil {
@@ -614,8 +632,8 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	for _, item := range s.Items {
 		// Init subtitle
 		var ttmlSubtitle = TTMLOutSubtitle{
-			Begin: TTMLOutDuration(item.StartAt),
-			End:   TTMLOutDuration(item.EndAt),
+			Begin:                  TTMLOutDuration(item.StartAt),
+			End:                    TTMLOutDuration(item.EndAt),
 			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(item.InlineStyle),
 		}
 
@@ -635,7 +653,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 			for _, lineItem := range line.Items {
 				// Init ttml item
 				var ttmlItem = TTMLOutItem{
-					Text: lineItem.Text,
+					Text:                   lineItem.Text,
 					TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(lineItem.InlineStyle),
 					XMLName:                xml.Name{Local: "span"},
 				}
