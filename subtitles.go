@@ -574,7 +574,7 @@ func (s Subtitles) Write(dst string) (err error) {
 	defer f.Close()
 
 	// Write the content
-	switch filepath.Ext(dst) {
+	switch filepath.Ext(strings.ToLower(dst)) {
 	case ".srt":
 		err = s.WriteToSRT(f)
 	case ".ssa", ".ass":
