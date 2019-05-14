@@ -67,7 +67,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	defer f.Close()
 
 	// Parse the content
-	switch filepath.Ext(o.Filename) {
+	switch filepath.Ext(strings.ToLower(o.Filename)) {
 	case ".srt":
 		s, err = ReadFromSRT(f)
 	case ".ssa", ".ass":
