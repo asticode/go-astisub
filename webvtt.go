@@ -295,7 +295,19 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range item.Lines {
-			c = append(c, []byte(l.String())...)
+			for _, li := range l.Items {
+				var color string
+				if li.InlineStyle != nil && li.InlineStyle.TTMLColor != "" {
+					color = li.InlineStyle.TTMLColor
+				}
+				if color != "" {
+					c = append(c, []byte("<font color=\""+color+"\">")...)
+				}
+				c = append(c, []byte(li.Text)...)
+				if color != "" {
+					c = append(c, []byte("</font>")...)
+				}
+			}
 			c = append(c, bytesLineSeparator...)
 		}
 
