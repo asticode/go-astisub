@@ -59,7 +59,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var comments []string
 	for scanner.Scan() {
 		// Fetch line
-		line = scanner.Text()
+		line = strings.TrimSpace(scanner.Text())
 		// Check prefixes
 		switch {
 		// Comment
