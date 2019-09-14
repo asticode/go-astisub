@@ -81,7 +81,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				// Split on "="
 				var split = strings.Split(part, "=")
 				if len(split) <= 1 {
-					err = fmt.Errorf("astisub: Invalid region style %s", part)
+					err = fmt.Errorf("astisub: line %d: Invalid region style %s", lineNum, part)
 					return
 				}
 
