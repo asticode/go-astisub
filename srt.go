@@ -33,10 +33,12 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 	// Scan
 	var line string
+	var lineNum int
 	var s = &Item{}
 	for scanner.Scan() {
 		// Fetch line
-		line = scanner.Text()
+		line = strings.TrimSpace(scanner.Text())
+		lineNum++
 
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
@@ -68,11 +70,11 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Fetch time boundaries
 			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
 			if s.StartAt, err = parseDurationSRT(boundaries[0]); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing srt duration %s failed", boundaries[0])
+				err = errors.Wrapf(err, "astisub: line %d: parsing srt duration %s failed", lineNum, boundaries[0])
 				return
 			}
 			if s.EndAt, err = parseDurationSRT(boundaries[1]); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing srt duration %s failed", boundaries[1])
+				err = errors.Wrapf(err, "astisub: line %d: parsing srt duration %s failed", lineNum, boundaries[1])
 				return
 			}
 
