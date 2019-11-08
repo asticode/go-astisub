@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astisub"
+	astiptr "github.com/asticode/go-astitools/ptr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,7 @@ func TestSTL(t *testing.T) {
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Metadata
-	assert.Equal(t, &astisub.Metadata{Framerate: 25, Language: astisub.LanguageFrench, STLPublisher: "Copyright test", Title: "Title test"}, s.Metadata)
+	assert.Equal(t, &astisub.Metadata{Framerate: 25, Language: astisub.LanguageFrench, STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astiptr.Int(40), STLMaximumNumberOfDisplayableRows: astiptr.Int(23), STLPublisher: "Copyright test", Title: "Title test"}, s.Metadata)
 
 	// No subtitles to write
 	w := &bytes.Buffer{}

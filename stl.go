@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asticode/go-astitools/byte"
-	"github.com/asticode/go-astitools/map"
-	"github.com/asticode/go-astitools/ptr"
+	astibyte "github.com/asticode/go-astitools/byte"
+	astimap "github.com/asticode/go-astitools/map"
+	astiptr "github.com/asticode/go-astitools/ptr"
 	"github.com/pkg/errors"
 	"golang.org/x/text/unicode/norm"
 )
@@ -188,10 +188,12 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Framerate:    g.framerate,
-		Language:     stlLanguageMapping.B(g.languageCode).(string),
-		STLPublisher: g.publisher,
-		Title:        g.originalProgramTitle,
+		Framerate: g.framerate,
+		Language:  stlLanguageMapping.B(g.languageCode).(string),
+		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astiptr.Int(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
+		STLMaximumNumberOfDisplayableRows:                   astiptr.Int(g.maximumNumberOfDisplayableRows),
+		STLPublisher:                                        g.publisher,
+		Title:                                               g.originalProgramTitle,
 	}
 
 	// Parse Text and Timing Information (TTI) blocks.
@@ -308,6 +310,12 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		g.framerate = s.Metadata.Framerate
 		g.languageCode = stlLanguageMapping.A(s.Metadata.Language).(string)
 		g.originalProgramTitle = s.Metadata.Title
+		if s.Metadata.STLMaximumNumberOfDisplayableCharactersInAnyTextRow != nil {
+			g.maximumNumberOfDisplayableCharactersInAnyTextRow = *s.Metadata.STLMaximumNumberOfDisplayableCharactersInAnyTextRow
+		}
+		if s.Metadata.STLMaximumNumberOfDisplayableRows != nil {
+			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
+		}
 		g.publisher = s.Metadata.STLPublisher
 	}
 

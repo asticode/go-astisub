@@ -249,25 +249,27 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 // Metadata represents metadata
 // TODO Merge attributes
 type Metadata struct {
-	Comments                 []string
-	Framerate                int
-	Language                 string
-	SSACollisions            string
-	SSAOriginalEditing       string
-	SSAOriginalScript        string
-	SSAOriginalTiming        string
-	SSAOriginalTranslation   string
-	SSAPlayDepth             *int
-	SSAPlayResX, SSAPlayResY *int
-	SSAScriptType            string
-	SSAScriptUpdatedBy       string
-	SSASynchPoint            string
-	SSATimer                 *float64
-	SSAUpdateDetails         string
-	SSAWrapStyle             string
-	STLPublisher             string
-	Title                    string
-	TTMLCopyright            string
+	Comments                                            []string
+	Framerate                                           int
+	Language                                            string
+	SSACollisions                                       string
+	SSAOriginalEditing                                  string
+	SSAOriginalScript                                   string
+	SSAOriginalTiming                                   string
+	SSAOriginalTranslation                              string
+	SSAPlayDepth                                        *int
+	SSAPlayResX, SSAPlayResY                            *int
+	SSAScriptType                                       string
+	SSAScriptUpdatedBy                                  string
+	SSASynchPoint                                       string
+	SSATimer                                            *float64
+	SSAUpdateDetails                                    string
+	SSAWrapStyle                                        string
+	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
+	STLMaximumNumberOfDisplayableRows                   *int
+	STLPublisher                                        string
+	Title                                               string
+	TTMLCopyright                                       string
 }
 
 // Region represents a subtitle's region
