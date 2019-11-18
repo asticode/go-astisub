@@ -19,6 +19,7 @@ var (
 
 func main() {
 	// Init
+	astilog.SetHandyFlags()
 	var s = astiflag.Subcommand()
 	flag.Var(&inputPath, "i", "the input paths")
 	flag.Parse()
