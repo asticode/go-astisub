@@ -196,7 +196,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 // formatDurationWebVTT formats a .vtt duration
-func formatDurationWebVTT(i time.Duration) string {
+func formatDurationWebVTT(i time.Duration) string {	
 	return formatDuration(i, ".", 3)
 }
 
@@ -290,7 +290,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			if item.InlineStyle.WebVTTVertical != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("vertical:"+item.InlineStyle.WebVTTVertical)...)
-			}
+			}			
 		}
 
 		// Add new line
@@ -298,8 +298,20 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range item.Lines {
+			var cierrac=false
+			if l.Items!=nil && len(l.Items)>0 && l.Items[0].InlineStyle!=nil &&
+			   l.Items[0].InlineStyle.WebVTTColor!=""{
+				c = append(c, []byte(l.Items[0].InlineStyle.WebVTTColor)...)				
+				cierrac=true
+			}
+
 			c = append(c, []byte(l.String())...)
+			if cierrac{
+				c = append(c, bytesCierrac...)
+			}
 			c = append(c, bytesLineSeparator...)
+
+				
 		}
 
 		// Add new line

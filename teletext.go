@@ -867,6 +867,7 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	var l = Line{}
 	var li = LineItem{InlineStyle: &StyleAttributes{}}
 	var started bool
+	started=true
 	var s styler
 	for _, v := range row {
 		// Create specific styler
@@ -894,10 +895,10 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 			color = ColorCyan
 		case 0x7:
 			color = ColorWhite
-		case 0xa:
+		/*case 0xa:
 			started = false
 		case 0xb:
-			started = true
+			started = true*/
 		case 0xc:
 			doubleHeight = astiptr.Bool(false)
 			doubleSize = astiptr.Bool(false)
@@ -953,13 +954,13 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 			li.Text += string(d.decode(v))
 		}
 	}
-
+	
 	// Append line item
 	appendTeletextLineItem(&l, li, s)
-
+	
 	// Append line
 	if len(l.Items) > 0 {
-		i.Lines = append(i.Lines, l)
+		i.Lines = append(i.Lines, l)	   
 	}
 }
 
@@ -993,8 +994,9 @@ func appendTeletextLineItem(l *Line, li LineItem, s styler) {
 
 		// Propagate style attributes
 		li.InlineStyle.propagateTeletextAttributes()
+		
 		if s != nil {
-			s.propagateStyleAttributes(li.InlineStyle)
+			s.propagateStyleAttributes(li.InlineStyle)			
 		}
 
 		// Append line item

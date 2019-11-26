@@ -17,6 +17,7 @@ var (
 	BytesBOM           = []byte{239, 187, 191}
 	bytesLineSeparator = []byte("\n")
 	bytesSpace         = []byte(" ")
+	bytesCierrac       = []byte("</c>")
 )
 
 // Colors
@@ -73,7 +74,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	case ".ssa", ".ass":
 		s, err = ReadFromSSA(f)
 	case ".stl":
-		s, err = ReadFromSTL(f)
+		s, err = ReadFromSTL(f)		
 	case ".ts":
 		s, err = ReadFromTeletext(f, o.Teletext)
 	case ".ttml":
@@ -83,6 +84,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	default:
 		err = ErrInvalidExtension
 	}
+		
 	return
 }
 
@@ -158,6 +160,53 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
+// WebVtt expresses the color as a webvtt string
+func (c *Color) WebVTTColor() string {	
+	switch c {
+		case ColorBlack:
+			return "<c.black>"	//rgba(0,0,0,1)
+		case ColorRed:
+			return "<c.red>"	//rgba(255,0,0,1)
+		case ColorGreen:
+			return "<c.lime>"	//rgba(0,255,0,1)
+		case ColorYellow:
+			return "<c.yellow>"	//rgba(255,255,0,1)
+		case ColorBlue:	
+			return "<c.blue>"	//rgba(0,0,255,1)
+		case ColorMagenta:
+			return "<c.magenta>"	//rgba(255,0,255,1)
+		case ColorCyan:
+			return "<c.cyan>"	//rgba(0,255,255,1)
+		case ColorWhite:
+			return "<c.white>"	//rgba(255,255,255,1)
+		default:
+			return ""
+	}	
+	
+}
+
+func (sa *StyleAttributes) WebVTTPositionFromTeletext() string {	
+	switch sa.TeletextJustificationCode{
+		case stlJustificationCodeLeftJustifiedText:
+			return "20%"	//left
+		case stlJustificationCodeRightJustifiedText:
+			return "80%"	//right	
+		default:
+			return ""
+	}
+}
+
+func (sa *StyleAttributes) WebVTTLineFromTeletext() string {	
+	if sa.TeletextVerticalPostion<3{	//top
+		return "20%"	
+	} else if sa.TeletextVerticalPostion<=12{ //(23/2)+1	//middle
+		return "50%"
+	} else{
+		return ""
+	}
+}
+
+
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
 	SSAAlignment         *int
@@ -195,6 +244,8 @@ type StyleAttributes struct {
 	TeletextDoubleWidth  *bool
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
+	TeletextVerticalPostion int
+	TeletextJustificationCode byte
 	// TODO Use pointers with real types below
 	TTMLBackgroundColor  string // https://htmlcolorcodes.com/fr/
 	TTMLColor            string
@@ -230,6 +281,7 @@ type StyleAttributes struct {
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
+	WebVTTColor	     string
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
@@ -237,10 +289,18 @@ func (sa *StyleAttributes) propagateSSAAttributes() {}
 func (sa *StyleAttributes) propagateSTLAttributes() {}
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
-	if sa.TeletextColor != nil {
+	if sa.TeletextColor != nil {		
 		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
+		sa.WebVTTColor=sa.TeletextColor.WebVTTColor()				
 	}
 }
+
+func (sa *StyleAttributes) propagateTeletextPositionJustification() {		
+	sa.WebVTTLine = sa.WebVTTLineFromTeletext()
+	sa.WebVTTPosition=sa.WebVTTPositionFromTeletext()
+}
+
+
 
 func (sa *StyleAttributes) propagateTTMLAttributes() {}
 
@@ -574,7 +634,7 @@ func (s Subtitles) Write(dst string) (err error) {
 		return
 	}
 	defer f.Close()
-
+	
 	// Write the content
 	switch filepath.Ext(strings.ToLower(dst)) {
 	case ".srt":
@@ -585,7 +645,7 @@ func (s Subtitles) Write(dst string) (err error) {
 		err = s.WriteToSTL(f)
 	case ".ttml":
 		err = s.WriteToTTML(f)
-	case ".vtt":
+	case ".vtt":	
 		err = s.WriteToWebVTT(f)
 	default:
 		err = ErrInvalidExtension
@@ -692,7 +752,7 @@ func formatDuration(i time.Duration, millisecondSep string, numberOfMillisecondD
 
 	// Parse milliseconds
 	var milliseconds = float64(n/time.Millisecond) / float64(1000)
-	s += fmt.Sprintf("%."+strconv.Itoa(numberOfMillisecondDigits)+"f", milliseconds)[2:]
+	s += fmt.Sprintf("%."+strconv.Itoa(numberOfMillisecondDigits)+"f", milliseconds)[2:]	
 	return
 }
 

@@ -209,20 +209,32 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 
 		// Parse TTI block
 		var t = parseTTIBlock(b, g.framerate)
-
+		
 		if t.extensionBlockNumber != extensionBlockNumberReservedUserData {
 
+			var starttime=g.timecodeStartOfProgramme
+			if starttime>t.timecodeIn{
+				starttime=0
+			}
 			// Create item
 			var i = &Item{
-				EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
-				StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
+				EndAt:   t.timecodeOut - starttime,
+				StartAt: t.timecodeIn - starttime,
 			}
 
 			// Loop through rows
 			for _, text := range bytes.Split(t.text, []byte{0x8a}) {
-				parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
+				parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)				
 			}
 
+			if i.InlineStyle!=nil{
+				fmt.Printf("InlineStyle not NULL\n")
+			}else{
+				i.InlineStyle=&StyleAttributes{}
+			}
+			i.InlineStyle.TeletextVerticalPostion=t.verticalPosition
+			i.InlineStyle.TeletextJustificationCode=t.justificationCode
+			i.InlineStyle.propagateTeletextPositionJustification()
 			// Append item
 			o.Items = append(o.Items, i)
 		}
@@ -351,18 +363,18 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	}
 
 	// Creation date
-	if v := strings.TrimSpace(string(b[224:230])); len(v) > 0 {
+	if v := strings.TrimSpace(string(b[224:230])); len(v) > 0 {		
 		if g.creationDate, err = time.Parse("060102", v); err != nil {
-			err = errors.Wrapf(err, "astisub: parsing date %s failed", v)
-			return
+			err = errors.Wrapf(err, "astisub: parsing date %s failed", v)			
+			g.creationDate=time.Now()
 		}
 	}
 
 	// Revision date
-	if v := strings.TrimSpace(string(b[230:236])); len(v) > 0 {
+	if v := strings.TrimSpace(string(b[230:236])); len(v) > 0 {		
 		if g.revisionDate, err = time.Parse("060102", v); err != nil {
 			err = errors.Wrapf(err, "astisub: parsing date %s failed", v)
-			return
+			g.revisionDate=time.Now()
 		}
 	}
 
