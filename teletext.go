@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/asticode/go-astilog"
-	"github.com/asticode/go-astitools/bits"
-	"github.com/asticode/go-astitools/ptr"
+	astibits "github.com/asticode/go-astitools/bits"
+	astiptr "github.com/asticode/go-astitools/ptr"
 	"github.com/asticode/go-astits"
 	"github.com/pkg/errors"
 )
@@ -468,7 +468,6 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 			return
 		}
 	}
-	return
 }
 
 type teletextPageBuffer struct {
@@ -698,7 +697,7 @@ func (b *teletextPageBuffer) parsePacket28And29(i []byte, packetNumber, designat
 
 	// Triplet 1
 	// TODO Implement hamming 24/18
-	triplet1, ok := astibits.Hamming2418Decode(uint32(i[2]<<16) | uint32(i[1])<<8 | uint32(i[0]))
+	triplet1, ok := astibits.Hamming2418Decode(uint32(i[2])<<16 | uint32(i[1])<<8 | uint32(i[0]))
 	if !ok {
 		return
 	}
