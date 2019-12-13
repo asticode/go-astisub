@@ -99,6 +99,7 @@ type Subtitles struct {
 	Metadata *Metadata
 	Regions  map[string]*Region
 	Styles   map[string]*Style
+	TTIBlocks	[]*ttiBlock;
 }
 
 // NewSubtitles creates new subtitles
@@ -160,7 +161,7 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
-// WebVtt expresses the color as a webvtt string
+// WebVTTColor expresses the color as a webvtt string
 func (c *Color) WebVTTColor() string {	
 	switch c {
 		case ColorBlack:
@@ -185,6 +186,7 @@ func (c *Color) WebVTTColor() string {
 	
 }
 
+// WebVTTPositionFromTeletext Justification
 func (sa *StyleAttributes) WebVTTPositionFromTeletext() string {	
 	switch sa.TeletextJustificationCode{
 		case stlJustificationCodeLeftJustifiedText:
@@ -196,6 +198,7 @@ func (sa *StyleAttributes) WebVTTPositionFromTeletext() string {
 	}
 }
 
+// WebVTTLineFromTeletext Vertical Position
 func (sa *StyleAttributes) WebVTTLineFromTeletext() string {	
 	if sa.TeletextVerticalPostion<3{	//top
 		return "20%"	
@@ -237,7 +240,7 @@ type StyleAttributes struct {
 	SSAUnderline         *bool
 	STLBoxing            *bool
 	STLItalics           *bool
-	STLUnderline         *bool
+	STLUnderline         *bool	
 	TeletextColor        *Color
 	TeletextDoubleHeight *bool
 	TeletextDoubleSize   *bool
@@ -281,7 +284,7 @@ type StyleAttributes struct {
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
-	WebVTTColor	     string
+	WebVTTColor	         string	
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
@@ -291,7 +294,7 @@ func (sa *StyleAttributes) propagateSTLAttributes() {}
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {		
 		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
-		sa.WebVTTColor=sa.TeletextColor.WebVTTColor()				
+		sa.WebVTTColor=sa.TeletextColor.WebVTTColor()			
 	}
 }
 
@@ -372,12 +375,24 @@ type LineItem struct {
 func (s *Subtitles) Add(d time.Duration) {
 	for idx := 0; idx < len(s.Items); idx++ {
 		s.Items[idx].EndAt += d
-		s.Items[idx].StartAt += d
+		s.Items[idx].StartAt += d		
+
+		if s.TTIBlocks!=nil && idx<len(s.TTIBlocks){
+			s.TTIBlocks[idx].timecodeIn=s.Items[idx].StartAt
+			s.TTIBlocks[idx].timecodeOut=s.Items[idx].EndAt
+		}
+
 		if s.Items[idx].EndAt <= 0 && s.Items[idx].StartAt <= 0 {
 			s.Items = append(s.Items[:idx], s.Items[idx+1:]...)
+			if s.TTIBlocks!=nil && idx<len(s.TTIBlocks){
+				s.TTIBlocks = append(s.TTIBlocks[:idx], s.TTIBlocks[idx+1:]...)
+			}
 			idx--
 		} else if s.Items[idx].StartAt <= 0 {
-			s.Items[idx].StartAt = time.Duration(0)
+			s.Items[idx].StartAt = time.Duration(0)		
+			if s.TTIBlocks!=nil && idx<len(s.TTIBlocks){
+				s.TTIBlocks[idx].timecodeIn=s.Items[idx].StartAt				
+			}	
 		}
 	}
 }

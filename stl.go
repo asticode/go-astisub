@@ -237,6 +237,7 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			i.InlineStyle.propagateTeletextPositionJustification()
 			// Append item
 			o.Items = append(o.Items, i)
+			o.TTIBlocks=append(o.TTIBlocks,t)
 		}
 
 	}
@@ -381,7 +382,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Revision number
 	if v := strings.TrimSpace(string(b[236:238])); len(v) > 0 {
 		if g.revisionNumber, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Revision number astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -389,7 +390,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of TTI blocks
 	if v := strings.TrimSpace(string(b[238:243])); len(v) > 0 {
 		if g.totalNumberOfTTIBlocks, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Total number of TTI blocks astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -397,7 +398,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of subtitles
 	if v := strings.TrimSpace(string(b[243:248])); len(v) > 0 {
 		if g.totalNumberOfSubtitles, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Total number of subtitles astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -405,7 +406,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of subtitle groups
 	if v := strings.TrimSpace(string(b[248:251])); len(v) > 0 {
 		if g.totalNumberOfSubtitleGroups, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Total number of subtitle groups astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -413,7 +414,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Maximum number of displayable characters in any text row
 	if v := strings.TrimSpace(string(b[251:253])); len(v) > 0 {
 		if g.maximumNumberOfDisplayableCharactersInAnyTextRow, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Maximum number of displayable characters in any text row astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -421,7 +422,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Maximum number of displayable rows
 	if v := strings.TrimSpace(string(b[253:255])); len(v) > 0 {
 		if g.maximumNumberOfDisplayableRows, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Maximum number of displayable rows astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -445,7 +446,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of disks
 	if v := strings.TrimSpace(string(b[272])); len(v) > 0 {
 		if g.totalNumberOfDisks, err = strconv.Atoi(v); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", v)
+			err = errors.Wrapf(err, "Total number of disks astisub: atoi of %s failed", v)
 			return
 		}
 	}
@@ -634,8 +635,24 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)            // Timecode out
 	o = append(o, byte(uint8(t.verticalPosition)))                                  // Vertical position
 	o = append(o, t.justificationCode)                                              // Justification code
-	o = append(o, t.commentFlag)                                                    // Comment flag
-	o = append(o, astibyte.ToLength(encodeTextSTL(string(t.text)), '\x8f', 112)...) // Text field
+	o = append(o, t.commentFlag)                                                    // Comment flag	
+	o = append(o, astibyte.ToLength(encodeTextSTL(string(t.text)), '\x8f', 112)...) // Text field 
+	return
+}
+
+func (t *ttiBlock) bytesSTLToSTL(g *gsiBlock) (o []byte) {
+	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
+	var b = make([]byte, 2)
+	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
+	o = append(o, b...)                                                             // Subtitle number
+	o = append(o, byte(uint8(t.extensionBlockNumber)))                              // Extension block number
+	o = append(o, t.cumulativeStatus)                                               // Cumulative status
+	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)             // Timecode in
+	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)            // Timecode out
+	o = append(o, byte(uint8(t.verticalPosition)))                                  // Vertical position
+	o = append(o, t.justificationCode)                                              // Justification code
+	o = append(o, t.commentFlag)                                                    // Comment flag	
+	o = append(o, t.text...)
 	return
 }
 
@@ -772,12 +789,25 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 		return
 	}
 
-	// Loop through items
-	for idx, item := range s.Items {
-		// Write tti block
-		if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
-			err = errors.Wrapf(err, "astisub: writing tti block #%d failed", idx+1)
-			return
+	if s.TTIBlocks!=nil && len(s.TTIBlocks)==len(s.Items){
+		fmt.Println("Remen: Tenemos TTIBlocks")
+		// Loop through items
+		for idx, ttiblock := range s.TTIBlocks {
+			// Write tti block
+			if _, err = o.Write(ttiblock.bytesSTLToSTL(g)); err != nil {
+				err = errors.Wrapf(err, "astisub: writing tti stl to stl block #%d failed", idx+1)
+				return
+			}
+		}	
+	}else{
+		fmt.Println("Remen:NO Tenemos TTIBlocks")
+		// Loop through items
+		for idx, item := range s.Items {
+			// Write tti block
+			if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
+				err = errors.Wrapf(err, "astisub: writing tti block #%d failed", idx+1)
+				return
+			}
 		}
 	}
 	return
