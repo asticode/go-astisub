@@ -501,7 +501,7 @@ func (b *teletextPageBuffer) process(d *astits.PESData, t time.Time) (ps []*tele
 	// Data identifier
 	var offset int
 	dataIdentifier := uint8(d.Data[offset])
-	offset ++
+	offset += 1
 
 	// Check data type
 	if teletextPESDataType(dataIdentifier) != teletextPESDataTypeEBU {
@@ -512,11 +512,11 @@ func (b *teletextPageBuffer) process(d *astits.PESData, t time.Time) (ps []*tele
 	for offset < len(d.Data) {
 		// ID
 		id := uint8(d.Data[offset])
-		offset ++
+		offset += 1
 
 		// Length
 		length := uint8(d.Data[offset])
-		offset ++
+		offset += 1
 
 		// Offset end
 		offsetEnd := offset + int(length)
@@ -697,7 +697,7 @@ func (b *teletextPageBuffer) parsePacket28And29(i []byte, packetNumber, designat
 
 	// Triplet 1
 	// TODO Implement hamming 24/18
-	triplet1, ok := astibits.Hamming2418Decode(uint32(i[2]<<16) | uint32(i[1])<<8 | uint32(i[0]))
+	triplet1, ok := astibits.Hamming2418Decode(uint32(i[2])<<16 | uint32(i[1])<<8 | uint32(i[0]))
 	if !ok {
 		return
 	}
@@ -992,8 +992,8 @@ func appendTeletextLineItem(l *Line, li LineItem, s styler) {
 		}
 
 		// Propagate style attributes
-		li.InlineStyle.propagateTeletextAttributes()		
-
+		li.InlineStyle.propagateTeletextAttributes()
+		
 		if s != nil {
 			s.propagateStyleAttributes(li.InlineStyle)			
 		}
