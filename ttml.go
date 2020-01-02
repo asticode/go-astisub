@@ -6,14 +6,12 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"sort"
-
-	"github.com/asticode/go-astitools/map"
-	"github.com/asticode/go-astitools/string"
+	"github.com/asticode/go-astikit"
 	"github.com/pkg/errors"
 )
 
@@ -28,13 +26,14 @@ const (
 )
 
 // TTML language mapping
-var ttmlLanguageMapping = astimap.NewMap(ttmlLanguageEnglish, LanguageEnglish).
+var ttmlLanguageMapping = astikit.NewBiMap().
+	Set(ttmlLanguageEnglish, LanguageEnglish).
 	Set(ttmlLanguageFrench, LanguageFrench)
 
 // TTML Clock Time Frames and Offset Time
 var (
-	ttmlRegexpClockTimeFrames = regexp.MustCompile("\\:[\\d]+$")
-	ttmlRegexpOffsetTime      = regexp.MustCompile("^(\\d+)(\\.(\\d+))?(h|m|s|ms|f|t)$")
+	ttmlRegexpClockTimeFrames = regexp.MustCompile(`\:[\d]+$`)
+	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+)(\.(\d+))?(h|m|s|ms|f|t)$`)
 )
 
 // TTMLIn represents an input TTML that must be unmarshaled
@@ -50,13 +49,16 @@ type TTMLIn struct {
 }
 
 // metadata returns the Metadata of the TTML
-func (t TTMLIn) metadata() *Metadata {
-	return &Metadata{
+func (t TTMLIn) metadata() (m *Metadata) {
+	m = &Metadata{
 		Framerate:     t.Framerate,
-		Language:      ttmlLanguageMapping.B(astistring.ToLength(t.Lang, " ", 2)).(string),
 		Title:         t.Metadata.Title,
 		TTMLCopyright: t.Metadata.Copyright,
 	}
+	if v, ok := ttmlLanguageMapping.Get(astikit.StrPad(t.Lang, ' ', 2, astikit.PadCut)); ok {
+		m.Language = v.(string)
+	}
+	return
 }
 
 // TTMLInMetadata represents an input TTML Metadata
@@ -567,7 +569,9 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 
 	// Add metadata
 	if s.Metadata != nil {
-		ttml.Lang = ttmlLanguageMapping.A(s.Metadata.Language).(string)
+		if v, ok := ttmlLanguageMapping.GetInverse(s.Metadata.Language); ok {
+			ttml.Lang = v.(string)
+		}
 		if len(s.Metadata.TTMLCopyright) > 0 || len(s.Metadata.Title) > 0 {
 			ttml.Metadata = &TTMLOutMetadata{
 				Copyright: s.Metadata.TTMLCopyright,
@@ -584,7 +588,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	sort.Strings(k)
 	for _, id := range k {
 		var ttmlRegion = TTMLOutRegion{TTMLOutHeader: TTMLOutHeader{
-			ID: s.Regions[id].ID,
+			ID:                     s.Regions[id].ID,
 			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(s.Regions[id].InlineStyle),
 		}}
 		if s.Regions[id].Style != nil {
@@ -601,7 +605,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	sort.Strings(k)
 	for _, id := range k {
 		var ttmlStyle = TTMLOutStyle{TTMLOutHeader: TTMLOutHeader{
-			ID: s.Styles[id].ID,
+			ID:                     s.Styles[id].ID,
 			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(s.Styles[id].InlineStyle),
 		}}
 		if s.Styles[id].Style != nil {
@@ -614,8 +618,8 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	for _, item := range s.Items {
 		// Init subtitle
 		var ttmlSubtitle = TTMLOutSubtitle{
-			Begin: TTMLOutDuration(item.StartAt),
-			End:   TTMLOutDuration(item.EndAt),
+			Begin:                  TTMLOutDuration(item.StartAt),
+			End:                    TTMLOutDuration(item.EndAt),
 			TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(item.InlineStyle),
 		}
 
@@ -635,7 +639,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 			for _, lineItem := range line.Items {
 				// Init ttml item
 				var ttmlItem = TTMLOutItem{
-					Text: lineItem.Text,
+					Text:                   lineItem.Text,
 					TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(lineItem.InlineStyle),
 					XMLName:                xml.Name{Local: "span"},
 				}

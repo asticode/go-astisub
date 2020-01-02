@@ -10,9 +10,7 @@ import (
 	"strings"
 	"time"
 
-	astibyte "github.com/asticode/go-astitools/byte"
-	astimap "github.com/asticode/go-astitools/map"
-	astiptr "github.com/asticode/go-astitools/ptr"
+	"github.com/asticode/go-astikit"
 	"github.com/pkg/errors"
 	"golang.org/x/text/unicode/norm"
 )
@@ -29,17 +27,17 @@ const (
 // STL character code table number
 const (
 	stlCharacterCodeTableNumberLatin         uint16 = 12336
-	stlCharacterCodeTableNumberLatinCyrillic        = 12337
-	stlCharacterCodeTableNumberLatinArabic          = 12338
-	stlCharacterCodeTableNumberLatinGreek           = 12339
-	stlCharacterCodeTableNumberLatinHebrew          = 12340
+	stlCharacterCodeTableNumberLatinCyrillic uint16 = 12337
+	stlCharacterCodeTableNumberLatinArabic   uint16 = 12338
+	stlCharacterCodeTableNumberLatinGreek    uint16 = 12339
+	stlCharacterCodeTableNumberLatinHebrew   uint16 = 12340
 )
 
 // STL character code tables
 // TODO Add missing tables
 var (
-	stlCharacterCodeTables = map[uint16]*astimap.Map{
-		stlCharacterCodeTableNumberLatin: astimap.NewMap(0x0, "").
+	stlCharacterCodeTables = map[uint16]*astikit.BiMap{
+		stlCharacterCodeTableNumberLatin: astikit.NewBiMap().
 			Set(0x20, " ").Set(0x21, "!").Set(0x22, "\"").Set(0x23, "#").
 			Set(0x24, "¤").Set(0x25, "%").Set(0x26, "&").Set(0x27, "'").
 			Set(0x28, "(").Set(0x29, ")").Set(0x2a, "*").Set(0x2b, "+").
@@ -96,10 +94,10 @@ var (
 // STL code page numbers
 const (
 	stlCodePageNumberCanadaFrench uint32 = 3683891
-	stlCodePageNumberMultilingual        = 3683632
-	stlCodePageNumberNordic              = 3683893
-	stlCodePageNumberPortugal            = 3683888
-	stlCodePageNumberUnitedStates        = 3420983
+	stlCodePageNumberMultilingual uint32 = 3683632
+	stlCodePageNumberNordic       uint32 = 3683893
+	stlCodePageNumberPortugal     uint32 = 3683888
+	stlCodePageNumberUnitedStates uint32 = 3420983
 )
 
 // STL comment flag
@@ -129,7 +127,7 @@ const (
 )
 
 // STL framerate mapping
-var stlFramerateMapping = astimap.NewMap("STL25.01", 25).
+var stlFramerateMapping = astikit.NewBiMap().
 	Set("STL25.01", 25).
 	Set("STL30.01", 30)
 
@@ -148,7 +146,8 @@ const (
 )
 
 // STL language mapping
-var stlLanguageMapping = astimap.NewMap(stlLanguageCodeEnglish, LanguageEnglish).
+var stlLanguageMapping = astikit.NewBiMap().
+	Set(stlLanguageCodeEnglish, LanguageEnglish).
 	Set(stlLanguageCodeFrench, LanguageFrench)
 
 // STL timecode status
@@ -189,11 +188,13 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
 		Framerate: g.framerate,
-		Language:  stlLanguageMapping.B(g.languageCode).(string),
-		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astiptr.Int(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
-		STLMaximumNumberOfDisplayableRows:                   astiptr.Int(g.maximumNumberOfDisplayableRows),
+		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
+		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLPublisher:                                        g.publisher,
 		Title:                                               g.originalProgramTitle,
+	}
+	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
+		o.Metadata.Language = v.(string)
 	}
 
 	// Parse Text and Timing Information (TTI) blocks.
@@ -308,7 +309,9 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 	// Add metadata
 	if s.Metadata != nil {
 		g.framerate = s.Metadata.Framerate
-		g.languageCode = stlLanguageMapping.A(s.Metadata.Language).(string)
+		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
+			g.languageCode = v.(string)
+		}
 		g.originalProgramTitle = s.Metadata.Title
 		if s.Metadata.STLMaximumNumberOfDisplayableCharactersInAnyTextRow != nil {
 			g.maximumNumberOfDisplayableCharactersInAnyTextRow = *s.Metadata.STLMaximumNumberOfDisplayableCharactersInAnyTextRow
@@ -336,7 +339,6 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 		displayStandardCode:       string(bytes.TrimSpace([]byte{b[11]})),
 		editorName:                string(bytes.TrimSpace(b[309:341])),
 		editorContactDetails:      string(bytes.TrimSpace(b[341:373])),
-		framerate:                 stlFramerateMapping.B(string(b[3:11])).(int),
 		languageCode:              string(bytes.TrimSpace(b[14:16])),
 		originalEpisodeTitle:      string(bytes.TrimSpace(b[48:80])),
 		originalProgramTitle:      string(bytes.TrimSpace(b[16:48])),
@@ -348,6 +350,11 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 		translatorContactDetails:  string(bytes.TrimSpace(b[176:208])),
 		translatorName:            string(bytes.TrimSpace(b[144:176])),
 		userDefinedArea:           string(bytes.TrimSpace(b[448:])),
+	}
+
+	// Framerate
+	if v, ok := stlFramerateMapping.Get(string(b[3:11])); ok {
+		g.framerate = v.(int)
 	}
 
 	// Creation date
@@ -452,37 +459,42 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 func (b gsiBlock) bytes() (o []byte) {
 	bs := make([]byte, 4)
 	binary.BigEndian.PutUint32(bs, b.codePageNumber)
-	o = append(o, astibyte.ToLength(bs[1:], ' ', 3)...)                                              // Code page number
-	o = append(o, astibyte.ToLength([]byte(stlFramerateMapping.A(b.framerate).(string)), ' ', 8)...) // Disk format code
-	o = append(o, astibyte.ToLength([]byte(b.displayStandardCode), ' ', 1)...)                       // Display standard code
+	o = append(o, astikit.BytesPad(bs[1:], ' ', 3, astikit.PadRight, astikit.PadCut)...) // Code page number
+	// Disk format code
+	var f string
+	if v, ok := stlFramerateMapping.GetInverse(b.framerate); ok {
+		f = v.(string)
+	}
+	o = append(o, astikit.BytesPad([]byte(f), ' ', 8, astikit.PadRight, astikit.PadCut)...)
+	o = append(o, astikit.BytesPad([]byte(b.displayStandardCode), ' ', 1, astikit.PadRight, astikit.PadCut)...) // Display standard code
 	binary.BigEndian.PutUint16(bs, b.characterCodeTableNumber)
-	o = append(o, astibyte.ToLength(bs[:2], ' ', 2)...)                                                                                             // Character code table number
-	o = append(o, astibyte.ToLength([]byte(b.languageCode), ' ', 2)...)                                                                             // Language code
-	o = append(o, astibyte.ToLength([]byte(b.originalProgramTitle), ' ', 32)...)                                                                    // Original program title
-	o = append(o, astibyte.ToLength([]byte(b.originalEpisodeTitle), ' ', 32)...)                                                                    // Original episode title
-	o = append(o, astibyte.ToLength([]byte(b.translatedProgramTitle), ' ', 32)...)                                                                  // Translated program title
-	o = append(o, astibyte.ToLength([]byte(b.translatedEpisodeTitle), ' ', 32)...)                                                                  // Translated episode title
-	o = append(o, astibyte.ToLength([]byte(b.translatorName), ' ', 32)...)                                                                          // Translator's name
-	o = append(o, astibyte.ToLength([]byte(b.translatorContactDetails), ' ', 32)...)                                                                // Translator's contact details
-	o = append(o, astibyte.ToLength([]byte(b.subtitleListReferenceCode), ' ', 16)...)                                                               // Subtitle list reference code
-	o = append(o, astibyte.ToLength([]byte(b.creationDate.Format("060102")), ' ', 6)...)                                                            // Creation date
-	o = append(o, astibyte.ToLength([]byte(b.revisionDate.Format("060102")), ' ', 6)...)                                                            // Revision date
-	o = append(o, astibyte.ToLength(astibyte.PadLeft([]byte(strconv.Itoa(b.revisionNumber)), '0', 2), '0', 2)...)                                   // Revision number
-	o = append(o, astibyte.ToLength(astibyte.PadLeft([]byte(strconv.Itoa(b.totalNumberOfTTIBlocks)), '0', 5), '0', 5)...)                           // Total number of TTI blocks
-	o = append(o, astibyte.ToLength(astibyte.PadLeft([]byte(strconv.Itoa(b.totalNumberOfSubtitles)), '0', 5), '0', 5)...)                           // Total number of subtitles
-	o = append(o, astibyte.ToLength(astibyte.PadLeft([]byte(strconv.Itoa(b.totalNumberOfSubtitleGroups)), '0', 3), '0', 3)...)                      // Total number of subtitle groups
-	o = append(o, astibyte.ToLength(astibyte.PadLeft([]byte(strconv.Itoa(b.maximumNumberOfDisplayableCharactersInAnyTextRow)), '0', 2), '0', 2)...) // Maximum number of displayable characters in any text row
-	o = append(o, astibyte.ToLength(astibyte.PadLeft([]byte(strconv.Itoa(b.maximumNumberOfDisplayableRows)), '0', 2), '0', 2)...)                   // Maximum number of displayable rows
-	o = append(o, astibyte.ToLength([]byte(b.timecodeStatus), ' ', 1)...)                                                                           // Timecode status
-	o = append(o, astibyte.ToLength([]byte(formatDurationSTL(b.timecodeStartOfProgramme, b.framerate)), ' ', 8)...)                                 // Timecode start of a programme
-	o = append(o, astibyte.ToLength([]byte(formatDurationSTL(b.timecodeFirstInCue, b.framerate)), ' ', 8)...)                                       // Timecode first in cue
-	o = append(o, astibyte.ToLength([]byte(strconv.Itoa(b.totalNumberOfDisks)), ' ', 1)...)                                                         // Total number of disks
-	o = append(o, astibyte.ToLength([]byte(strconv.Itoa(b.diskSequenceNumber)), ' ', 1)...)                                                         // Disk sequence number
-	o = append(o, astibyte.ToLength([]byte(b.countryOfOrigin), ' ', 3)...)                                                                          // Country of origin
-	o = append(o, astibyte.ToLength([]byte(b.publisher), ' ', 32)...)                                                                               // Publisher
-	o = append(o, astibyte.ToLength([]byte(b.editorName), ' ', 32)...)                                                                              // Editor's name
-	o = append(o, astibyte.ToLength([]byte(b.editorContactDetails), ' ', 32)...)                                                                    // Editor's contact details
-	o = append(o, astibyte.ToLength([]byte{}, ' ', 75+576)...)                                                                                      // Spare bytes + user defined area                                                                                           //                                                                                                                      // Editor's contact details
+	o = append(o, astikit.BytesPad(bs[:2], ' ', 2, astikit.PadRight, astikit.PadCut)...)                                                             // Character code table number
+	o = append(o, astikit.BytesPad([]byte(b.languageCode), ' ', 2, astikit.PadRight, astikit.PadCut)...)                                             // Language code
+	o = append(o, astikit.BytesPad([]byte(b.originalProgramTitle), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                    // Original program title
+	o = append(o, astikit.BytesPad([]byte(b.originalEpisodeTitle), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                    // Original episode title
+	o = append(o, astikit.BytesPad([]byte(b.translatedProgramTitle), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                  // Translated program title
+	o = append(o, astikit.BytesPad([]byte(b.translatedEpisodeTitle), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                  // Translated episode title
+	o = append(o, astikit.BytesPad([]byte(b.translatorName), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                          // Translator's name
+	o = append(o, astikit.BytesPad([]byte(b.translatorContactDetails), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                // Translator's contact details
+	o = append(o, astikit.BytesPad([]byte(b.subtitleListReferenceCode), ' ', 16, astikit.PadRight, astikit.PadCut)...)                               // Subtitle list reference code
+	o = append(o, astikit.BytesPad([]byte(b.creationDate.Format("060102")), ' ', 6, astikit.PadRight, astikit.PadCut)...)                            // Creation date
+	o = append(o, astikit.BytesPad([]byte(b.revisionDate.Format("060102")), ' ', 6, astikit.PadRight, astikit.PadCut)...)                            // Revision date
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.revisionNumber)), '0', 2, astikit.PadCut)...)                                               // Revision number
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.totalNumberOfTTIBlocks)), '0', 5, astikit.PadCut)...)                                       // Total number of TTI blocks
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.totalNumberOfSubtitles)), '0', 5, astikit.PadCut)...)                                       // Total number of subtitles
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.totalNumberOfSubtitleGroups)), '0', 3, astikit.PadCut)...)                                  // Total number of subtitle groups
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.maximumNumberOfDisplayableCharactersInAnyTextRow)), '0', 2, astikit.PadCut)...)             // Maximum number of displayable characters in any text row
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.maximumNumberOfDisplayableRows)), '0', 2, astikit.PadCut)...)                               // Maximum number of displayable rows
+	o = append(o, astikit.BytesPad([]byte(b.timecodeStatus), ' ', 1, astikit.PadRight, astikit.PadCut)...)                                           // Timecode status
+	o = append(o, astikit.BytesPad([]byte(formatDurationSTL(b.timecodeStartOfProgramme, b.framerate)), ' ', 8, astikit.PadRight, astikit.PadCut)...) // Timecode start of a programme
+	o = append(o, astikit.BytesPad([]byte(formatDurationSTL(b.timecodeFirstInCue, b.framerate)), ' ', 8, astikit.PadRight, astikit.PadCut)...)       // Timecode first in cue
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.totalNumberOfDisks)), ' ', 1, astikit.PadRight, astikit.PadCut)...)                         // Total number of disks
+	o = append(o, astikit.BytesPad([]byte(strconv.Itoa(b.diskSequenceNumber)), ' ', 1, astikit.PadRight, astikit.PadCut)...)                         // Disk sequence number
+	o = append(o, astikit.BytesPad([]byte(b.countryOfOrigin), ' ', 3, astikit.PadRight, astikit.PadCut)...)                                          // Country of origin
+	o = append(o, astikit.BytesPad([]byte(b.publisher), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                               // Publisher
+	o = append(o, astikit.BytesPad([]byte(b.editorName), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                              // Editor's name
+	o = append(o, astikit.BytesPad([]byte(b.editorContactDetails), ' ', 32, astikit.PadRight, astikit.PadCut)...)                                    // Editor's contact details
+	o = append(o, astikit.BytesPad([]byte{}, ' ', 75+576, astikit.PadRight, astikit.PadCut)...)                                                      // Spare bytes + user defined area                                                                                           //                                                                                                                      // Editor's contact details
 	return
 }
 
@@ -615,15 +627,15 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
 	var b = make([]byte, 2)
 	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
-	o = append(o, b...)                                                             // Subtitle number
-	o = append(o, byte(uint8(t.extensionBlockNumber)))                              // Extension block number
-	o = append(o, t.cumulativeStatus)                                               // Cumulative status
-	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)             // Timecode in
-	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)            // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                                  // Vertical position
-	o = append(o, t.justificationCode)                                              // Justification code
-	o = append(o, t.commentFlag)                                                    // Comment flag
-	o = append(o, astibyte.ToLength(encodeTextSTL(string(t.text)), '\x8f', 112)...) // Text field
+	o = append(o, b...)                                                                                              // Subtitle number
+	o = append(o, byte(uint8(t.extensionBlockNumber)))                                                               // Extension block number
+	o = append(o, t.cumulativeStatus)                                                                                // Cumulative status
+	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                                              // Timecode in
+	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                                             // Timecode out
+	o = append(o, byte(uint8(t.verticalPosition)))                                                                   // Vertical position
+	o = append(o, t.justificationCode)                                                                               // Justification code
+	o = append(o, t.commentFlag)                                                                                     // Comment flag
+	o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
 	return
 }
 
@@ -658,7 +670,7 @@ func parseDurationSTLBytes(b []byte, framerate int) time.Duration {
 type stlCharacterHandler struct {
 	accent string
 	c      uint16
-	m      *astimap.Map
+	m      *astikit.BiMap
 }
 
 func newSTLCharacterHandler(characterCodeTable uint16) (*stlCharacterHandler, error) {
@@ -679,10 +691,11 @@ func (h *stlCharacterHandler) encode(i []byte) byte {
 
 func (h *stlCharacterHandler) decode(i byte) (o []byte) {
 	k := int(i)
-	if !h.m.InA(k) {
+	vi, ok := h.m.Get(k)
+	if !ok {
 		return
 	}
-	v := h.m.B(k).(string)
+	v := vi.(string)
 	if len(h.accent) > 0 {
 		o = norm.NFC.Bytes([]byte(v + h.accent))
 		h.accent = ""
@@ -707,17 +720,17 @@ func newSTLStyler() *stlStyler {
 func (s *stlStyler) parseSpacingAttribute(i byte) {
 	switch i {
 	case 0x80:
-		s.italics = astiptr.Bool(true)
+		s.italics = astikit.BoolPtr(true)
 	case 0x81:
-		s.italics = astiptr.Bool(false)
+		s.italics = astikit.BoolPtr(false)
 	case 0x82:
-		s.underline = astiptr.Bool(true)
+		s.underline = astikit.BoolPtr(true)
 	case 0x83:
-		s.underline = astiptr.Bool(false)
+		s.underline = astikit.BoolPtr(false)
 	case 0x84:
-		s.boxing = astiptr.Bool(true)
+		s.boxing = astikit.BoolPtr(true)
 	case 0x85:
-		s.boxing = astiptr.Bool(false)
+		s.boxing = astikit.BoolPtr(false)
 	}
 }
 
@@ -774,7 +787,7 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 // TODO Remove below
 
 // STL unicode diacritic
-var stlUnicodeDiacritic = astimap.NewMap(byte('\x00'), "\x00").
+var stlUnicodeDiacritic = astikit.NewBiMap().
 	Set(byte('\xc1'), "\u0300"). // Grave accent
 	Set(byte('\xc2'), "\u0301"). // Acute accent
 	Set(byte('\xc3'), "\u0302"). // Circumflex
@@ -790,7 +803,7 @@ var stlUnicodeDiacritic = astimap.NewMap(byte('\x00'), "\x00").
 	Set(byte('\xcf'), "\u030c")  // Caron
 
 // STL unicode mapping
-var stlUnicodeMapping = astimap.NewMap(byte('\x00'), "\x00").
+var stlUnicodeMapping = astikit.NewBiMap().
 	Set(byte('\x8a'), "\u000a"). // Line break
 	Set(byte('\xa8'), "\u00a4"). // ¤
 	Set(byte('\xa9'), "\u2018"). // ‘
@@ -856,10 +869,10 @@ var stlUnicodeMapping = astimap.NewMap(byte('\x00'), "\x00").
 func encodeTextSTL(i string) (o []byte) {
 	i = string(norm.NFD.Bytes([]byte(i)))
 	for _, c := range i {
-		if stlUnicodeMapping.InB(string(c)) {
-			o = append(o, stlUnicodeMapping.A(string(c)).(byte))
-		} else if stlUnicodeDiacritic.InB(string(c)) {
-			o = append(o[:len(o)-1], stlUnicodeDiacritic.A(string(c)).(byte), o[len(o)-1])
+		if v, ok := stlUnicodeMapping.GetInverse(string(c)); ok {
+			o = append(o, v.(byte))
+		} else if v, ok := stlUnicodeDiacritic.GetInverse(string(c)); ok {
+			o = append(o[:len(o)-1], v.(byte), o[len(o)-1])
 		} else {
 			o = append(o, byte(c))
 		}

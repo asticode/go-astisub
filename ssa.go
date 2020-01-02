@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astilog"
-	"github.com/asticode/go-astitools/ptr"
 	"github.com/pkg/errors"
 )
 
@@ -370,11 +370,11 @@ func (b *ssaScriptInfo) parse(header, content string) (err error) {
 		}
 		switch header {
 		case ssaScriptInfoNamePlayDepth:
-			b.playDepth = astiptr.Int(v)
+			b.playDepth = astikit.IntPtr(v)
 		case ssaScriptInfoNamePlayResX:
-			b.playResX = astiptr.Int(v)
+			b.playResX = astikit.IntPtr(v)
 		case ssaScriptInfoNamePlayResY:
-			b.playResY = astiptr.Int(v)
+			b.playResY = astikit.IntPtr(v)
 		}
 	// Float
 	case ssaScriptInfoNameTimer:
@@ -382,7 +382,7 @@ func (b *ssaScriptInfo) parse(header, content string) (err error) {
 		if v, err = strconv.ParseFloat(strings.Replace(content, ",", ".", -1), 64); err != nil {
 			err = errors.Wrapf(err, "astisub: parseFloat of %s failed", content)
 		}
-		b.timer = astiptr.Float(v)
+		b.timer = astikit.Float64Ptr(v)
 	}
 	return
 }
@@ -552,13 +552,13 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			var b = item == "-1"
 			switch attr {
 			case ssaStyleFormatNameBold:
-				s.bold = astiptr.Bool(b)
+				s.bold = astikit.BoolPtr(b)
 			case ssaStyleFormatNameItalic:
-				s.italic = astiptr.Bool(b)
+				s.italic = astikit.BoolPtr(b)
 			case ssaStyleFormatNameStrikeout:
-				s.strikeout = astiptr.Bool(b)
+				s.strikeout = astikit.BoolPtr(b)
 			case ssaStyleFormatNameUnderline:
-				s.underline = astiptr.Bool(b)
+				s.underline = astikit.BoolPtr(b)
 			}
 		// Color
 		case ssaStyleFormatNamePrimaryColour, ssaStyleFormatNameSecondaryColour,
@@ -595,21 +595,21 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			// Set float
 			switch attr {
 			case ssaStyleFormatNameAlphaLevel:
-				s.alphaLevel = astiptr.Float(f)
+				s.alphaLevel = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameAngle:
-				s.angle = astiptr.Float(f)
+				s.angle = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameFontSize:
-				s.fontSize = astiptr.Float(f)
+				s.fontSize = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameScaleX:
-				s.scaleX = astiptr.Float(f)
+				s.scaleX = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameScaleY:
-				s.scaleY = astiptr.Float(f)
+				s.scaleY = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameOutline:
-				s.outline = astiptr.Float(f)
+				s.outline = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameShadow:
-				s.shadow = astiptr.Float(f)
+				s.shadow = astikit.Float64Ptr(f)
 			case ssaStyleFormatNameSpacing:
-				s.spacing = astiptr.Float(f)
+				s.spacing = astikit.Float64Ptr(f)
 			}
 		// Int
 		case ssaStyleFormatNameAlignment, ssaStyleFormatNameBorderStyle, ssaStyleFormatNameEncoding,
@@ -624,17 +624,17 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			// Set int
 			switch attr {
 			case ssaStyleFormatNameAlignment:
-				s.alignment = astiptr.Int(i)
+				s.alignment = astikit.IntPtr(i)
 			case ssaStyleFormatNameBorderStyle:
-				s.borderStyle = astiptr.Int(i)
+				s.borderStyle = astikit.IntPtr(i)
 			case ssaStyleFormatNameEncoding:
-				s.encoding = astiptr.Int(i)
+				s.encoding = astikit.IntPtr(i)
 			case ssaStyleFormatNameMarginL:
-				s.marginLeft = astiptr.Int(i)
+				s.marginLeft = astikit.IntPtr(i)
 			case ssaStyleFormatNameMarginR:
-				s.marginRight = astiptr.Int(i)
+				s.marginRight = astikit.IntPtr(i)
 			case ssaStyleFormatNameMarginV:
-				s.marginVertical = astiptr.Int(i)
+				s.marginVertical = astikit.IntPtr(i)
 			}
 		// String
 		case ssaStyleFormatNameFontName, ssaStyleFormatNameName:
@@ -991,13 +991,13 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 			// Set int
 			switch attr {
 			case ssaEventFormatNameLayer:
-				e.layer = astiptr.Int(i)
+				e.layer = astikit.IntPtr(i)
 			case ssaEventFormatNameMarginL:
-				e.marginLeft = astiptr.Int(i)
+				e.marginLeft = astikit.IntPtr(i)
 			case ssaEventFormatNameMarginR:
-				e.marginRight = astiptr.Int(i)
+				e.marginRight = astikit.IntPtr(i)
 			case ssaEventFormatNameMarginV:
-				e.marginVertical = astiptr.Int(i)
+				e.marginVertical = astikit.IntPtr(i)
 			}
 		// String
 		case ssaEventFormatNameEffect, ssaEventFormatNameName, ssaEventFormatNameStyle, ssaEventFormatNameText:
@@ -1014,9 +1014,9 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 		// Marked
 		case ssaEventFormatNameMarked:
 			if item == "Marked=1" {
-				e.marked = astiptr.Bool(true)
+				e.marked = astikit.BoolPtr(true)
 			} else {
-				e.marked = astiptr.Bool(false)
+				e.marked = astikit.BoolPtr(false)
 			}
 		}
 	}

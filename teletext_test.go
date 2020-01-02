@@ -2,10 +2,9 @@ package astisub
 
 import (
 	"testing"
-
 	"time"
 
-	"github.com/asticode/go-astitools/ptr"
+	"github.com/asticode/go-astikit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,13 +29,13 @@ func TestTeletextPageParse(t *testing.T) {
 	}
 	s := Subtitles{}
 	d := newTeletextCharacterDecoder()
-	d.updateCharset(astiptr.UInt8(0), false)
+	d.updateCharset(astikit.UInt8Ptr(0), false)
 	p.parse(&s, d, time.Unix(5, 0))
 	assert.Equal(t, []*Item{{
 		EndAt: 10 * time.Second,
 		Lines: []Line{
-			{Items: []LineItem{{InlineStyle: &StyleAttributes{TeletextSpacesAfter: astiptr.Int(0), TeletextSpacesBefore: astiptr.Int(0)}, Text: "test1"}}},
-			{Items: []LineItem{{InlineStyle: &StyleAttributes{TeletextSpacesAfter: astiptr.Int(0), TeletextSpacesBefore: astiptr.Int(0)}, Text: "test2"}}},
+			{Items: []LineItem{{InlineStyle: &StyleAttributes{TeletextSpacesAfter: astikit.IntPtr(0), TeletextSpacesBefore: astikit.IntPtr(0)}, Text: "test1"}}},
+			{Items: []LineItem{{InlineStyle: &StyleAttributes{TeletextSpacesAfter: astikit.IntPtr(0), TeletextSpacesBefore: astikit.IntPtr(0)}, Text: "test2"}}},
 		},
 		StartAt: 5 * time.Second,
 	}}, s.Items)
@@ -72,89 +71,89 @@ func TestParseTeletextRow(t *testing.T) {
 	b = append(b, []byte("end")...)
 	i := Item{}
 	d := newTeletextCharacterDecoder()
-	d.updateCharset(astiptr.UInt8(0), false)
+	d.updateCharset(astikit.UInt8Ptr(0), false)
 	parseTeletextRow(&i, d, nil, b)
 	assert.Equal(t, 1, len(i.Lines))
 	assert.Equal(t, []LineItem{
 		{Text: "black", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorBlack,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#000000",
 		}},
 		{Text: "red", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorRed,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ff0000",
 		}},
 		{Text: "green", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorGreen,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#008000",
 		}},
 		{Text: "yellow", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorYellow,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ffff00",
 		}},
 		{Text: "blue", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorBlue,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#0000ff",
 		}},
 		{Text: "magenta", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorMagenta,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ff00ff",
 		}},
 		{Text: "cyan", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorCyan,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#00ffff",
 		}},
 		{Text: "white", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ffffff",
 		}},
 		{Text: "double height", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
-			TeletextDoubleHeight: astiptr.Bool(true),
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextDoubleHeight: astikit.BoolPtr(true),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ffffff",
 		}},
 		{Text: "double width", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
-			TeletextDoubleHeight: astiptr.Bool(true),
-			TeletextDoubleWidth:  astiptr.Bool(true),
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextDoubleHeight: astikit.BoolPtr(true),
+			TeletextDoubleWidth:  astikit.BoolPtr(true),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ffffff",
 		}},
 		{Text: "double size", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
-			TeletextDoubleHeight: astiptr.Bool(true),
-			TeletextDoubleWidth:  astiptr.Bool(true),
-			TeletextDoubleSize:   astiptr.Bool(true),
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextDoubleHeight: astikit.BoolPtr(true),
+			TeletextDoubleWidth:  astikit.BoolPtr(true),
+			TeletextDoubleSize:   astikit.BoolPtr(true),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ffffff",
 		}},
 		{Text: "reset", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
-			TeletextDoubleHeight: astiptr.Bool(false),
-			TeletextDoubleWidth:  astiptr.Bool(false),
-			TeletextDoubleSize:   astiptr.Bool(false),
-			TeletextSpacesAfter:  astiptr.Int(0),
-			TeletextSpacesBefore: astiptr.Int(0),
+			TeletextDoubleHeight: astikit.BoolPtr(false),
+			TeletextDoubleWidth:  astikit.BoolPtr(false),
+			TeletextDoubleSize:   astikit.BoolPtr(false),
+			TeletextSpacesAfter:  astikit.IntPtr(0),
+			TeletextSpacesBefore: astikit.IntPtr(0),
 			TTMLColor:            "#ffffff",
 		}},
 	}, i.Lines[0].Items)
@@ -172,7 +171,7 @@ func TestAppendTeletextLineItem(t *testing.T) {
 	appendTeletextLineItem(&l, LineItem{Text: " test  "}, nil)
 	assert.Equal(t, "test", l.Items[0].Text)
 	assert.Equal(t, StyleAttributes{
-		TeletextSpacesAfter:  astiptr.Int(2),
-		TeletextSpacesBefore: astiptr.Int(1),
+		TeletextSpacesAfter:  astikit.IntPtr(2),
+		TeletextSpacesBefore: astikit.IntPtr(1),
 	}, *l.Items[0].InlineStyle)
 }
