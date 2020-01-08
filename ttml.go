@@ -2,6 +2,7 @@ package astisub
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
-	"github.com/pkg/errors"
 )
 
 // https://www.w3.org/TR/ttaf1-dfxp/
@@ -170,7 +170,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 			if err == io.EOF {
 				break
 			}
-			err = errors.Wrap(err, "astisub: getting next token failed")
+			err = fmt.Errorf("astisub: getting next token failed: %w", err)
 			return
 		}
 
@@ -178,7 +178,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 		if se, ok := t.(xml.StartElement); ok {
 			var e = TTMLInItem{}
 			if err = d.DecodeElement(&e, &se); err != nil {
-				err = errors.Wrap(err, "astisub: decoding xml.StartElement failed")
+				err = fmt.Errorf("astisub: decoding xml.StartElement failed: %w", err)
 				return
 			}
 			*i = append(*i, e)
@@ -217,7 +217,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		value, err := strconv.Atoi(matches[1])
 
 		if err != nil {
-			err = errors.Wrapf(err, "astisub: failed to parse value %s", matches[1])
+			err = fmt.Errorf("astisub: failed to parse value %s", matches[1])
 			return err
 		}
 
@@ -234,7 +234,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 			fractionBase = math.Pow10(len(matches[3]))
 
 			if err != nil {
-				err = errors.Wrapf(err, "astisub: failed to parse fraction %s", matches[3])
+				err = fmt.Errorf("astisub: failed to parse fraction %s", matches[3])
 				return err
 			}
 		}
@@ -271,7 +271,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 		// Parse frames
 		var s = text[indexes[0]+1 : indexes[1]]
 		if d.frames, err = strconv.Atoi(s); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi %s failed", s)
+			err = fmt.Errorf("astisub: atoi %s failed: %w", s, err)
 			return
 		}
 
@@ -299,7 +299,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Unmarshal XML
 	var ttml TTMLIn
 	if err = xml.NewDecoder(i).Decode(&ttml); err != nil {
-		err = errors.Wrap(err, "astisub: xml decoding failed")
+		err = fmt.Errorf("astisub: xml decoding failed: %w", err)
 		return
 	}
 
@@ -376,7 +376,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		// Unmarshal items
 		var items = TTMLInItems{}
 		if err = xml.Unmarshal([]byte("<span>"+ts.Items+"</span>"), &items); err != nil {
-			err = errors.Wrap(err, "astisub: unmarshaling items failed")
+			err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
 			return
 		}
 
@@ -670,7 +670,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	var e = xml.NewEncoder(o)
 	e.Indent("", "    ")
 	if err = e.Encode(ttml); err != nil {
-		err = errors.Wrap(err, "astisub: xml encoding failed")
+		err = fmt.Errorf("astisub: xml encoding failed: %w", err)
 		return
 	}
 	return

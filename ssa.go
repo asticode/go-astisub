@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -11,8 +12,6 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astilog"
-	"github.com/pkg/errors"
 )
 
 // https://www.matroska.org/technical/specs/subtitles/ssa.html
@@ -131,7 +130,7 @@ const (
 )
 
 // SSA regexp
-var ssaRegexpEffect = regexp.MustCompile("\\{[^\\{]+\\}")
+var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 
 // ReadFromSSA parses an .ssa content
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
@@ -176,7 +175,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 				format = make(map[int]string)
 				continue
 			default:
-				astilog.Debugf("astisub: unknown section: %s", line)
+				log.Printf("astisub: unknown section: %s", line)
 				sectionName = ssaSectionNameUnknown
 				continue
 			}
@@ -196,7 +195,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		// Split on ":"
 		var split = strings.Split(line, ":")
 		if len(split) < 2 || split[0] == "" {
-			astilog.Debugf("astisub: not understood: '%s', ignoring", line)
+			log.Printf("astisub: not understood: '%s', ignoring", line)
 			continue
 		}
 		var header = strings.TrimSpace(split[0])
@@ -206,7 +205,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		switch sectionName {
 		case ssaSectionNameScriptInfo:
 			if err = si.parse(header, content); err != nil {
-				err = errors.Wrap(err, "astisub: parsing script info block failed")
+				err = fmt.Errorf("astisub: parsing script info block failed: %w", err)
 				return
 			}
 		case ssaSectionNameEvents, ssaSectionNameStyles:
@@ -227,14 +226,14 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 				case ssaSectionNameEvents:
 					var e *ssaEvent
 					if e, err = newSSAEventFromString(header, content, format); err != nil {
-						err = errors.Wrap(err, "astisub: building new ssa event failed")
+						err = fmt.Errorf("astisub: building new ssa event failed: %w", err)
 						return
 					}
 					es = append(es, e)
 				case ssaSectionNameStyles:
 					var s *ssaStyle
 					if s, err = newSSAStyleFromString(content, format); err != nil {
-						err = errors.Wrap(err, "astisub: building new ssa style failed")
+						err = fmt.Errorf("astisub: building new ssa style failed: %w", err)
 						return
 					}
 					ss = append(ss, s)
@@ -366,7 +365,7 @@ func (b *ssaScriptInfo) parse(header, content string) (err error) {
 	case ssaScriptInfoNamePlayResX, ssaScriptInfoNamePlayResY, ssaScriptInfoNamePlayDepth:
 		var v int
 		if v, err = strconv.Atoi(content); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi of %s failed", content)
+			err = fmt.Errorf("astisub: atoi of %s failed: %w", content, err)
 		}
 		switch header {
 		case ssaScriptInfoNamePlayDepth:
@@ -380,7 +379,7 @@ func (b *ssaScriptInfo) parse(header, content string) (err error) {
 	case ssaScriptInfoNameTimer:
 		var v float64
 		if v, err = strconv.ParseFloat(strings.Replace(content, ",", ".", -1), 64); err != nil {
-			err = errors.Wrapf(err, "astisub: parseFloat of %s failed", content)
+			err = fmt.Errorf("astisub: parseFloat of %s failed: %w", content, err)
 		}
 		b.timer = astikit.Float64Ptr(v)
 	}
@@ -566,7 +565,7 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			// Build color
 			var c *Color
 			if c, err = newColorFromSSAColor(item); err != nil {
-				err = errors.Wrapf(err, "astisub: building new %s from ssa color %s failed", attr, item)
+				err = fmt.Errorf("astisub: building new %s from ssa color %s failed: %w", attr, item, err)
 				return
 			}
 
@@ -588,7 +587,7 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			// Parse float
 			var f float64
 			if f, err = strconv.ParseFloat(item, 64); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing float %s failed", item)
+				err = fmt.Errorf("astisub: parsing float %s failed: %w", item, err)
 				return
 			}
 
@@ -617,7 +616,7 @@ func newSSAStyleFromString(content string, format map[int]string) (s *ssaStyle, 
 			// Parse int
 			var i int
 			if i, err = strconv.Atoi(item); err != nil {
-				err = errors.Wrapf(err, "astisub: atoi of %s failed", item)
+				err = fmt.Errorf("astisub: atoi of %s failed: %w", item, err)
 				return
 			}
 
@@ -967,7 +966,7 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 			// Parse duration
 			var d time.Duration
 			if d, err = parseDurationSSA(item); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing ssa duration %s failed", item)
+				err = fmt.Errorf("astisub: parsing ssa duration %s failed: %w", item, err)
 				return
 			}
 
@@ -984,7 +983,7 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 			// Parse int
 			var i int
 			if i, err = strconv.Atoi(item); err != nil {
-				err = errors.Wrapf(err, "astisub: atoi of %s failed", item)
+				err = fmt.Errorf("astisub: atoi of %s failed: %w", item, err)
 				return
 			}
 
@@ -1193,7 +1192,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 	// Write Script Info block
 	var si = newSSAScriptInfo(s.Metadata)
 	if _, err = o.Write(si.bytes()); err != nil {
-		err = errors.Wrap(err, "astisub: writing script info block failed")
+		err = fmt.Errorf("astisub: writing script info block failed: %w", err)
 		return
 	}
 
@@ -1223,7 +1222,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 
 		// Write
 		if _, err = o.Write(b); err != nil {
-			err = errors.Wrap(err, "astisub: writing styles block failed")
+			err = fmt.Errorf("astisub: writing styles block failed: %w", err)
 			return
 		}
 	}
@@ -1255,7 +1254,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 
 		// Write
 		if _, err = o.Write(b); err != nil {
-			err = errors.Wrap(err, "astisub: writing events block failed")
+			err = fmt.Errorf("astisub: writing events block failed: %w", err)
 			return
 		}
 	}

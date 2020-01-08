@@ -2,12 +2,11 @@ package astisub
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // Constants
@@ -70,11 +69,11 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Fetch time boundaries
 			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
 			if s.StartAt, err = parseDurationSRT(boundaries[0]); err != nil {
-				err = errors.Wrapf(err, "astisub: line %d: parsing srt duration %s failed", lineNum, boundaries[0])
+				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[0], err)
 				return
 			}
 			if s.EndAt, err = parseDurationSRT(boundaries[1]); err != nil {
-				err = errors.Wrapf(err, "astisub: line %d: parsing srt duration %s failed", lineNum, boundaries[1])
+				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[1], err)
 				return
 			}
 
@@ -130,7 +129,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 
 	// Write
 	if _, err = o.Write(c); err != nil {
-		err = errors.Wrap(err, "astisub: writing failed")
+		err = fmt.Errorf("astisub: writing failed: %w", err)
 		return
 	}
 	return

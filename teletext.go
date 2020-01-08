@@ -2,16 +2,17 @@ package astisub
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"log"
 	"math/bits"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astits"
-	"github.com/pkg/errors"
 )
 
 // Errors
@@ -340,7 +341,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 	var pid uint16
 	if pid, err = teletextPID(dmx, o); err != nil {
 		if err != ErrNoValidTeletextPID {
-			err = errors.Wrap(err, "astisub: getting teletext PID failed")
+			err = fmt.Errorf("astisub: getting teletext PID failed: %w", err)
 		}
 		return
 	}
@@ -362,7 +363,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 				err = nil
 				break
 			}
-			err = errors.Wrap(err, "astisub: fetching next data failed")
+			err = fmt.Errorf("astisub: fetching next data failed: %w", err)
 			return
 		}
 
@@ -433,7 +434,7 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 				err = ErrNoValidTeletextPID
 				return
 			}
-			err = errors.Wrap(err, "astisub: fetching next data failed")
+			err = fmt.Errorf("astisub: fetching next data failed: %w", err)
 			return
 		}
 
@@ -457,11 +458,11 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 
 			// Set pid
 			pid = pids[0]
-			astilog.Debugf("astisub: no teletext pid specified, using pid %d", pid)
+			log.Printf("astisub: no teletext pid specified, using pid %d", pid)
 
 			// Rewind
 			if _, err = dmx.Rewind(); err != nil {
-				err = errors.Wrap(err, "astisub: rewinding failed")
+				err = fmt.Errorf("astisub: rewinding failed: %w", err)
 				return
 			}
 			return
@@ -632,7 +633,7 @@ func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t
 		if subtitleFlag {
 			b.magazineNumber = magazineNumber
 			b.pageNumber = pageNumber
-			astilog.Debugf("astisub: no teletext page specified, using page %d%.2d", b.magazineNumber, b.pageNumber)
+			log.Printf("astisub: no teletext page specified, using page %d%.2d", b.magazineNumber, b.pageNumber)
 		}
 	}
 

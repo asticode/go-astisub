@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
+	"log"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astilog"
 	"github.com/asticode/go-astisub"
 )
 
@@ -19,27 +19,25 @@ var (
 
 func main() {
 	// Init
-	astilog.SetHandyFlags()
 	cmd := astikit.FlagCmd()
 	flag.Var(&inputPath, "i", "the input paths")
 	flag.Parse()
-	astilog.SetLogger(astilog.New(astilog.FlagConfig()))
 
 	// Validate input path
 	if len(*inputPath.Slice) == 0 {
-		astilog.Fatal("Use -i to provide at least one input path")
+		log.Fatal("Use -i to provide at least one input path")
 	}
 
 	// Validate output path
 	if len(*outputPath) <= 0 {
-		astilog.Fatal("Use -o to provide an output path")
+		log.Fatal("Use -o to provide an output path")
 	}
 
 	// Open first input path
 	var sub *astisub.Subtitles
 	var err error
 	if sub, err = astisub.Open(astisub.Options{Filename: (*inputPath.Slice)[0], Teletext: astisub.TeletextOptions{Page: *teletextPage}}); err != nil {
-		astilog.Fatalf("%s while opening %s", err, (*inputPath.Slice)[0])
+		log.Fatalf("%s while opening %s", err, (*inputPath.Slice)[0])
 	}
 
 	// Switch on subcommand
@@ -47,12 +45,12 @@ func main() {
 	case "convert":
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
-			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	case "fragment":
 		// Validate fragment duration
 		if *fragmentDuration <= 0 {
-			astilog.Fatal("Use -f to provide a fragment duration")
+			log.Fatal("Use -f to provide a fragment duration")
 		}
 
 		// Fragment
@@ -60,18 +58,18 @@ func main() {
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
-			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	case "merge":
 		// Validate second input path
 		if len(*inputPath.Slice) == 1 {
-			astilog.Fatal("Use -i to provide at least two input paths")
+			log.Fatal("Use -i to provide at least two input paths")
 		}
 
 		// Open second input path
 		var sub2 *astisub.Subtitles
 		if sub2, err = astisub.Open(astisub.Options{Filename: (*inputPath.Slice)[1], Teletext: astisub.TeletextOptions{Page: *teletextPage}}); err != nil {
-			astilog.Fatalf("%s while opening %s", err, (*inputPath.Slice)[1])
+			log.Fatalf("%s while opening %s", err, (*inputPath.Slice)[1])
 		}
 
 		// Merge
@@ -79,7 +77,7 @@ func main() {
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
-			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	case "optimize":
 		// Optimize
@@ -87,12 +85,12 @@ func main() {
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
-			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	case "sync":
 		// Validate sync duration
 		if *syncDuration == 0 {
-			astilog.Fatal("Use -s to provide a sync duration")
+			log.Fatal("Use -s to provide a sync duration")
 		}
 
 		// Fragment
@@ -100,7 +98,7 @@ func main() {
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
-			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	case "unfragment":
 		// Unfragment
@@ -108,9 +106,9 @@ func main() {
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
-			astilog.Fatalf("%s while writing to %s", err, *outputPath)
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	default:
-		astilog.Fatalf("Invalid subcommand %s", cmd)
+		log.Fatalf("Invalid subcommand %s", cmd)
 	}
 }
