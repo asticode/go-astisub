@@ -89,3 +89,25 @@ If **astisub** has been installed properly you can:
 - [x] .ssa/.ass
 - [x] .teletext
 - [ ] .smi
+
+# Parsing from strings
+
+If you are dealing with either `srt`, `ssa`, or `webvtt` subtitles as a slice of strings rather than from files on disk, you can parse them directly with the ParseFrom... functions:
+
+```go
+lines := string[]{"00:01:00.000 --> 00:02:00.000", "Credits"}
+srtSubs := astisub.NewSubtitles()
+err = astisub.ParseFromSRTLines(srtSubs, lines)
+```
+
+```go
+lines := string[]{"[Script Info]", "; Comment 1", "Title: SSA test"}
+ssaSubs := astisub.NewSubtitles()
+err = astisub.ParseFromSSALines(ssaSubs, lines)
+```
+
+```go
+lines := string{"WEBVTT", "NOTE this a nice example", "STYLE"}
+webvttSubs := astisub.NewSubtitles()
+err = astisub.ParseFromWebVTTLines(webvttSubs, lines)
+```

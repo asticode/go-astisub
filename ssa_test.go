@@ -3,6 +3,7 @@ package astisub_test
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/asticode/go-astikit"
@@ -69,7 +70,7 @@ func assertSSAStyleAttributes(t *testing.T, e, a astisub.StyleAttributes) {
 	}
 }
 
-func TestSSA(t *testing.T) {
+func TestSSA_Open(t *testing.T) {
 	// Open
 	s, err := astisub.OpenFile("./testdata/example-in.ssa")
 	assert.NoError(t, err)
@@ -102,4 +103,18 @@ func TestSSA(t *testing.T) {
 	err = s.WriteToSSA(w)
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestSSA_FromLines(t *testing.T) {
+	f, err := os.Open("./testdata/example-in.ssa")
+	assert.NoError(t, err)
+	defer f.Close()
+
+	lines, err := astisub.ScanLines(f)
+	assert.NoError(t, err)
+
+	subs := astisub.NewSubtitles()
+	err = astisub.ParseFromSSALines(subs, lines)
+	assert.NoError(t, err)
+	assertSubtitleItems(t, subs)
 }

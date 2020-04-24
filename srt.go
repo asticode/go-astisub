@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -28,17 +27,22 @@ func parseDurationSRT(i string) (time.Duration, error) {
 func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
 
-	// Scan
-	var line string
-	var lineNum int
+	// Parse
+	if lines, err := ScanLines(i); err == nil {
+		if err = ParseFromSRTLines(o, lines); err != nil {
+			return nil, err
+		}
+	}
+	return
+}
+
+// ParseFromLines will parse the subtitles from the lines provided into the given astisub.Subtitles
+func ParseFromSRTLines(o *Subtitles, lines []string) error {
 	var s = &Item{}
-	for scanner.Scan() {
-		// Fetch line
-		line = strings.TrimSpace(scanner.Text())
-		lineNum++
+	var err error
 
+	for lineNum, line := range lines {
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
 			// Remove last item of previous subtitle since it's the index
@@ -69,12 +73,10 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Fetch time boundaries
 			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
 			if s.StartAt, err = parseDurationSRT(boundaries[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[0], err)
-				return
+				return fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[0], err)
 			}
 			if s.EndAt, err = parseDurationSRT(boundaries[1]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[1], err)
-				return
+				return fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[1], err)
 			}
 
 			// Append subtitle
@@ -84,7 +86,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: line}}})
 		}
 	}
-	return
+	return nil
 }
 
 // formatDurationSRT formats an .srt duration

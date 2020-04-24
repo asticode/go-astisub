@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -136,19 +135,28 @@ var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
+
+	// Parse
+	if lines, err := ScanLines(i); err == nil {
+		if err = ParseFromSSALines(o, lines); err != nil {
+			return nil, err
+		}
+	}
+	return
+}
+
+// ReadFromSSA parses an .ssa content
+func ParseFromSSALines(o *Subtitles, lines []string) error {
+	// Init
 	var si = &ssaScriptInfo{}
 	var ss = []*ssaStyle{}
 	var es = []*ssaEvent{}
 
 	// Scan
-	var line, sectionName string
+	var sectionName string
 	var format map[int]string
 	isFirstLine := true
-	for scanner.Scan() {
-		// Fetch line
-		line = strings.TrimSpace(scanner.Text())
-
+	for _, line := range lines {
 		// Remove BOM header
 		if isFirstLine {
 			line = strings.TrimPrefix(line, string(BytesBOM))
@@ -204,9 +212,8 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		// Switch on section name
 		switch sectionName {
 		case ssaSectionNameScriptInfo:
-			if err = si.parse(header, content); err != nil {
-				err = fmt.Errorf("astisub: parsing script info block failed: %w", err)
-				return
+			if err := si.parse(header, content); err != nil {
+				return fmt.Errorf("astisub: parsing script info block failed: %w", err)
 			}
 		case ssaSectionNameEvents, ssaSectionNameStyles:
 			// Parse format
@@ -217,24 +224,22 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 			} else {
 				// No format provided
 				if len(format) == 0 {
-					err = fmt.Errorf("astisub: no %s format provided", sectionName)
-					return
+					return fmt.Errorf("astisub: no %s format provided", sectionName)
 				}
 
 				// Switch on section name
+				var err error
 				switch sectionName {
 				case ssaSectionNameEvents:
 					var e *ssaEvent
 					if e, err = newSSAEventFromString(header, content, format); err != nil {
-						err = fmt.Errorf("astisub: building new ssa event failed: %w", err)
-						return
+						return fmt.Errorf("astisub: building new ssa event failed: %w", err)
 					}
 					es = append(es, e)
 				case ssaSectionNameStyles:
 					var s *ssaStyle
 					if s, err = newSSAStyleFromString(content, format); err != nil {
-						err = fmt.Errorf("astisub: building new ssa style failed: %w", err)
-						return
+						return fmt.Errorf("astisub: building new ssa style failed: %w", err)
 					}
 					ss = append(ss, s)
 				}
@@ -257,15 +262,16 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		if e.category == ssaEventCategoryDialogue {
 			// Build item
 			var item *Item
+			var err error
 			if item, err = e.item(o.Styles); err != nil {
-				return
+				return err
 			}
 
 			// Append item
 			o.Items = append(o.Items, item)
 		}
 	}
-	return
+	return nil
 }
 
 // newColorFromSSAColor builds a new color based on an SSA color

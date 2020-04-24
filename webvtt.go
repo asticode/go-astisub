@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"sort"
@@ -38,28 +37,35 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
-	var line string
-	var lineNum int
+	lines, err := ScanLines(i)
+	if err != nil {
+		return
+	}
 
 	// Skip the header
-	for scanner.Scan() {
-		lineNum++
-		line = scanner.Text()
+	var improved []string
+	for _, line := range lines {
 		line = strings.TrimPrefix(line, string(BytesBOM))
 		if len(line) > 0 && strings.Fields(line)[0] == "WEBVTT" {
-			break
+			continue
 		}
+		improved = append(improved, line)
 	}
+
+	// Parse
+	err = ParseFromWebVTTLines(o, improved)
+	return
+}
+
+// ParseFromWebVTTLines will parse the subtitles from the lines provided into the given astisub.Subtitles
+func ParseFromWebVTTLines(o *Subtitles, lines []string) error {
 
 	// Scan
 	var item = &Item{}
 	var blockName string
 	var comments []string
-	for scanner.Scan() {
-		// Fetch line
-		line = strings.TrimSpace(scanner.Text())
-		lineNum++
+	var err error
+	for lineNum, line := range lines {
 		// Check prefixes
 		switch {
 		// Comment
@@ -78,8 +84,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				// Split on "="
 				var split = strings.Split(part, "=")
 				if len(split) <= 1 {
-					err = fmt.Errorf("astisub: line %d: Invalid region style %s", lineNum, part)
-					return
+					return fmt.Errorf("astisub: line %d: Invalid region style %s", lineNum, part)
 				}
 
 				// Switch on key
@@ -88,8 +93,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					r.ID = split[1]
 				case "lines":
 					if r.InlineStyle.WebVTTLines, err = strconv.Atoi(split[1]); err != nil {
-						err = fmt.Errorf("atoi of %s failed: %w", split[1], err)
-						return
+						return fmt.Errorf("atoi of %s failed: %w", split[1], err)
 					}
 				case "regionanchor":
 					r.InlineStyle.WebVTTRegionAnchor = split[1]
@@ -126,12 +130,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Parse time boundaries
 			if item.StartAt, err = parseDurationWebVTT(parts[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, parts[0], err)
-				return
+				return fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, parts[0], err)
 			}
 			if item.EndAt, err = parseDurationWebVTT(partsRight[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, partsRight[0], err)
-				return
+				return fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, partsRight[0], err)
 			}
 
 			// Parse style
@@ -141,8 +143,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					// Split line on ":"
 					var split = strings.Split(partsRight[index], ":")
 					if len(split) <= 1 {
-						err = fmt.Errorf("astisub: line %d: Invalid inline style '%s'", lineNum, partsRight[index])
-						return
+						return fmt.Errorf("astisub: line %d: Invalid inline style '%s'", lineNum, partsRight[index])
 					}
 
 					// Switch on key
@@ -155,8 +156,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 						item.InlineStyle.WebVTTPosition = split[1]
 					case "region":
 						if _, ok := o.Regions[split[1]]; !ok {
-							err = fmt.Errorf("astisub: line %d: Unknown region %s", lineNum, split[1])
-							return
+							return fmt.Errorf("astisub: line %d: Unknown region %s", lineNum, split[1])
 						}
 						item.Region = o.Regions[split[1]]
 					case "size":
@@ -189,7 +189,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			}
 		}
 	}
-	return
+	return err
 }
 
 // formatDurationWebVTT formats a .vtt duration

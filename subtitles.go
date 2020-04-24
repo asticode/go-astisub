@@ -1,8 +1,10 @@
 package astisub
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -41,6 +43,7 @@ var (
 // Errors
 var (
 	ErrInvalidExtension   = errors.New("astisub: invalid extension")
+	ErrNoSubtitlesToRead  = errors.New("astisub: no subtitles to read")
 	ErrNoSubtitlesToWrite = errors.New("astisub: no subtitles to write")
 )
 
@@ -83,6 +86,19 @@ func Open(o Options) (s *Subtitles, err error) {
 		err = ErrInvalidExtension
 	}
 	return
+}
+
+// ScanLines will scan the content from a file handle into a list of strings
+func ScanLines(i io.Reader) ([]string, error) {
+	var scanner = bufio.NewScanner(i)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, strings.TrimSpace(scanner.Text()))
+	}
+	if len(lines) == 0 {
+		return nil, ErrNoSubtitlesToRead
+	}
+	return lines, nil
 }
 
 // OpenFile opens a file regardless of other options
