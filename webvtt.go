@@ -59,9 +59,23 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var item = &Item{}
 	var blockName string
 	var comments []string
+
+	// For the Index Counter
+	saveIndex := true
+	var index int
+	var convErr error
+
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
+
+		// Fetch Index
+		if saveIndex {
+			index, convErr = strconv.Atoi(strings.Replace(line, "\ufeff", "", -1))
+			if convErr == nil {
+				saveIndex = false
+			}
+		}
 		lineNum++
 		// Check prefixes
 		switch {
@@ -116,10 +130,14 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Set block name
 			blockName = webvttBlockNameText
 
-			// Init new item
-			item = &Item{
-				Comments:    comments,
-				InlineStyle: &StyleAttributes{},
+			// Create Item if Index exists
+			if !saveIndex {
+				item = &Item{
+					Index:       index,
+					Comments:    comments,
+					InlineStyle: &StyleAttributes{},
+				}
+				saveIndex = true
 			}
 
 			// Split line on time boundaries
