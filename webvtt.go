@@ -59,11 +59,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var item = &Item{}
 	var blockName string
 	var comments []string
-
-	// For the Index Counter
-	saveIndex := true
-	var index int
-	var convErr error
+	var indexContent []int
 
 	for scanner.Scan() {
 		// Fetch line
@@ -72,17 +68,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Fetch Index
 		lineNum++
 
-		if lineNum == 1 {
-			line = strings.TrimPrefix(line, string(BytesBOM))
-		}
-
-		if saveIndex {
-			index, convErr = strconv.Atoi(line)
-			if convErr == nil {
-				saveIndex = false
-			}
-		}
-		// Check prefixes
 		switch {
 		// Comment
 		case strings.HasPrefix(line, "NOTE "):
@@ -135,14 +120,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Set block name
 			blockName = webvttBlockNameText
 
-			// Create Item if Index exists
-			if !saveIndex {
-				item = &Item{
-					Index:       index,
-					Comments:    comments,
-					InlineStyle: &StyleAttributes{},
-				}
-				saveIndex = true
+			// Init new item
+			item = &Item{
+				Comments:    comments,
+				InlineStyle: &StyleAttributes{},
 			}
 
 			// Split line on time boundaries
@@ -211,9 +192,16 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
 			default:
 				// This is the ID
-				// TODO Do something with the id
+				// o.Items is empty initially - implementing to save indexe(s) later.
+				if index, err := strconv.Atoi(line); err == nil {
+					indexContent = append(indexContent, index)
+				}
 			}
 		}
+	}
+	// Attach indexContent to the correct position.
+	for _, v := range indexContent {
+		o.Items[v-1].Index = v
 	}
 	return
 }
