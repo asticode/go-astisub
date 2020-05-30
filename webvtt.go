@@ -70,13 +70,18 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		line = strings.TrimSpace(scanner.Text())
 
 		// Fetch Index
+		lineNum++
+
+		if lineNum == 1 {
+			line = strings.TrimPrefix(line, string(BytesBOM))
+		}
+
 		if saveIndex {
-			index, convErr = strconv.Atoi(strings.Replace(line, "\ufeff", "", -1))
+			index, convErr = strconv.Atoi(line)
 			if convErr == nil {
 				saveIndex = false
 			}
 		}
-		lineNum++
 		// Check prefixes
 		switch {
 		// Comment
@@ -123,7 +128,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Add region
 			o.Regions[r.ID] = r
 		// Style
-		case strings.HasPrefix(line, "STYLE "):
+		case strings.HasPrefix(line, "STYLE"):
 			blockName = webvttBlockNameStyle
 		// Time boundaries
 		case strings.Contains(line, webvttTimeBoundariesSeparator):
