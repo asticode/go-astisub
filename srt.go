@@ -40,6 +40,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
 
+		// Remove BOM header
 		if lineNum == 1 {
 			line = strings.TrimPrefix(line, string(BytesBOM))
 		}

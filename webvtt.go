@@ -59,13 +59,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var item = &Item{}
 	var blockName string
 	var comments []string
-	var indexContent []int
-
+	var index int
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
-
-		// Fetch Index
 		lineNum++
 
 		switch {
@@ -123,9 +120,13 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Init new item
 			item = &Item{
 				Comments:    comments,
+				Index:       index,
 				InlineStyle: &StyleAttributes{},
 			}
 
+			// Reset index
+			index = 0
+			
 			// Split line on time boundaries
 			var parts = strings.Split(line, webvttTimeBoundariesSeparator)
 			// Split line on space to catch inline styles as well
@@ -192,16 +193,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
 			default:
 				// This is the ID
-				// o.Items is empty initially - implementing to save indexe(s) later.
-				if index, err := strconv.Atoi(line); err == nil {
-					indexContent = append(indexContent, index)
-				}
+				index, _ = strconv.Atoi(line)
 			}
 		}
-	}
-	// Attach indexContent to the correct position.
-	for _, v := range indexContent {
-		o.Items[v-1].Index = v
 	}
 	return
 }
