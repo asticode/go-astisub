@@ -56,11 +56,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var item = &Item{}
 	var blockName string
 	var comments []string
+	var index int
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
-		// Check prefixes
+
 		switch {
 		// Comment
 		case strings.HasPrefix(line, "NOTE "):
@@ -106,7 +107,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Add region
 			o.Regions[r.ID] = r
 		// Style
-		case strings.HasPrefix(line, "STYLE "):
+		case strings.HasPrefix(line, "STYLE"):
 			blockName = webvttBlockNameStyle
 		// Time boundaries
 		case strings.Contains(line, webvttTimeBoundariesSeparator):
@@ -116,9 +117,13 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Init new item
 			item = &Item{
 				Comments:    comments,
+				Index:       index,
 				InlineStyle: &StyleAttributes{},
 			}
 
+			// Reset index
+			index = 0
+			
 			// Split line on time boundaries
 			var parts = strings.Split(line, webvttTimeBoundariesSeparator)
 			// Split line on space to catch inline styles as well
@@ -185,7 +190,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
 			default:
 				// This is the ID
-				// TODO Do something with the id
+				index, _ = strconv.Atoi(line)
 			}
 		}
 	}

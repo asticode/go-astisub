@@ -39,9 +39,15 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
 
+		// Remove BOM header
+		if lineNum == 1 {
+			line = strings.TrimPrefix(line, string(BytesBOM))
+		}
+
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
 			// Remove last item of previous subtitle since it's the index
+			index := s.Lines[len(s.Lines)-1]
 			s.Lines = s.Lines[:len(s.Lines)-1]
 
 			// Remove trailing empty lines
@@ -65,6 +71,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 			// Init subtitle
 			s = &Item{}
+
+			// Fetch Index
+			s.Index, _ = strconv.Atoi(index.String())
 
 			// Fetch time boundaries
 			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
