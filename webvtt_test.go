@@ -38,3 +38,9 @@ func TestWebVTT(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
 }
+
+func TestBrokenWebVTT(t *testing.T) {
+	// Open bad, broken WebVTT file
+	_, err := astisub.OpenFile("./testdata/broken-in.vtt")
+	assert.Nil(t, err)
+}
