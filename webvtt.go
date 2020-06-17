@@ -47,7 +47,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		lineNum++
 		line = scanner.Text()
 		line = strings.TrimPrefix(line, string(BytesBOM))
-		if len(line) > 0 && len(strings.Fields(line)) > 0 && strings.Fields(line)[0] == "WEBVTT" {
+		if fs := strings.Fields(line); len(fs) > 0 && fs[0] == "WEBVTT" {
 			break
 		}
 	}
