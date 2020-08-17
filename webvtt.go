@@ -123,29 +123,36 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Reset index
 			index = 0
+
 			// Split line on time boundaries
-			var parts = strings.Split(line, webvttTimeBoundariesSeparator)
-			// Split line on space to catch inline styles as well
-			var partsRight = strings.Split(parts[1], " ")
+			var left = strings.Split(line, webvttTimeBoundariesSeparator)
+
+			// Split line on space to get remaining of time data
+			var right = strings.Split(left[1], " ")
 
 			// Parse time boundaries
-			if item.StartAt, err = parseDurationWebVTT(parts[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, parts[0], err)
+			if item.StartAt, err = parseDurationWebVTT(left[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, left[0], err)
 				return
 			}
-			if item.EndAt, err = parseDurationWebVTT(partsRight[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, partsRight[0], err)
+			if item.EndAt, err = parseDurationWebVTT(right[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, right[0], err)
 				return
 			}
 
 			// Parse style
-			if len(partsRight) > 1 {
+			if len(right) > 1 {
 				// Add styles
-				for index := 1; index < len(partsRight); index++ {
+				for index := 1; index < len(right); index++ {
+					// Empty
+					if right[index] == "" {
+						continue
+					}
+
 					// Split line on ":"
-					var split = strings.Split(partsRight[index], ":")
+					var split = strings.Split(right[index], ":")
 					if len(split) <= 1 {
-						err = fmt.Errorf("astisub: line %d: Invalid inline style '%s'", lineNum, partsRight[index])
+						err = fmt.Errorf("astisub: line %d: Invalid inline style '%s'", lineNum, right[index])
 						return
 					}
 
