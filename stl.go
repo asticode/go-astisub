@@ -215,10 +215,14 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			continue
 		}
 
+		var starttime = g.timecodeStartOfProgramme
+		if starttime > t.timecodeIn {
+			starttime = 0
+		}
 		// Create item
 		var i = &Item{
-			EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
-			StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
+			EndAt:   t.timecodeOut - starttime,
+			StartAt: t.timecodeIn - starttime,
 		}
 
 		// Loop through rows
@@ -226,8 +230,17 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
 		}
 
+		if i.InlineStyle == nil {
+			i.InlineStyle = &StyleAttributes{}
+		}
+
+		i.InlineStyle.STLVerticalPostion = t.verticalPosition
+		i.InlineStyle.STLJustificationCode = t.justificationCode
+		i.InlineStyle.propagateSTLAttributes()
+
 		// Append item
 		o.Items = append(o.Items, i)
+		o.TTIBlocks = append(o.TTIBlocks, t)
 
 	}
 	return
@@ -362,7 +375,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	if v := strings.TrimSpace(string(b[224:230])); len(v) > 0 {
 		if g.creationDate, err = time.Parse("060102", v); err != nil {
 			err = fmt.Errorf("astisub: parsing date %s failed: %w", v, err)
-			return
+			g.creationDate = time.Now()
 		}
 	}
 
@@ -370,7 +383,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	if v := strings.TrimSpace(string(b[230:236])); len(v) > 0 {
 		if g.revisionDate, err = time.Parse("060102", v); err != nil {
 			err = fmt.Errorf("astisub: parsing date %s failed: %w", v, err)
-			return
+			g.revisionDate = time.Now()
 		}
 	}
 
@@ -640,6 +653,22 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	return
 }
 
+func (t *ttiBlock) bytesSTLToSTL(g *gsiBlock) (o []byte) {
+	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
+	var b = make([]byte, 2)
+	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
+	o = append(o, b...)                                                  // Subtitle number
+	o = append(o, byte(uint8(t.extensionBlockNumber)))                   // Extension block number
+	o = append(o, t.cumulativeStatus)                                    // Cumulative status
+	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)  // Timecode in
+	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...) // Timecode out
+	o = append(o, byte(uint8(t.verticalPosition)))                       // Vertical position
+	o = append(o, t.justificationCode)                                   // Justification code
+	o = append(o, t.commentFlag)                                         // Comment flag
+	o = append(o, t.text...)
+	return
+}
+
 // formatDurationSTLBytes formats a STL duration in bytes
 func formatDurationSTLBytes(d time.Duration, framerate int) (o []byte) {
 	// Add hours
@@ -774,12 +803,23 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 		return
 	}
 
-	// Loop through items
-	for idx, item := range s.Items {
-		// Write tti block
-		if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
-			err = fmt.Errorf("astisub: writing tti block #%d failed: %w", idx+1, err)
-			return
+	if s.TTIBlocks != nil && len(s.TTIBlocks) == len(s.Items) {
+		// Loop through items
+		for idx, ttiblock := range s.TTIBlocks {
+			// Write tti block
+			if _, err = o.Write(ttiblock.bytesSTLToSTL(g)); err != nil {
+				err = fmt.Errorf("astisub: writing tti stl to stl block #%d failed: %w", idx+1, err)
+				return
+			}
+		}
+	} else {
+		// Loop through items
+		for idx, item := range s.Items {
+			// Write tti block
+			if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
+				err = fmt.Errorf("astisub: writing tti block #%d failed: %w", idx+1, err)
+				return
+			}
 		}
 	}
 	return

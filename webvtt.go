@@ -299,7 +299,16 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range item.Lines {
+			var closectag bool
+			if l.Items != nil && len(l.Items) > 0 && l.Items[0].InlineStyle != nil &&
+				l.Items[0].InlineStyle.WebVTTColor != "" {
+				c = append(c, []byte(l.Items[0].InlineStyle.WebVTTColor)...)
+				closectag = true
+			}
 			c = append(c, []byte(l.String())...)
+			if closectag {
+				c = append(c, bytesClosectag...)
+			}
 			c = append(c, bytesLineSeparator...)
 		}
 

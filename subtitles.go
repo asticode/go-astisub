@@ -16,6 +16,7 @@ var (
 	BytesBOM           = []byte{239, 187, 191}
 	bytesLineSeparator = []byte("\n")
 	bytesSpace         = []byte(" ")
+	bytesClosectag     = []byte("</c>")
 )
 
 // Colors
@@ -92,10 +93,11 @@ func OpenFile(filename string) (*Subtitles, error) {
 
 // Subtitles represents an ordered list of items with formatting
 type Subtitles struct {
-	Items    []*Item
-	Metadata *Metadata
-	Regions  map[string]*Region
-	Styles   map[string]*Style
+	Items     []*Item
+	Metadata  *Metadata
+	Regions   map[string]*Region
+	Styles    map[string]*Style
+	TTIBlocks []*ttiBlock
 }
 
 // NewSubtitles creates new subtitles
@@ -158,6 +160,54 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
+// WebVTTColorString expresses the color as a webvtt string
+func (c *Color) WebVTTColorString() string {
+	switch c {
+	case ColorBlack:
+		return "<c.black>" //rgba(0,0,0,1)
+	case ColorRed:
+		return "<c.red>" //rgba(255,0,0,1)
+	case ColorGreen:
+		return "<c.lime>" //rgba(0,255,0,1)
+	case ColorYellow:
+		return "<c.yellow>" //rgba(255,255,0,1)
+	case ColorBlue:
+		return "<c.blue>" //rgba(0,0,255,1)
+	case ColorMagenta:
+		return "<c.magenta>" //rgba(255,0,255,1)
+	case ColorCyan:
+		return "<c.cyan>" //rgba(0,255,255,1)
+	case ColorWhite:
+		return "<c.white>" //rgba(255,255,255,1)
+	default:
+		return ""
+	}
+
+}
+
+// WebVTTPositionFromSTL Webvtt Justification From STL
+func (sa *StyleAttributes) WebVTTPositionFromSTL() string {
+	switch sa.STLJustificationCode {
+	case stlJustificationCodeLeftJustifiedText:
+		return "20%" //left
+	case stlJustificationCodeRightJustifiedText:
+		return "80%" //right
+	default:
+		return ""
+	}
+}
+
+// WebVTTLineFromSTL WebVTT Line Vertical Position from STL
+func (sa *StyleAttributes) WebVTTLineFromSTL() string {
+	if sa.STLVerticalPostion < 3 { //top
+		return "20%"
+	} else if sa.STLVerticalPostion <= 12 { //(23/2)+1	//middle
+		return "50%"
+	} else {
+		return ""
+	}
+}
+
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
 	SSAAlignment         *int
@@ -189,6 +239,8 @@ type StyleAttributes struct {
 	STLBoxing            *bool
 	STLItalics           *bool
 	STLUnderline         *bool
+	STLVerticalPostion   int
+	STLJustificationCode byte
 	TeletextColor        *Color
 	TeletextDoubleHeight *bool
 	TeletextDoubleSize   *bool
@@ -230,15 +282,20 @@ type StyleAttributes struct {
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
+	WebVTTColor          string
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
 
-func (sa *StyleAttributes) propagateSTLAttributes() {}
+func (sa *StyleAttributes) propagateSTLAttributes() {
+	sa.WebVTTLine = sa.WebVTTLineFromSTL()
+	sa.WebVTTPosition = sa.WebVTTPositionFromSTL()
+}
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
 		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
+		sa.WebVTTColor = sa.TeletextColor.WebVTTColorString()
 	}
 }
 
@@ -313,11 +370,21 @@ func (s *Subtitles) Add(d time.Duration) {
 	for idx := 0; idx < len(s.Items); idx++ {
 		s.Items[idx].EndAt += d
 		s.Items[idx].StartAt += d
+		if s.TTIBlocks != nil && idx < len(s.TTIBlocks) {
+			s.TTIBlocks[idx].timecodeIn = s.Items[idx].StartAt
+			s.TTIBlocks[idx].timecodeOut = s.Items[idx].EndAt
+		}
 		if s.Items[idx].EndAt <= 0 && s.Items[idx].StartAt <= 0 {
 			s.Items = append(s.Items[:idx], s.Items[idx+1:]...)
+			if s.TTIBlocks != nil && idx < len(s.TTIBlocks) {
+				s.TTIBlocks = append(s.TTIBlocks[:idx], s.TTIBlocks[idx+1:]...)
+			}
 			idx--
 		} else if s.Items[idx].StartAt <= 0 {
 			s.Items[idx].StartAt = time.Duration(0)
+			if s.TTIBlocks != nil && idx < len(s.TTIBlocks) {
+				s.TTIBlocks[idx].timecodeIn = s.Items[idx].StartAt
+			}
 		}
 	}
 }
