@@ -93,11 +93,11 @@ func OpenFile(filename string) (*Subtitles, error) {
 
 // Subtitles represents an ordered list of items with formatting
 type Subtitles struct {
-	Items     []*Item
-	Metadata  *Metadata
-	Regions   map[string]*Region
-	Styles    map[string]*Style
-	TTIBlocks []*ttiBlock
+	Items        []*Item
+	Metadata     *Metadata
+	Regions      map[string]*Region
+	Styles       map[string]*Style
+	ItemMetadata *ItemMetadata
 }
 
 // NewSubtitles creates new subtitles
@@ -110,14 +110,14 @@ func NewSubtitles() *Subtitles {
 
 // Item represents a text to show between 2 time boundaries with formatting
 type Item struct {
-	Comments    []string
-	Index       int
-	EndAt       time.Duration
-	InlineStyle *StyleAttributes
-	Lines       []Line
-	Region      *Region
-	StartAt     time.Duration
-	Style       *Style
+	Comments     []string
+	EndAt        time.Duration
+	InlineStyle  *StyleAttributes
+	ItemMetadata *ItemMetadata
+	Lines        []Line
+	Region       *Region
+	StartAt      time.Duration
+	Style        *Style
 }
 
 // String implements the Stringer interface
@@ -160,8 +160,8 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
-// WebVTTColorString expresses the color as a webvtt string
-func (c *Color) WebVTTColorString() string {
+// WebVTTString expresses the color as a webvtt string
+func (c *Color) WebVTTString() string {
 	switch c {
 	case ColorBlack:
 		return "<c.black>" //rgba(0,0,0,1)
@@ -185,9 +185,9 @@ func (c *Color) WebVTTColorString() string {
 
 }
 
-// WebVTTPositionFromSTL Webvtt Justification From STL
-func (sa *StyleAttributes) WebVTTPositionFromSTL() string {
-	switch sa.STLJustificationCode {
+// WebVTTPosition Webvtt Justification From STL
+func (sv *stlVerticalPosition) WebVTTPosition() string {
+	switch *sv {
 	case stlJustificationCodeLeftJustifiedText:
 		return "20%" //left
 	case stlJustificationCodeRightJustifiedText:
@@ -195,18 +195,22 @@ func (sa *StyleAttributes) WebVTTPositionFromSTL() string {
 	default:
 		return ""
 	}
+
 }
 
-// WebVTTLineFromSTL WebVTT Line Vertical Position from STL
-func (sa *StyleAttributes) WebVTTLineFromSTL() string {
-	if sa.STLVerticalPostion < 3 { //top
+// WebVTTLine WebVTT Line Vertical Position from STL
+func (sj *stlJustificationCode) WebVTTLine() string {
+	if *sj < 3 { //top
 		return "20%"
-	} else if sa.STLVerticalPostion <= 12 { //(23/2)+1	//middle
+	} else if *sj <= 12 { //(23/2)+1	//middle
 		return "50%"
 	} else {
 		return ""
 	}
 }
+
+type stlVerticalPosition int
+type stlJustificationCode byte
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
@@ -239,8 +243,8 @@ type StyleAttributes struct {
 	STLBoxing            *bool
 	STLItalics           *bool
 	STLUnderline         *bool
-	STLVerticalPostion   int
-	STLJustificationCode byte
+	STLVerticalPostion   *stlVerticalPosition
+	STLJustificationCode *stlJustificationCode
 	TeletextColor        *Color
 	TeletextDoubleHeight *bool
 	TeletextDoubleSize   *bool
@@ -288,14 +292,18 @@ type StyleAttributes struct {
 func (sa *StyleAttributes) propagateSSAAttributes() {}
 
 func (sa *StyleAttributes) propagateSTLAttributes() {
-	sa.WebVTTLine = sa.WebVTTLineFromSTL()
-	sa.WebVTTPosition = sa.WebVTTPositionFromSTL()
+	if sa.STLJustificationCode != nil {
+		sa.WebVTTLine = sa.STLJustificationCode.WebVTTLine()
+	}
+	if sa.STLVerticalPostion != nil {
+		sa.WebVTTPosition = sa.STLVerticalPostion.WebVTTPosition()
+	}
 }
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
 		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
-		sa.WebVTTColor = sa.TeletextColor.WebVTTColorString()
+		sa.WebVTTColor = sa.TeletextColor.WebVTTString()
 	}
 }
 
@@ -327,6 +335,27 @@ type Metadata struct {
 	STLPublisher                                        string
 	Title                                               string
 	TTMLCopyright                                       string
+}
+
+//ItemMetadata represents specific item metadata
+type ItemMetadata struct {
+	Index                   int
+	STLCommentFlag          byte
+	STLCumulativeStatus     byte
+	STLExtensionBlockNumber int
+	STLSubtitleGroupNumber  int
+	STLText                 []byte
+}
+
+func newItemMetadata() (im *ItemMetadata) {
+	//Init
+	im = &ItemMetadata{
+		STLCommentFlag:          stlCommentFlagTextContainsSubtitleData,
+		STLCumulativeStatus:     stlCumulativeStatusSubtitleNotPartOfACumulativeSet,
+		STLExtensionBlockNumber: 255,
+		STLSubtitleGroupNumber:  0,
+	}
+	return
 }
 
 // Region represents a subtitle's region
@@ -370,21 +399,12 @@ func (s *Subtitles) Add(d time.Duration) {
 	for idx := 0; idx < len(s.Items); idx++ {
 		s.Items[idx].EndAt += d
 		s.Items[idx].StartAt += d
-		if s.TTIBlocks != nil && idx < len(s.TTIBlocks) {
-			s.TTIBlocks[idx].timecodeIn = s.Items[idx].StartAt
-			s.TTIBlocks[idx].timecodeOut = s.Items[idx].EndAt
-		}
+
 		if s.Items[idx].EndAt <= 0 && s.Items[idx].StartAt <= 0 {
 			s.Items = append(s.Items[:idx], s.Items[idx+1:]...)
-			if s.TTIBlocks != nil && idx < len(s.TTIBlocks) {
-				s.TTIBlocks = append(s.TTIBlocks[:idx], s.TTIBlocks[idx+1:]...)
-			}
 			idx--
 		} else if s.Items[idx].StartAt <= 0 {
 			s.Items[idx].StartAt = time.Duration(0)
-			if s.TTIBlocks != nil && idx < len(s.TTIBlocks) {
-				s.TTIBlocks[idx].timecodeIn = s.Items[idx].StartAt
-			}
 		}
 	}
 }
@@ -451,7 +471,7 @@ func (s *Subtitles) Fragment(f time.Duration) {
 		//   fragment start at        fragment end at
 		for i, sub := range s.Items {
 			// Init
-			var newSub = &Item{}
+			var newSub = &Item{ItemMetadata: newItemMetadata()}
 			*newSub = *sub
 
 			// A switch is more readable here

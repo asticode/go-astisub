@@ -830,8 +830,9 @@ func (p *teletextPage) parse(s *Subtitles, d *teletextCharacterDecoder, firstTim
 
 	// Create item
 	i := &Item{
-		EndAt:   p.end.Sub(firstTime),
-		StartAt: p.start.Sub(firstTime),
+		EndAt:        p.end.Sub(firstTime),
+		ItemMetadata: newItemMetadata(),
+		StartAt:      p.start.Sub(firstTime),
 	}
 
 	// Loop through rows

@@ -53,7 +53,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Scan
-	var item = &Item{}
+	var item = &Item{ItemMetadata: newItemMetadata()}
 	var blockName string
 	var comments []string
 	var index int
@@ -116,11 +116,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Init new item
 			item = &Item{
-				Comments:    comments,
-				Index:       index,
-				InlineStyle: &StyleAttributes{},
+				Comments:     comments,
+				InlineStyle:  &StyleAttributes{},
+				ItemMetadata: newItemMetadata(),
 			}
 
+			item.ItemMetadata.Index = index
 			// Reset index
 			index = 0
 			// Split line on time boundaries

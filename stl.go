@@ -221,8 +221,9 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		}
 		// Create item
 		var i = &Item{
-			EndAt:   t.timecodeOut - starttime,
-			StartAt: t.timecodeIn - starttime,
+			EndAt:        t.timecodeOut - starttime,
+			ItemMetadata: newItemMetadata(),
+			StartAt:      t.timecodeIn - starttime,
 		}
 
 		// Loop through rows
@@ -234,14 +235,27 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			i.InlineStyle = &StyleAttributes{}
 		}
 
-		i.InlineStyle.STLVerticalPostion = t.verticalPosition
-		i.InlineStyle.STLJustificationCode = t.justificationCode
+		verticalPosition := stlVerticalPosition(t.verticalPosition)
+		i.InlineStyle.STLVerticalPostion = &verticalPosition
+
+		justificationCode := stlJustificationCode(t.justificationCode)
+
+		i.InlineStyle.STLJustificationCode = &justificationCode
+
 		i.InlineStyle.propagateSTLAttributes()
+
+		//Get ItemMetadata
+		i.ItemMetadata = &ItemMetadata{
+			Index:                   t.subtitleNumber,
+			STLCommentFlag:          t.commentFlag,
+			STLCumulativeStatus:     t.cumulativeStatus,
+			STLExtensionBlockNumber: t.extensionBlockNumber,
+			STLSubtitleGroupNumber:  t.subtitleGroupNumber,
+			STLText:                 t.text,
+		}
 
 		// Append item
 		o.Items = append(o.Items, i)
-		o.TTIBlocks = append(o.TTIBlocks, t)
-
 	}
 	return
 }
@@ -600,23 +614,35 @@ type ttiBlock struct {
 func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	// Init
 	t = &ttiBlock{
-		commentFlag:          stlCommentFlagTextContainsSubtitleData,
-		cumulativeStatus:     stlCumulativeStatusSubtitleNotPartOfACumulativeSet,
-		extensionBlockNumber: 255,
+		commentFlag:          i.ItemMetadata.STLCommentFlag,
+		cumulativeStatus:     i.ItemMetadata.STLCumulativeStatus,
+		extensionBlockNumber: i.ItemMetadata.STLExtensionBlockNumber,
 		justificationCode:    stlJustificationCodeLeftJustifiedText,
-		subtitleGroupNumber:  0,
+		subtitleGroupNumber:  i.ItemMetadata.STLSubtitleGroupNumber,
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
 		timecodeOut:          i.EndAt,
 		verticalPosition:     20,
 	}
 
-	// Add text
-	var lines []string
-	for _, l := range i.Lines {
-		lines = append(lines, l.String())
+	if i.InlineStyle.STLVerticalPostion != nil && *i.InlineStyle.STLVerticalPostion > 0 {
+		t.verticalPosition = int(*i.InlineStyle.STLVerticalPostion)
 	}
-	t.text = []byte(strings.Join(lines, "\n"))
+
+	if i.InlineStyle.STLJustificationCode != nil {
+		t.justificationCode = byte(*i.InlineStyle.STLJustificationCode)
+	}
+
+	// Add text
+	if i.ItemMetadata.STLText != nil && len(i.ItemMetadata.STLText) > 0 {
+		t.text = i.ItemMetadata.STLText
+	} else {
+		var lines []string
+		for _, l := range i.Lines {
+			lines = append(lines, l.String())
+		}
+		t.text = []byte(strings.Join(lines, "\n"))
+	}
 	return
 }
 
@@ -641,22 +667,6 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
 	var b = make([]byte, 2)
 	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
-	o = append(o, b...)                                                                                              // Subtitle number
-	o = append(o, byte(uint8(t.extensionBlockNumber)))                                                               // Extension block number
-	o = append(o, t.cumulativeStatus)                                                                                // Cumulative status
-	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                                              // Timecode in
-	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                                             // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                                                                   // Vertical position
-	o = append(o, t.justificationCode)                                                                               // Justification code
-	o = append(o, t.commentFlag)                                                                                     // Comment flag
-	o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
-	return
-}
-
-func (t *ttiBlock) bytesSTLToSTL(g *gsiBlock) (o []byte) {
-	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
-	var b = make([]byte, 2)
-	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
 	o = append(o, b...)                                                  // Subtitle number
 	o = append(o, byte(uint8(t.extensionBlockNumber)))                   // Extension block number
 	o = append(o, t.cumulativeStatus)                                    // Cumulative status
@@ -665,7 +675,12 @@ func (t *ttiBlock) bytesSTLToSTL(g *gsiBlock) (o []byte) {
 	o = append(o, byte(uint8(t.verticalPosition)))                       // Vertical position
 	o = append(o, t.justificationCode)                                   // Justification code
 	o = append(o, t.commentFlag)                                         // Comment flag
-	o = append(o, t.text...)
+	//if text has 112 characters, copy directly
+	if len(t.text) == 112 {
+		o = append(o, t.text...)
+	} else {
+		o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
+	}
 	return
 }
 
@@ -803,25 +818,15 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 		return
 	}
 
-	if s.TTIBlocks != nil && len(s.TTIBlocks) == len(s.Items) {
-		// Loop through items
-		for idx, ttiblock := range s.TTIBlocks {
-			// Write tti block
-			if _, err = o.Write(ttiblock.bytesSTLToSTL(g)); err != nil {
-				err = fmt.Errorf("astisub: writing tti stl to stl block #%d failed: %w", idx+1, err)
-				return
-			}
-		}
-	} else {
-		// Loop through items
-		for idx, item := range s.Items {
-			// Write tti block
-			if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
-				err = fmt.Errorf("astisub: writing tti block #%d failed: %w", idx+1, err)
-				return
-			}
+	// Loop through items
+	for idx, item := range s.Items {
+		// Write tti block
+		if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
+			err = fmt.Errorf("astisub: writing tti block #%d failed: %w", idx+1, err)
+			return
 		}
 	}
+
 	return
 }
 
