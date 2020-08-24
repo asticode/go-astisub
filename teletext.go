@@ -830,9 +830,9 @@ func (p *teletextPage) parse(s *Subtitles, d *teletextCharacterDecoder, firstTim
 
 	// Create item
 	i := &Item{
-		EndAt:        p.end.Sub(firstTime),
-		ItemMetadata: newItemMetadata(),
-		StartAt:      p.start.Sub(firstTime),
+		EndAt:    p.end.Sub(firstTime),
+		Metadata: &ItemMetadata{},
+		StartAt:  p.start.Sub(firstTime),
 	}
 
 	// Loop through rows
@@ -860,6 +860,7 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	// Loop through columns
 	var l = Line{}
 	var li = LineItem{InlineStyle: &StyleAttributes{}}
+	var started bool
 
 	var s styler
 	for _, v := range row {
@@ -888,6 +889,10 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 			color = ColorCyan
 		case 0x7:
 			color = ColorWhite
+		case 0xa:
+			started = false
+		case 0xb:
+			started = true
 		case 0xc:
 			doubleHeight = astikit.BoolPtr(false)
 			doubleSize = astikit.BoolPtr(false)
@@ -910,14 +915,16 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 			if color != li.InlineStyle.TeletextColor || doubleHeight != li.InlineStyle.TeletextDoubleHeight ||
 				doubleSize != li.InlineStyle.TeletextDoubleSize || doubleWidth != li.InlineStyle.TeletextDoubleWidth ||
 				(s != nil && s.hasChanged(li.InlineStyle)) {
+				// Line has started
+				if started {
+					// Append line item
+					appendTeletextLineItem(&l, li, s)
 
-				// Append line item
-				appendTeletextLineItem(&l, li, s)
-
-				// Create new line item
-				sa := &StyleAttributes{}
-				*sa = *li.InlineStyle
-				li = LineItem{InlineStyle: sa}
+					// Create new line item
+					sa := &StyleAttributes{}
+					*sa = *li.InlineStyle
+					li = LineItem{InlineStyle: sa}
+				}
 
 				// Update style attributes
 				if color != nil && color != li.InlineStyle.TeletextColor {

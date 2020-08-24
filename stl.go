@@ -158,6 +158,16 @@ const (
 // TTI Special Extension Block Number
 const extensionBlockNumberReservedUserData = 0xfe
 
+func newSTLJustificationCode(b byte) *stlJustificationCode {
+	j := stlJustificationCode(b)
+	return &j
+}
+
+func newSTLVerticalPosition(i int) *stlVerticalPosition {
+	v := stlVerticalPosition(i)
+	return &v
+}
+
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -221,9 +231,9 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		}
 		// Create item
 		var i = &Item{
-			EndAt:        t.timecodeOut - starttime,
-			ItemMetadata: newItemMetadata(),
-			StartAt:      t.timecodeIn - starttime,
+			EndAt:    t.timecodeOut - starttime,
+			Metadata: &ItemMetadata{},
+			StartAt:  t.timecodeIn - starttime,
 		}
 
 		// Loop through rows
@@ -235,24 +245,21 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			i.InlineStyle = &StyleAttributes{}
 		}
 
-		verticalPosition := stlVerticalPosition(t.verticalPosition)
-		i.InlineStyle.STLVerticalPostion = &verticalPosition
-
-		justificationCode := stlJustificationCode(t.justificationCode)
-
-		i.InlineStyle.STLJustificationCode = &justificationCode
+		i.InlineStyle.STLVerticalPostion = newSTLVerticalPosition(t.verticalPosition)
+		i.InlineStyle.STLJustificationCode = newSTLJustificationCode(t.justificationCode)
 
 		i.InlineStyle.propagateSTLAttributes()
 
 		//Get ItemMetadata
-		i.ItemMetadata = &ItemMetadata{
-			Index:                   t.subtitleNumber,
-			STLCommentFlag:          t.commentFlag,
-			STLCumulativeStatus:     t.cumulativeStatus,
-			STLExtensionBlockNumber: t.extensionBlockNumber,
-			STLSubtitleGroupNumber:  t.subtitleGroupNumber,
-			STLText:                 t.text,
+		i.Metadata = &ItemMetadata{
+			Index: t.subtitleNumber,
 		}
+
+		i.Metadata.STLCommentFlag = &t.commentFlag
+		i.Metadata.STLCumulativeStatus = &t.cumulativeStatus
+		i.Metadata.STLExtensionBlockNumber = &t.extensionBlockNumber
+		i.Metadata.STLSubtitleGroupNumber = &t.subtitleGroupNumber
+		i.Metadata.STLText = &t.text
 
 		// Append item
 		o.Items = append(o.Items, i)
@@ -389,7 +396,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	if v := strings.TrimSpace(string(b[224:230])); len(v) > 0 {
 		if g.creationDate, err = time.Parse("060102", v); err != nil {
 			err = fmt.Errorf("astisub: parsing date %s failed: %w", v, err)
-			g.creationDate = time.Now()
+			return
 		}
 	}
 
@@ -397,7 +404,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	if v := strings.TrimSpace(string(b[230:236])); len(v) > 0 {
 		if g.revisionDate, err = time.Parse("060102", v); err != nil {
 			err = fmt.Errorf("astisub: parsing date %s failed: %w", v, err)
-			g.revisionDate = time.Now()
+			return
 		}
 	}
 
@@ -614,28 +621,50 @@ type ttiBlock struct {
 func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	// Init
 	t = &ttiBlock{
-		commentFlag:          i.ItemMetadata.STLCommentFlag,
-		cumulativeStatus:     i.ItemMetadata.STLCumulativeStatus,
-		extensionBlockNumber: i.ItemMetadata.STLExtensionBlockNumber,
-		justificationCode:    stlJustificationCodeLeftJustifiedText,
-		subtitleGroupNumber:  i.ItemMetadata.STLSubtitleGroupNumber,
-		subtitleNumber:       idx,
-		timecodeIn:           i.StartAt,
-		timecodeOut:          i.EndAt,
-		verticalPosition:     20,
+		subtitleNumber: idx,
+		timecodeIn:     i.StartAt,
+		timecodeOut:    i.EndAt,
 	}
 
-	if i.InlineStyle.STLVerticalPostion != nil && *i.InlineStyle.STLVerticalPostion > 0 {
-		t.verticalPosition = int(*i.InlineStyle.STLVerticalPostion)
+	if i.Metadata.STLCommentFlag != nil {
+		t.commentFlag = *i.Metadata.STLCommentFlag
+	} else {
+		t.commentFlag = stlCommentFlagTextContainsSubtitleData
+	}
+
+	if i.Metadata.STLCumulativeStatus != nil {
+		t.commentFlag = *i.Metadata.STLCumulativeStatus
+	} else {
+		t.commentFlag = stlCumulativeStatusSubtitleNotPartOfACumulativeSet
+	}
+
+	if i.Metadata.STLExtensionBlockNumber != nil {
+		t.extensionBlockNumber = *i.Metadata.STLExtensionBlockNumber
+	} else {
+		t.extensionBlockNumber = 255
 	}
 
 	if i.InlineStyle.STLJustificationCode != nil {
 		t.justificationCode = byte(*i.InlineStyle.STLJustificationCode)
+	} else {
+		t.justificationCode = stlJustificationCodeLeftJustifiedText
+	}
+
+	if i.Metadata.STLSubtitleGroupNumber != nil {
+		t.subtitleGroupNumber = *i.Metadata.STLSubtitleGroupNumber
+	} else {
+		t.subtitleGroupNumber = 0
+	}
+
+	if i.InlineStyle.STLVerticalPostion != nil && *i.InlineStyle.STLVerticalPostion > 0 {
+		t.verticalPosition = int(*i.InlineStyle.STLVerticalPostion)
+	} else {
+		t.verticalPosition = 20
 	}
 
 	// Add text
-	if i.ItemMetadata.STLText != nil && len(i.ItemMetadata.STLText) > 0 {
-		t.text = i.ItemMetadata.STLText
+	if i.Metadata.STLText != nil && len(*i.Metadata.STLText) > 0 {
+		t.text = *i.Metadata.STLText
 	} else {
 		var lines []string
 		for _, l := range i.Lines {

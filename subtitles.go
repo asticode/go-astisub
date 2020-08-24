@@ -93,11 +93,10 @@ func OpenFile(filename string) (*Subtitles, error) {
 
 // Subtitles represents an ordered list of items with formatting
 type Subtitles struct {
-	Items        []*Item
-	Metadata     *Metadata
-	Regions      map[string]*Region
-	Styles       map[string]*Style
-	ItemMetadata *ItemMetadata
+	Items    []*Item
+	Metadata *Metadata
+	Regions  map[string]*Region
+	Styles   map[string]*Style
 }
 
 // NewSubtitles creates new subtitles
@@ -110,14 +109,14 @@ func NewSubtitles() *Subtitles {
 
 // Item represents a text to show between 2 time boundaries with formatting
 type Item struct {
-	Comments     []string
-	EndAt        time.Duration
-	InlineStyle  *StyleAttributes
-	ItemMetadata *ItemMetadata
-	Lines        []Line
-	Region       *Region
-	StartAt      time.Duration
-	Style        *Style
+	Comments    []string
+	EndAt       time.Duration
+	InlineStyle *StyleAttributes
+	Lines       []Line
+	Metadata    *ItemMetadata
+	Region      *Region
+	StartAt     time.Duration
+	Style       *Style
 }
 
 // String implements the Stringer interface
@@ -340,22 +339,11 @@ type Metadata struct {
 //ItemMetadata represents specific item metadata
 type ItemMetadata struct {
 	Index                   int
-	STLCommentFlag          byte
-	STLCumulativeStatus     byte
-	STLExtensionBlockNumber int
-	STLSubtitleGroupNumber  int
-	STLText                 []byte
-}
-
-func newItemMetadata() (im *ItemMetadata) {
-	//Init
-	im = &ItemMetadata{
-		STLCommentFlag:          stlCommentFlagTextContainsSubtitleData,
-		STLCumulativeStatus:     stlCumulativeStatusSubtitleNotPartOfACumulativeSet,
-		STLExtensionBlockNumber: 255,
-		STLSubtitleGroupNumber:  0,
-	}
-	return
+	STLCommentFlag          *byte
+	STLCumulativeStatus     *byte
+	STLExtensionBlockNumber *int
+	STLSubtitleGroupNumber  *int
+	STLText                 *[]byte
 }
 
 // Region represents a subtitle's region
@@ -407,6 +395,15 @@ func (s *Subtitles) Add(d time.Duration) {
 			s.Items[idx].StartAt = time.Duration(0)
 		}
 	}
+}
+
+// Add adds a duration to each time boundaries. As in the time package, duration can be negative.
+func (s *Subtitles) ChangeStartTime(starttime time.Duration) {
+	if len(s.Items) > 0 {
+		var delay = starttime - s.Items[0].StartAt
+		s.Add(delay)
+	}
+
 }
 
 // Duration returns the subtitles duration
@@ -471,7 +468,7 @@ func (s *Subtitles) Fragment(f time.Duration) {
 		//   fragment start at        fragment end at
 		for i, sub := range s.Items {
 			// Init
-			var newSub = &Item{ItemMetadata: newItemMetadata()}
+			var newSub = &Item{}
 			*newSub = *sub
 
 			// A switch is more readable here

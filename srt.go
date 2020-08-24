@@ -33,7 +33,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	// Scan
 	var line string
 	var lineNum int
-	var s = &Item{ItemMetadata: newItemMetadata()}
+	var s = &Item{Metadata: &ItemMetadata{}}
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
@@ -70,10 +70,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			}
 
 			// Init subtitle
-			s = &Item{ItemMetadata: newItemMetadata()}
+			s = &Item{Metadata: &ItemMetadata{}}
 			// Fetch Index
-			s.ItemMetadata = &ItemMetadata{}
-			s.ItemMetadata.Index, _ = strconv.Atoi(index.String())
+			s.Metadata.Index, _ = strconv.Atoi(index.String())
 
 			// Fetch time boundaries
 			boundaries := strings.Split(line, srtTimeBoundariesSeparator)

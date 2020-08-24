@@ -53,7 +53,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Scan
-	var item = &Item{ItemMetadata: newItemMetadata()}
+	var item = &Item{Metadata: &ItemMetadata{}}
 	var blockName string
 	var comments []string
 	var index int
@@ -116,12 +116,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Init new item
 			item = &Item{
-				Comments:     comments,
-				InlineStyle:  &StyleAttributes{},
-				ItemMetadata: newItemMetadata(),
+				Comments:    comments,
+				InlineStyle: &StyleAttributes{},
+				Metadata:    &ItemMetadata{},
 			}
 
-			item.ItemMetadata.Index = index
+			item.Metadata.Index = index
 			// Reset index
 			index = 0
 			// Split line on time boundaries
@@ -172,7 +172,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				}
 			}
 			item.InlineStyle.propagateWebVTTAttributes()
-
 			// Reset comments
 			comments = []string{}
 
@@ -192,6 +191,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				// This is the ID
 				index, _ = strconv.Atoi(line)
 			}
+			item.InlineStyle.propagateWebVTTAttributes()
 		}
 	}
 	return

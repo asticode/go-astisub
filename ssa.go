@@ -1035,8 +1035,8 @@ func (e *ssaEvent) item(styles map[string]*Style) (i *Item, err error) {
 			SSAMarginVertical: e.marginVertical,
 			SSAMarked:         e.marked,
 		},
-		ItemMetadata: newItemMetadata(),
-		StartAt:      e.start,
+		Metadata: &ItemMetadata{},
+		StartAt:  e.start,
 	}
 
 	// Set style
