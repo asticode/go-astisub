@@ -184,26 +184,27 @@ func (c *Color) WebVTTString() string {
 
 }
 
-// WebVTTPosition Webvtt Justification From STL
-func (sv *stlVerticalPosition) WebVTTPosition() string {
-	switch *sv {
+// WebVTTLine  WebVTT Vertical Position From STL
+func (sv *stlVerticalPosition) WebVTTLine() string {	
+	if *sv < 3 { //top
+		return "20%"
+	} else if *sv <= 12 { //(23/2)+1	//middle
+		return "50%"
+	} else {
+		return ""
+	}
+	
+
+}
+
+// WebVTTPosition WebVTT Jusitification from STL
+func (sj *stlJustificationCode) WebVTTPosition() string {	
+	switch *sj {
 	case stlJustificationCodeLeftJustifiedText:
 		return "20%" //left
 	case stlJustificationCodeRightJustifiedText:
 		return "80%" //right
 	default:
-		return ""
-	}
-
-}
-
-// WebVTTLine WebVTT Line Vertical Position from STL
-func (sj *stlJustificationCode) WebVTTLine() string {
-	if *sj < 3 { //top
-		return "20%"
-	} else if *sj <= 12 { //(23/2)+1	//middle
-		return "50%"
-	} else {
 		return ""
 	}
 }
@@ -291,11 +292,11 @@ type StyleAttributes struct {
 func (sa *StyleAttributes) propagateSSAAttributes() {}
 
 func (sa *StyleAttributes) propagateSTLAttributes() {
-	if sa.STLJustificationCode != nil {
-		sa.WebVTTLine = sa.STLJustificationCode.WebVTTLine()
-	}
 	if sa.STLVerticalPostion != nil {
-		sa.WebVTTPosition = sa.STLVerticalPostion.WebVTTPosition()
+		sa.WebVTTLine = sa.STLVerticalPostion.WebVTTLine()
+	}
+	if sa.STLJustificationCode != nil {
+		sa.WebVTTPosition = sa.STLJustificationCode.WebVTTPosition()
 	}
 }
 

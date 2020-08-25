@@ -261,8 +261,10 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		i.Metadata.STLSubtitleGroupNumber = &t.subtitleGroupNumber
 		i.Metadata.STLText = &t.text
 
-		// Append item
-		o.Items = append(o.Items, i)
+		if len(i.Lines) > 0 {
+			// Append item
+			o.Items = append(o.Items, i)
+		}
 	}
 	return
 }
