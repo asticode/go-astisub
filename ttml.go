@@ -38,13 +38,13 @@ var (
 // TTMLIn represents an input TTML that must be unmarshaled
 // We split it from the output TTML as we can't add strict namespace without breaking retrocompatibility
 type TTMLIn struct {
-	Tickrate  int              `xml:"tickRate,attr"`
 	Framerate int              `xml:"frameRate,attr"`
 	Lang      string           `xml:"lang,attr"`
 	Metadata  TTMLInMetadata   `xml:"head>metadata"`
 	Regions   []TTMLInRegion   `xml:"head>layout>region"`
 	Styles    []TTMLInStyle    `xml:"head>styling>style"`
 	Subtitles []TTMLInSubtitle `xml:"body>div>p"`
+	Tickrate  int              `xml:"tickRate,attr"`
 	XMLName   xml.Name         `xml:"tt"`
 }
 
@@ -352,8 +352,8 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Loop through subtitles
 	for _, ts := range ttml.Subtitles {
 		// Init item
-		ts.Begin.tickrate = ttml.Tickrate
 		ts.Begin.framerate = ttml.Framerate
+		ts.Begin.tickrate = ttml.Tickrate
 		ts.End.framerate = ttml.Framerate
 		ts.End.tickrate = ttml.Tickrate
 
