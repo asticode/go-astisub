@@ -2,7 +2,6 @@ package astisub
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -45,6 +44,7 @@ type TTMLIn struct {
 	Regions   []TTMLInRegion   `xml:"head>layout>region"`
 	Styles    []TTMLInStyle    `xml:"head>styling>style"`
 	Subtitles []TTMLInSubtitle `xml:"body>div>p"`
+	Tickrate  int              `xml:"tickRate,attr"`
 	XMLName   xml.Name         `xml:"tt"`
 }
 
@@ -204,12 +204,14 @@ type TTMLInItem struct {
 type TTMLInDuration struct {
 	d                 time.Duration
 	frames, framerate int // Framerate is in frame/s
+	tickrate          int // Tick rate
 }
 
 // UnmarshalText implements the TextUnmarshaler interface
 // Possible formats are:
 // - hh:mm:ss.mmm
 // - hh:mm:ss:fff (fff being frames)
+// - [ticks]t ([ticks] being the tick amount)
 func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 	var text = string(i)
 	if matches := ttmlRegexpOffsetTime.FindStringSubmatch(text); matches != nil {
@@ -254,8 +256,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 			value = value / d.framerate
 			// TODO: fraction of frames
 		case "t":
-			// TODO: implement ticks
-			return errors.New("astisub: offset time in ticks not implemented")
+			nsBase = time.Second.Nanoseconds()
 		}
 
 		d.d += time.Duration(nsBase * int64(value))
@@ -287,6 +288,10 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 func (d TTMLInDuration) duration() time.Duration {
 	if d.framerate > 0 {
 		return d.d + time.Duration(float64(d.frames)/float64(d.framerate)*1e9)*time.Nanosecond
+	}
+	if d.tickrate > 0 {
+		// Amount of ticks * tickrate to get the seconds
+		return d.d / time.Duration(float64(d.tickrate)) * time.Nanosecond
 	}
 	return d.d
 }
@@ -348,7 +353,10 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	for _, ts := range ttml.Subtitles {
 		// Init item
 		ts.Begin.framerate = ttml.Framerate
+		ts.Begin.tickrate = ttml.Tickrate
 		ts.End.framerate = ttml.Framerate
+		ts.End.tickrate = ttml.Tickrate
+
 		var s = &Item{
 			EndAt:       ts.End.duration(),
 			InlineStyle: ts.TTMLInStyleAttributes.styleAttributes(),
