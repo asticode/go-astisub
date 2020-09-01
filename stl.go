@@ -857,7 +857,6 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 			return
 		}
 	}
-
 	return
 }
 

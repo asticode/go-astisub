@@ -861,7 +861,6 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 	var l = Line{}
 	var li = LineItem{InlineStyle: &StyleAttributes{}}
 	var started bool
-
 	var s styler
 	for _, v := range row {
 		// Create specific styler

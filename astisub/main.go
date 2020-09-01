@@ -94,15 +94,11 @@ func main() {
 			log.Fatal("Use -s or -t to provide a sync duration or sync time")
 		}
 
+		// Add
 		if *syncDuration > 0 {
-			// Add
 			sub.Add(*syncDuration)
-		} else if *syncTime > -1 {
-			if len(sub.Items) > 0 {
-				var delay = *syncTime - sub.Items[0].StartAt
-				//Add
-				sub.Add(delay)
-			}
+		} else if *syncTime > -1 && len(sub.Items) > 0 {
+			sub.Add(*syncTime - sub.Items[0].StartAt)
 		}
 
 		// Write
@@ -120,5 +116,4 @@ func main() {
 	default:
 		log.Fatalf("Invalid subcommand %s", cmd)
 	}
-
 }
