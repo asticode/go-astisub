@@ -191,7 +191,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				// This is the ID
 				index, _ = strconv.Atoi(line)
 			}
-			item.InlineStyle.propagateWebVTTAttributes()
 		}
 	}
 	return

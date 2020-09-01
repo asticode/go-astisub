@@ -185,7 +185,7 @@ func (c *Color) WebVTTString() string {
 }
 
 // WebVTTLine  WebVTT Vertical Position From STL
-func (sv *stlVerticalPosition) WebVTTLine() string {	
+func (sv *stlVerticalPosition) WebVTTLine() string {
 	if *sv < 3 { //top
 		return "20%"
 	} else if *sv <= 12 { //(23/2)+1	//middle
@@ -193,12 +193,10 @@ func (sv *stlVerticalPosition) WebVTTLine() string {
 	} else {
 		return ""
 	}
-	
-
 }
 
 // WebVTTPosition WebVTT Jusitification from STL
-func (sj *stlJustificationCode) WebVTTPosition() string {	
+func (sj *stlJustificationCode) WebVTTPosition() string {
 	switch *sj {
 	case stlJustificationCodeLeftJustifiedText:
 		return "20%" //left
@@ -396,15 +394,6 @@ func (s *Subtitles) Add(d time.Duration) {
 			s.Items[idx].StartAt = time.Duration(0)
 		}
 	}
-}
-
-// Add adds a duration to each time boundaries. As in the time package, duration can be negative.
-func (s *Subtitles) ChangeStartTime(starttime time.Duration) {
-	if len(s.Items) > 0 {
-		var delay = starttime - s.Items[0].StartAt
-		s.Add(delay)
-	}
-
 }
 
 // Duration returns the subtitles duration

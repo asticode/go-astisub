@@ -14,8 +14,8 @@ var (
 	inputPath        = astikit.NewFlagStrings()
 	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
-	startTime        = flag.Duration("t", -1, "the start time")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
+	syncTime         = flag.Duration("t", -1, "the sync time")
 )
 
 func main() {
@@ -88,27 +88,22 @@ func main() {
 		if err = sub.Write(*outputPath); err != nil {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
-	case "starttime":
-
-		if *startTime < 0 {
-			log.Fatal("Use -t to provide a starttime")
-		}
-
-		// StartTime
-		sub.ChangeStartTime(*startTime)
-
-		// Write
-		if err = sub.Write(*outputPath); err != nil {
-			log.Fatalf("%s while writing to %s", err, *outputPath)
-		}
 	case "sync":
 		// Validate sync duration
-		if *syncDuration == 0 {
-			log.Fatal("Use -s to provide a sync duration")
+		if *syncDuration == 0 && *syncTime < 0 {
+			log.Fatal("Use -s or -t to provide a sync duration or sync time")
 		}
 
-		// Add
-		sub.Add(*syncDuration)
+		if *syncDuration > 0 {
+			// Add
+			sub.Add(*syncDuration)
+		} else if *syncTime > -1 {
+			if len(sub.Items) > 0 {
+				var delay = *syncTime - sub.Items[0].StartAt
+				//Add
+				sub.Add(delay)
+			}
+		}
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
