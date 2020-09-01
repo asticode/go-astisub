@@ -672,7 +672,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		for _, l := range i.Lines {
 			lines = append(lines, l.String())
 		}
-		t.text = []byte(strings.Join(lines, "\n"))
+		t.text = []byte(encodeTextSTL(strings.Join(lines, "\n")))
 	}
 	return
 }
