@@ -698,20 +698,15 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
 	var b = make([]byte, 2)
 	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
-	o = append(o, b...)                                                  // Subtitle number
-	o = append(o, byte(uint8(t.extensionBlockNumber)))                   // Extension block number
-	o = append(o, t.cumulativeStatus)                                    // Cumulative status
-	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)  // Timecode in
-	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...) // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                       // Vertical position
-	o = append(o, t.justificationCode)                                   // Justification code
-	o = append(o, t.commentFlag)                                         // Comment flag
-	//if text has 112 characters, copy directly
-	if len(t.text) == 112 {
-		o = append(o, t.text...)
-	} else {
-		o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
-	}
+	o = append(o, b...)                                                                       // Subtitle number
+	o = append(o, byte(uint8(t.extensionBlockNumber)))                                        // Extension block number
+	o = append(o, t.cumulativeStatus)                                                         // Cumulative status
+	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                       // Timecode in
+	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                      // Timecode out
+	o = append(o, byte(uint8(t.verticalPosition)))                                            // Vertical position
+	o = append(o, t.justificationCode)                                                        // Justification code
+	o = append(o, t.commentFlag)                                                              // Comment flag
+	o = append(o, astikit.BytesPad(t.text, '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
 	return
 }
 
