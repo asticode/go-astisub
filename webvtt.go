@@ -2,12 +2,13 @@ package astisub
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"text/scanner"
 	"time"
 )
 
@@ -25,7 +26,6 @@ const (
 // Vars
 var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
-	voiceTagRegexp                     = regexp.MustCompile("<v.*?(\\w+)>(.*)")
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -36,7 +36,6 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 // ReadFromWebVTT parses a .vtt content
 // TODO Tags (u, i, b)
 // TODO Class
-// TODO Speaker name
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
@@ -195,7 +194,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameStyle:
 				// TODO Do something with the style
 			case webvttBlockNameText:
-				// Voice Tag to extract VoiceName
+				// Voice Tag to extract Speaker Name
 				voiceName, text := extractVoiceNameAndText(line)
 				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: text}}, VoiceName: voiceName})
 			default:
@@ -208,12 +207,47 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 func extractVoiceNameAndText(line string) (string, string) {
-	match := voiceTagRegexp.FindStringSubmatch(line)
-	if len(match) == 0 {
-		return "", line
+	s := scanner.Scanner{}
+	s.Init(strings.NewReader(line))
+	s.Whitespace = ' ' // don't skip spaces
+
+	speaker := bytes.Buffer{}
+	text := bytes.Buffer{}
+
+	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		if s.TokenText() == "<" && s.Next() == 'v' {
+
+			// consume the characters until the Speaker name
+			for tok := s.Scan(); tok != ' '; tok = s.Scan() {
+			}
+
+			// read the speaker name until the tag
+			for tok := s.Scan(); tok != '>'; tok = s.Scan() {
+				if tok == scanner.EOF {
+					fmt.Println("end of line reached still no end tag found")
+					return "", ""
+				}
+				speaker.WriteString(s.TokenText())
+			}
+
+			// read the text until the eof or the closing tag if present
+			for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+				// check of closing voice tag
+				if tok == '<' {
+					if s.Next() != '/' || s.Next() != 'v' || s.Next() != '>' {
+						return "", ""
+					}
+				}
+				text.WriteString(s.TokenText())
+			}
+
+		} else {
+			// not a voice tag
+			return "", line
+		}
 	}
 
-	return match[len(match)-2], match[len(match)-1]
+	return strings.TrimSpace(speaker.String()), strings.TrimSpace(text.String())
 }
 
 // formatDurationWebVTT formats a .vtt duration

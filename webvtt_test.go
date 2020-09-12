@@ -47,20 +47,35 @@ func TestBroken1WebVTT(t *testing.T) {
 }
 
 func TestWebVTTWithVoiceName(t *testing.T) {
-	voiceName := "Speaker"
+	voiceName1 := "Roger Bingham"
+	voiceName2 := "Bingham"
+	voiceName3 := "Lee"
 	testData := `WEBVTT
 
 	NOTE this a example with voicename
 
 	1
 	00:02:34.00 --> 00:02:35.00
-	<v.first.loud Speaker> I'm yelling`
+	<v.first.local Roger Bingham> I'm the fist speaker
+
+	2
+	00:02:34.00 --> 00:02:35.00
+	<v Bingham> I'm the second speaker
+
+	3
+	00:00:04.000 --> 00:00:08.000
+	<v Lee>What are you doing here?</v>
+
+	4
+	00:00:04.000 --> 00:00:08.000
+	<v Bob>Incorrect tag?</vi>`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
 	assert.NoError(t, err)
 
-	assert.Len(t, s.Items, 1)
-	assert.Len(t, s.Items[0].Lines, 1)
-
-	assert.Equal(t, s.Items[0].Lines[0].VoiceName, voiceName)
+	assert.Len(t, s.Items, 4)
+	assert.Equal(t, s.Items[0].Lines[0].VoiceName, voiceName1)
+	assert.Equal(t, s.Items[1].Lines[0].VoiceName, voiceName2)
+	assert.Equal(t, s.Items[2].Lines[0].VoiceName, voiceName3)
+	assert.Equal(t, s.Items[3].Lines[0].VoiceName, "")
 }
