@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,6 +25,7 @@ const (
 // Vars
 var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
+	voiceTagRegexp                     = regexp.MustCompile("<v.*?(\\w+)>(.*)")
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -193,7 +195,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameStyle:
 				// TODO Do something with the style
 			case webvttBlockNameText:
-				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
+				// Voice Tag to extract VoiceName
+				voiceName, text := extractVoiceNameAndText(line)
+				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: text}}, VoiceName: voiceName})
 			default:
 				// This is the ID
 				index, _ = strconv.Atoi(line)
@@ -201,6 +205,15 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		}
 	}
 	return
+}
+
+func extractVoiceNameAndText(line string) (string, string) {
+	match := voiceTagRegexp.FindStringSubmatch(line)
+	if len(match) == 0 {
+		return "", line
+	}
+
+	return match[len(match)-2], match[len(match)-1]
 }
 
 // formatDurationWebVTT formats a .vtt duration
