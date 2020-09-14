@@ -74,8 +74,8 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Len(t, s.Items, 4)
-	assert.Equal(t, s.Items[0].Lines[0].VoiceName, voiceName1)
-	assert.Equal(t, s.Items[1].Lines[0].VoiceName, voiceName2)
-	assert.Equal(t, s.Items[2].Lines[0].VoiceName, voiceName3)
-	assert.Equal(t, s.Items[3].Lines[0].VoiceName, "")
+	assert.Equal(t, voiceName1, s.Items[0].Lines[0].VoiceName)
+	assert.Equal(t, voiceName2, s.Items[1].Lines[0].VoiceName)
+	assert.Equal(t, voiceName3, s.Items[2].Lines[0].VoiceName)
+	assert.Equal(t, "", s.Items[3].Lines[0].VoiceName)
 }
