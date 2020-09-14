@@ -278,7 +278,7 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 // duration returns the input TTML Duration's time.Duration
 func (d TTMLInDuration) duration() (o time.Duration) {
 	if d.ticks > 0 && d.tickrate > 0 {
-		return time.Duration(float64(d.ticks)/float64(d.tickrate)) * time.Second
+		return time.Duration(float64(d.ticks) * 1e9 / float64(d.tickrate))
 	}
 	o = d.d
 	if d.frames > 0 && d.framerate > 0 {

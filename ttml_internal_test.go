@@ -68,9 +68,8 @@ func TestTTMLDuration(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Tick rate duration
-	d.tickrate = 2
-	d.framerate = 0 // Framerate not set
-	err = d.UnmarshalText([]byte("5000t"))
-	assert.Equal(t, time.Duration(2500*time.Second.Nanoseconds()), d.duration())
+	d.tickrate = 4
+	err = d.UnmarshalText([]byte("6t"))
+	assert.Equal(t, time.Second+500*time.Millisecond, d.duration())
 	assert.NoError(t, err)
 }
