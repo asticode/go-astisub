@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -32,7 +31,7 @@ var ttmlLanguageMapping = astikit.NewBiMap().
 // TTML Clock Time Frames and Offset Time
 var (
 	ttmlRegexpClockTimeFrames = regexp.MustCompile(`\:[\d]+$`)
-	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+)(\.(\d+))?(h|m|s|ms|f|t)$`)
+	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+(\.\d+)?)(h|m|s|ms|f|t)$`)
 )
 
 // TTMLIn represents an input TTML that must be unmarshaled
@@ -204,7 +203,7 @@ type TTMLInItem struct {
 type TTMLInDuration struct {
 	d                 time.Duration
 	frames, framerate int // Framerate is in frame/s
-	tickrate          int // Tick rate
+	ticks, tickrate   int // Tickrate is in ticks/s
 }
 
 // UnmarshalText implements the TextUnmarshaler interface
@@ -213,61 +212,53 @@ type TTMLInDuration struct {
 // - hh:mm:ss:fff (fff being frames)
 // - [ticks]t ([ticks] being the tick amount)
 func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
-	var text = string(i)
+	// Reset duration
+	d.d = time.Duration(0)
+	d.frames = 0
+	d.ticks = 0
+
+	// Check offset time
+	text := string(i)
 	if matches := ttmlRegexpOffsetTime.FindStringSubmatch(text); matches != nil {
-		metric := matches[4]
-		value, err := strconv.Atoi(matches[1])
-
-		if err != nil {
+		// Parse value
+		var value float64
+		if value, err = strconv.ParseFloat(matches[1], 64); err != nil {
 			err = fmt.Errorf("astisub: failed to parse value %s", matches[1])
-			return err
+			return
 		}
 
-		d.d = time.Duration(0)
+		// Parse metric
+		metric := matches[3]
 
-		var (
-			nsBase       int64
-			fraction     int
-			fractionBase float64
-		)
-
-		if len(matches[3]) > 0 {
-			fraction, err = strconv.Atoi(matches[3])
-			fractionBase = math.Pow10(len(matches[3]))
-
-			if err != nil {
-				err = fmt.Errorf("astisub: failed to parse fraction %s", matches[3])
-				return err
+		// Update duration
+		if metric == "t" {
+			d.ticks = int(value)
+		} else if metric == "f" {
+			d.frames = int(value)
+		} else {
+			// Get timebase
+			var timebase time.Duration
+			switch metric {
+			case "h":
+				timebase = time.Hour
+			case "m":
+				timebase = time.Minute
+			case "s":
+				timebase = time.Second
+			case "ms":
+				timebase = time.Millisecond
+			default:
+				err = fmt.Errorf("astisub: invalid metric %s", metric)
+				return
 			}
+
+			// Update duration
+			d.d = time.Duration(value * float64(timebase.Nanoseconds()))
 		}
-
-		switch metric {
-		case "h":
-			nsBase = time.Hour.Nanoseconds()
-		case "m":
-			nsBase = time.Minute.Nanoseconds()
-		case "s":
-			nsBase = time.Second.Nanoseconds()
-		case "ms":
-			nsBase = time.Millisecond.Nanoseconds()
-		case "f":
-			nsBase = time.Second.Nanoseconds()
-			d.frames = value % d.framerate
-			value = value / d.framerate
-			// TODO: fraction of frames
-		case "t":
-			nsBase = time.Second.Nanoseconds()
-		}
-
-		d.d += time.Duration(nsBase * int64(value))
-
-		if fractionBase > 0 {
-			d.d += time.Duration(nsBase * int64(fraction) / int64(fractionBase))
-		}
-
-		return nil
-
+		return
 	}
+
+	// Extract clock time frames
 	if indexes := ttmlRegexpClockTimeFrames.FindStringIndex(text); indexes != nil {
 		// Parse frames
 		var s = text[indexes[0]+1 : indexes[1]]
@@ -285,15 +276,15 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 }
 
 // duration returns the input TTML Duration's time.Duration
-func (d TTMLInDuration) duration() time.Duration {
-	if d.framerate > 0 {
-		return d.d + time.Duration(float64(d.frames)/float64(d.framerate)*1e9)*time.Nanosecond
+func (d TTMLInDuration) duration() (o time.Duration) {
+	if d.ticks > 0 && d.tickrate > 0 {
+		return time.Duration(float64(d.ticks)/float64(d.tickrate)) * time.Second
 	}
-	if d.tickrate > 0 {
-		// Amount of ticks * tickrate to get the seconds
-		return d.d / time.Duration(float64(d.tickrate)) * time.Nanosecond
+	o = d.d
+	if d.frames > 0 && d.framerate > 0 {
+		o += time.Duration(float64(d.frames) / float64(d.framerate) * float64(time.Second.Nanoseconds()))
 	}
-	return d.d
+	return
 }
 
 // ReadFromTTML parses a .ttml content
