@@ -195,7 +195,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				// TODO Do something with the style
 			case webvttBlockNameText:
 				// Voice Tag to extract Speaker Name
-				item.Lines = append(item.Lines, parseTextWebVTT(line))
+				item.Lines = append(item.Lines, ParseTextWebVTT(line))
 			default:
 				// This is the ID
 				index, _ = strconv.Atoi(line)
@@ -205,7 +205,8 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	return
 }
 
-func parseTextWebVTT(i string) (o Line) {
+// ParseTextWebVTT parses the input line to fill the Line
+func ParseTextWebVTT(i string) (o Line) {
 	matches := webVTTRegexpVoiceName.FindStringSubmatch(i)
 	if matches == nil {
 		return

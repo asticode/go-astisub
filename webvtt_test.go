@@ -79,3 +79,9 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	assert.Equal(t, voiceName3, s.Items[2].Lines[0].VoiceName)
 	assert.Equal(t, "", s.Items[3].Lines[0].VoiceName)
 }
+
+func TestParseTextWebVTTWithEmptyLine(t *testing.T) {
+	line := astisub.ParseTextWebVTT("")
+
+	assert.Equal(t, astisub.Line{Items: nil, VoiceName: ""}, line)
+}
