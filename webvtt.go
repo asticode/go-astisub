@@ -25,7 +25,7 @@ const (
 // Vars
 var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
-	voiceTagRegexp                     = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)*(.[^<]*)(</v.*>)*`)
+	webVTTRegexpVoiceName              = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)*(.[^<]*)(</v.*>)*`)
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -206,16 +206,19 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 func parseTextWebVTT(i string) (o Line) {
-	match := voiceTagRegexp.FindStringSubmatch(i)
+	matches := webVTTRegexpVoiceName.FindStringSubmatch(i)
+	if matches == nil {
+		return
+	}
 
-	endTag := match[5]
+	endTag := matches[5]
 	// should be either no tag, or match voice tag
 	if endTag != "" && endTag != "</v>" {
 		return
 	}
 
-	o.Items = []LineItem{{Text: strings.TrimSpace(match[4])}}
-	o.VoiceName = strings.TrimSpace(match[3])
+	o.Items = []LineItem{{Text: strings.TrimSpace(matches[4])}}
+	o.VoiceName = strings.TrimSpace(matches[3])
 
 	return
 }
