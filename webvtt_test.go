@@ -3,6 +3,7 @@ package astisub_test
 import (
 	"bytes"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/asticode/go-astisub"
@@ -43,4 +44,38 @@ func TestBroken1WebVTT(t *testing.T) {
 	// Open bad, broken WebVTT file
 	_, err := astisub.OpenFile("./testdata/broken-1-in.vtt")
 	assert.Nil(t, err)
+}
+
+func TestWebVTTWithVoiceName(t *testing.T) {
+	voiceName1 := "Roger Bingham"
+	voiceName2 := "Bingham"
+	voiceName3 := "Lee"
+	testData := `WEBVTT
+
+	NOTE this a example with voicename
+
+	1
+	00:02:34.00 --> 00:02:35.00
+	<v.first.local Roger Bingham> I'm the fist speaker
+
+	2
+	00:02:34.00 --> 00:02:35.00
+	<v Bingham> I'm the second speaker
+
+	3
+	00:00:04.000 --> 00:00:08.000
+	<v Lee>What are you doing here?</v>
+
+	4
+	00:00:04.000 --> 00:00:08.000
+	<v Bob>Incorrect tag?</vi>`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	assert.Len(t, s.Items, 4)
+	assert.Equal(t, voiceName1, s.Items[0].Lines[0].VoiceName)
+	assert.Equal(t, voiceName2, s.Items[1].Lines[0].VoiceName)
+	assert.Equal(t, voiceName3, s.Items[2].Lines[0].VoiceName)
+	assert.Equal(t, "", s.Items[3].Lines[0].VoiceName)
 }

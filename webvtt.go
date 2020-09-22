@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 // https://www.w3.org/TR/webvtt1/
@@ -24,6 +27,7 @@ const (
 // Vars
 var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
+	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)`)
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -34,7 +38,6 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 // ReadFromWebVTT parses a .vtt content
 // TODO Tags (u, i, b)
 // TODO Class
-// TODO Speaker name
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
@@ -193,13 +196,56 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameStyle:
 				// TODO Do something with the style
 			case webvttBlockNameText:
-				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
+				// Voice Tag to extract Speaker Name
+				item.Lines = append(item.Lines, parseTextWebVTT(line))
 			default:
 				// This is the ID
 				index, _ = strconv.Atoi(line)
 			}
 		}
 	}
+	return
+}
+
+// parseTextWebVTT parses the input line to fill the Line
+func parseTextWebVTT(i string) (o Line) {
+	tr := html.NewTokenizer(strings.NewReader(i))
+	var voiceName, endTag, text string
+	for {
+		t := tr.Next()
+		if err := tr.Err(); err != nil {
+			break
+		}
+
+		switch t {
+		case html.StartTagToken:
+			matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw()))
+			if matches == nil {
+				return
+			}
+
+			if len(matches[1]) == 0 {
+				return
+			}
+
+			voiceName = matches[3]
+
+		case html.EndTagToken:
+			endTag = string(tr.Raw())
+
+		case html.TextToken:
+			text = string(tr.Raw())
+		}
+	}
+
+	// should be either no tag, or match voice tag
+	if endTag != "" && endTag != "</v>" {
+		return
+	}
+
+	o.VoiceName = strings.TrimSpace(voiceName)
+	o.Items = []LineItem{{Text: strings.TrimSpace(text)}}
+
 	return
 }
 
