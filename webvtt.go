@@ -196,8 +196,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameStyle:
 				// TODO Do something with the style
 			case webvttBlockNameText:
-				// Voice Tag to extract Speaker Name
-				item.Lines = append(item.Lines, parseTextWebVTT(line))
+				// Parse line
+				if l := parseTextWebVTT(line); len(l.Items) > 0 {
+					item.Lines = append(item.Lines, l)
+				}
 			default:
 				// This is the ID
 				index, _ = strconv.Atoi(line)
@@ -209,43 +211,33 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 // parseTextWebVTT parses the input line to fill the Line
 func parseTextWebVTT(i string) (o Line) {
+	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
-	var voiceName, endTag, text string
+
+	// Loop
 	for {
+		// Get next tag
 		t := tr.Next()
+
+		// Process error
 		if err := tr.Err(); err != nil {
 			break
 		}
 
 		switch t {
 		case html.StartTagToken:
-			matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw()))
-			if matches == nil {
-				return
+			// Parse voice name
+			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); matches != nil && len(matches) > 3 {
+				if s := strings.TrimSpace(matches[3]); s != "" {
+					o.VoiceName = s
+				}
 			}
-
-			if len(matches[1]) == 0 {
-				return
-			}
-
-			voiceName = matches[3]
-
-		case html.EndTagToken:
-			endTag = string(tr.Raw())
-
 		case html.TextToken:
-			text = string(tr.Raw())
+			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
+				o.Items = append(o.Items, LineItem{Text: s})
+			}
 		}
 	}
-
-	// should be either no tag, or match voice tag
-	if endTag != "" && endTag != "</v>" {
-		return
-	}
-
-	o.VoiceName = strings.TrimSpace(voiceName)
-	o.Items = []LineItem{{Text: strings.TrimSpace(text)}}
-
 	return
 }
 

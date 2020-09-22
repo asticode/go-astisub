@@ -30,7 +30,8 @@ func TestParseTextWebVTT(t *testing.T) {
 		testData := `<v Bob>Incorrect end tag</vi>`
 
 		s := parseTextWebVTT(testData)
-		assert.Equal(t, "", s.VoiceName)
-		assert.Equal(t, 0, len(s.Items))
+		assert.Equal(t, "Bob", s.VoiceName)
+		assert.Equal(t, 1, len(s.Items))
+		assert.Equal(t, "Incorrect end tag", s.Items[0].Text)
 	})
 }

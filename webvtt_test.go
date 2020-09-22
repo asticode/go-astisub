@@ -47,9 +47,6 @@ func TestBroken1WebVTT(t *testing.T) {
 }
 
 func TestWebVTTWithVoiceName(t *testing.T) {
-	voiceName1 := "Roger Bingham"
-	voiceName2 := "Bingham"
-	voiceName3 := "Lee"
 	testData := `WEBVTT
 
 	NOTE this a example with voicename
@@ -74,8 +71,8 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Len(t, s.Items, 4)
-	assert.Equal(t, voiceName1, s.Items[0].Lines[0].VoiceName)
-	assert.Equal(t, voiceName2, s.Items[1].Lines[0].VoiceName)
-	assert.Equal(t, voiceName3, s.Items[2].Lines[0].VoiceName)
-	assert.Equal(t, "", s.Items[3].Lines[0].VoiceName)
+	assert.Equal(t, "Roger Bingham", s.Items[0].Lines[0].VoiceName)
+	assert.Equal(t, "Bingham", s.Items[1].Lines[0].VoiceName)
+	assert.Equal(t, "Lee", s.Items[2].Lines[0].VoiceName)
+	assert.Equal(t, "Bob", s.Items[3].Lines[0].VoiceName)
 }
