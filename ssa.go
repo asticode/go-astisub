@@ -1006,7 +1006,13 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 			case ssaEventFormatNameName:
 				e.name = item
 			case ssaEventFormatNameStyle:
-				e.style = item
+				// *Default is reserved
+				// http://www.tcax.org/docs/ass-specs.htm
+				if item == "*Default" {
+					e.style = "Default"
+				} else {
+					e.style = item
+				}
 			case ssaEventFormatNameText:
 				e.text = item
 			}
