@@ -75,14 +75,22 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Fetch Index
 			s.Index, _ = strconv.Atoi(index.String())
 
-			// Fetch time boundaries
-			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
-			if s.StartAt, err = parseDurationSRT(boundaries[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[0], err)
+			// Extract time boundaries
+			s1 := strings.Split(line, srtTimeBoundariesSeparator)
+			if l := len(s1); l < 2 {
+				err = fmt.Errorf("astisub: line %d: time boundaries has only %d element(s)", lineNum, l)
 				return
 			}
-			if s.EndAt, err = parseDurationSRT(boundaries[1]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, boundaries[1], err)
+			// We do this to eliminate extra stuff like positions which are not documented anywhere
+			s2 := strings.Split(s1[1], " ")
+
+			// Parse time boundaries
+			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, s1[0], err)
+				return
+			}
+			if s.EndAt, err = parseDurationSRT(s2[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, s2[0], err)
 				return
 			}
 
