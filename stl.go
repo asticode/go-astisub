@@ -158,6 +158,8 @@ const (
 // TTI Special Extension Block Number
 const extensionBlockNumberReservedUserData = 0xfe
 
+const stlLineSeparator = 0x8a
+
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -215,15 +217,35 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			continue
 		}
 
+		justification := parseJustificationAttribute(t.justificationCode)
+		rows := len(bytes.Split(t.text, []byte{stlLineSeparator}))
+
+		position := STLPosition{
+			VerticalPosition: t.verticalPosition,
+			MaxRows:          g.maximumNumberOfDisplayableRows,
+			Rows:             rows,
+		}
+
+		styleAttributes := StyleAttributes{
+			STLJustification: &justification,
+			STLPosition:      &position,
+		}
+		styleAttributes.propagateSTLAttributes()
+
 		// Create item
 		var i = &Item{
-			EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
-			StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
+			EndAt:       t.timecodeOut - g.timecodeStartOfProgramme,
+			StartAt:     t.timecodeIn - g.timecodeStartOfProgramme,
+			InlineStyle: &styleAttributes,
 		}
 
 		// Loop through rows
-		for _, text := range bytes.Split(t.text, []byte{0x8a}) {
-			parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
+		for _, text := range bytes.Split(t.text, []byte{stlLineSeparator}) {
+			if g.displayStandardCode == stlDisplayStandardCodeOpenSubtitling {
+				parseOpenSubtitleRow(i, ch, func() styler { return newSTLStyler() }, text)
+			} else {
+				parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
+			}
 		}
 
 		// Append item
@@ -321,6 +343,12 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
 		}
 		g.publisher = s.Metadata.STLPublisher
+		if s.Metadata.CreationDate != nil {
+			g.creationDate = *s.Metadata.CreationDate
+		}
+		if s.Metadata.RevisionDate != nil {
+			g.revisionDate = *s.Metadata.RevisionDate
+		}
 	}
 
 	// Timecode first in cue
@@ -595,16 +623,44 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
 		timecodeOut:          i.EndAt,
-		verticalPosition:     20,
+		verticalPosition:     verticalPositionFromStyle(i.InlineStyle),
 	}
 
 	// Add text
 	var lines []string
 	for _, l := range i.Lines {
-		lines = append(lines, l.String())
+		var lineItems []string
+		for _, li := range l.Items {
+			lineItems = append(lineItems, asStyledLineItemString(li))
+		}
+		lines = append(lines, strings.Join(lineItems, " "))
 	}
-	t.text = []byte(strings.Join(lines, "\n"))
+	t.text = []byte(strings.Join(lines, string(rune(stlLineSeparator))))
 	return
+}
+
+func verticalPositionFromStyle(sa *StyleAttributes) int {
+	if sa != nil && sa.STLPosition != nil {
+		return sa.STLPosition.VerticalPosition
+	} else {
+		return 20
+	}
+}
+
+func asStyledLineItemString(li LineItem) string {
+	rs := li.Text
+	if li.InlineStyle != nil {
+		if li.InlineStyle.STLItalics != nil && *li.InlineStyle.STLItalics {
+			rs = fmt.Sprint(0x80) + rs + fmt.Sprint(0x81)
+		}
+		if li.InlineStyle.STLUnderline != nil && *li.InlineStyle.STLUnderline {
+			rs = fmt.Sprint(0x82) + rs + fmt.Sprint(0x83)
+		}
+		if li.InlineStyle.STLBoxing != nil && *li.InlineStyle.STLBoxing {
+			rs = fmt.Sprint(0x84) + rs + fmt.Sprint(0x85)
+		}
+	}
+	return rs
 }
 
 // parseTTIBlock parses a TTI block
@@ -879,4 +935,19 @@ func encodeTextSTL(i string) (o []byte) {
 		}
 	}
 	return
+}
+
+func parseJustificationAttribute(i byte) Justification {
+	switch i {
+	case 0x00:
+		return JustificationUnchanged
+	case 0x01:
+		return JustificationLeft
+	case 0x02:
+		return JustificationCentered
+	case 0x03:
+		return JustificationRight
+	default:
+		return JustificationUnchanged
+	}
 }
