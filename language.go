@@ -2,6 +2,7 @@ package astisub
 
 // Languages
 const (
-	LanguageEnglish = "english"
-	LanguageFrench  = "french"
+	LanguageEnglish   = "english"
+	LanguageFrench    = "french"
+	LanguageNorwegian = "norwegian"
 )

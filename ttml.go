@@ -19,14 +19,16 @@ import (
 
 // TTML languages
 const (
-	ttmlLanguageEnglish = "en"
-	ttmlLanguageFrench  = "fr"
+	ttmlLanguageEnglish   = "en"
+	ttmlLanguageFrench    = "fr"
+	ttmlLanguageNorwegian = "no"
 )
 
 // TTML language mapping
 var ttmlLanguageMapping = astikit.NewBiMap().
 	Set(ttmlLanguageEnglish, LanguageEnglish).
-	Set(ttmlLanguageFrench, LanguageFrench)
+	Set(ttmlLanguageFrench, LanguageFrench).
+	Set(ttmlLanguageNorwegian, LanguageNorwegian)
 
 // TTML Clock Time Frames and Offset Time
 var (
