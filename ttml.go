@@ -1,9 +1,11 @@
 package astisub
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"sort"
 	"strconv"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/asticode/go-astikit"
 	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/charmap"
 )
 
 // https://www.w3.org/TR/ttaf1-dfxp/
@@ -299,11 +302,24 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 
-	// Unmarshal XML
-	var ttml TTMLIn
+	// determine contentType
+	contentType := ""
+	var buf bytes.Buffer
+	tee := io.TeeReader(i, &buf)
+	content, err := ioutil.ReadAll(tee)
+	if err != nil {
+		return nil, err
+	}
+	if encode, _, certain := charset.DetermineEncoding(content, ""); encode == charmap.Windows1252 && !certain {
+		for start := 0; start < len(content); start += 1024 {
+			if _, name, _ := charset.DetermineEncoding(content[start:start+1024], ""); name == "utf-8" {
+				contentType ="text/html; charset=utf-8"
+			}
+		}
+	}
 
 	// Convert content or i to UTF-8 if needed
-	nr, err := charset.NewReader(i, "")
+	nr, err := charset.NewReader(&buf, contentType)
 	if err != nil {
 		err = fmt.Errorf("astisub: could not detect or convert character set to UTF-8: %w", err)
 		return
@@ -312,6 +328,8 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	decoder := xml.NewDecoder(nr)
 	decoder.CharsetReader = bypassXMLReader
 
+	// Unmarshal XML
+	var ttml TTMLIn
 	if err = decoder.Decode(&ttml); err != nil {
 		err = fmt.Errorf("astisub: xml decoding failed: %w", err)
 		return
