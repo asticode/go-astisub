@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
+	"golang.org/x/net/html/charset"
 )
 
 // https://www.w3.org/TR/ttaf1-dfxp/
@@ -287,6 +288,12 @@ func (d TTMLInDuration) duration() (o time.Duration) {
 	return
 }
 
+// Bypass XML charset reader that will fail io.Reader is not UTF-8
+// @see https://groups.google.com/forum/#!topic/golang-nuts/tXcECEKC2rs
+func bypassXMLReader(label string, input io.Reader) (io.Reader, error) {
+	return input, nil
+}
+
 // ReadFromTTML parses a .ttml content
 func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -294,7 +301,18 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 	// Unmarshal XML
 	var ttml TTMLIn
-	if err = xml.NewDecoder(i).Decode(&ttml); err != nil {
+
+	// Convert content or i to UTF-8 if needed
+	nr, err := charset.NewReader(i, "")
+	if err != nil {
+		err = fmt.Errorf("astisub: could not detect or convert character set to UTF-8: %w", err)
+		return
+	}
+
+	decoder := xml.NewDecoder(nr)
+	decoder.CharsetReader = bypassXMLReader
+
+	if err = decoder.Decode(&ttml); err != nil {
 		err = fmt.Errorf("astisub: xml decoding failed: %w", err)
 		return
 	}
