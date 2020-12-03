@@ -158,12 +158,6 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
-type STLPosition struct {
-	VerticalPosition int
-	MaxRows          int
-	Rows             int
-}
-
 type Justification struct {
 	value int
 }
@@ -220,9 +214,9 @@ type StyleAttributes struct {
 	SSAUnderline         *bool
 	STLBoxing            *bool
 	STLItalics           *bool
-	STLUnderline         *bool
 	STLJustification     *Justification
 	STLPosition          *STLPosition
+	STLUnderline         *bool
 	TeletextColor        *Color
 	TeletextDoubleHeight *bool
 	TeletextDoubleSize   *bool
@@ -255,6 +249,7 @@ type StyleAttributes struct {
 	TTMLWritingMode      string
 	TTMLZIndex           int
 	WebVTTAlign          string
+	WebVTTItalics        bool
 	WebVTTLine           string
 	WebVTTLines          int
 	WebVTTPosition       string
@@ -264,7 +259,6 @@ type StyleAttributes struct {
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
-	WebVTTItalics        bool
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
@@ -285,8 +279,10 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 // TODO Merge attributes
 type Metadata struct {
 	Comments                                            []string
+	CreationDate                                        *time.Time
 	Framerate                                           int
 	Language                                            string
+	RevisionDate                                        *time.Time
 	SSACollisions                                       string
 	SSAOriginalEditing                                  string
 	SSAOriginalScript                                   string
@@ -300,16 +296,14 @@ type Metadata struct {
 	SSATimer                                            *float64
 	SSAUpdateDetails                                    string
 	SSAWrapStyle                                        string
+	STLCountryOfOrigin                                  string
+	STLDisplayStandardCode                              string
 	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
 	STLMaximumNumberOfDisplayableRows                   *int
 	STLPublisher                                        string
-	STLDisplayStandardCode                              string
 	STLSubtitleListReferenceCode                        string
-	STLCountryOfOrigin                                  string
 	Title                                               string
 	TTMLCopyright                                       string
-	CreationDate                                        *time.Time
-	RevisionDate                                        *time.Time
 }
 
 // Region represents a subtitle's region

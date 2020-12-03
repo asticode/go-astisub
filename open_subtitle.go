@@ -9,7 +9,7 @@ func isTeletextControlCode(i byte) (b bool) {
 	return i <= 0x1f
 }
 
-func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) {
+func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) error {
 	// Loop through columns
 	var l = Line{}
 	var li = LineItem{InlineStyle: &StyleAttributes{}}
@@ -21,7 +21,7 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) {
 		}
 
 		if isTeletextControlCode(v) {
-			fmt.Errorf("teletext control code in open text")
+			return fmt.Errorf("teletext control code in open text")
 		}
 		if s != nil {
 			s.parseSpacingAttribute(v)
@@ -33,7 +33,7 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) {
 			if s.hasChanged(li.InlineStyle) {
 				if len(li.Text) > 0 {
 					// Append line item
-					appendOpenLineItem(&l, li, s)
+					appendOpenSubtitleLineItem(&l, li, s)
 
 					// Create new line item
 					sa := &StyleAttributes{}
@@ -48,16 +48,16 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) {
 		}
 	}
 
-	appendOpenLineItem(&l, li, s)
+	appendOpenSubtitleLineItem(&l, li, s)
 
 	// Append line
 	if len(l.Items) > 0 {
 		i.Lines = append(i.Lines, l)
 	}
+	return nil
 }
 
-func appendOpenLineItem(l *Line, li LineItem, s styler) {
-
+func appendOpenSubtitleLineItem(l *Line, li LineItem, s styler) {
 	// There's some text
 	if len(strings.TrimSpace(li.Text)) > 0 {
 		// Make sure inline style exists

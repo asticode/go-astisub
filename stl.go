@@ -160,6 +160,12 @@ const extensionBlockNumberReservedUserData = 0xfe
 
 const stlLineSeparator = 0x8a
 
+type STLPosition struct {
+	VerticalPosition int
+	MaxRows          int
+	Rows             int
+}
+
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -188,16 +194,16 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Framerate: g.framerate,
+		CreationDate:           &g.creationDate,
+		Framerate:              g.framerate,
+		RevisionDate:           &g.revisionDate,
+		STLCountryOfOrigin:     g.countryOfOrigin,
+		STLDisplayStandardCode: g.displayStandardCode,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLPublisher:                                        g.publisher,
-		STLDisplayStandardCode:                              g.displayStandardCode,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
-		STLCountryOfOrigin:                                  g.countryOfOrigin,
 		Title:                                               g.originalProgramTitle,
-		CreationDate:                                        &g.creationDate,
-		RevisionDate:                                        &g.revisionDate,
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
 		o.Metadata.Language = v.(string)
@@ -223,12 +229,12 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		}
 
 		justification := parseJustificationAttribute(t.justificationCode)
-		rows := len(bytes.Split(t.text, []byte{stlLineSeparator}))
+		rows := bytes.Split(t.text, []byte{stlLineSeparator})
 
 		position := STLPosition{
-			VerticalPosition: t.verticalPosition,
 			MaxRows:          g.maximumNumberOfDisplayableRows,
-			Rows:             rows,
+			Rows:             len(rows),
+			VerticalPosition: t.verticalPosition,
 		}
 
 		styleAttributes := StyleAttributes{
@@ -240,8 +246,8 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		// Create item
 		var i = &Item{
 			EndAt:       t.timecodeOut - g.timecodeStartOfProgramme,
-			StartAt:     t.timecodeIn - g.timecodeStartOfProgramme,
 			InlineStyle: &styleAttributes,
+			StartAt:     t.timecodeIn - g.timecodeStartOfProgramme,
 		}
 
 		// Loop through rows
@@ -320,13 +326,13 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		codePageNumber:           stlCodePageNumberMultilingual,
 		countryOfOrigin:          stlCountryCodeFrance,
 		creationDate:             Now(),
-		revisionDate:             Now(),
 		diskSequenceNumber:       1,
 		displayStandardCode:      stlDisplayStandardCodeLevel1Teletext,
 		framerate:                25,
 		languageCode:             stlLanguageCodeFrench,
 		maximumNumberOfDisplayableCharactersInAnyTextRow: 40,
 		maximumNumberOfDisplayableRows:                   23,
+		revisionDate:                                     Now(),
 		subtitleListReferenceCode:                        "",
 		timecodeStatus:                                   stlTimecodeStatusIntendedForUse,
 		totalNumberOfDisks:                               1,
@@ -337,6 +343,11 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 
 	// Add metadata
 	if s.Metadata != nil {
+		if s.Metadata.CreationDate != nil {
+			g.creationDate = *s.Metadata.CreationDate
+		}
+		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
+		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
 		g.framerate = s.Metadata.Framerate
 		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
 			g.languageCode = v.(string)
@@ -348,16 +359,11 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		if s.Metadata.STLMaximumNumberOfDisplayableRows != nil {
 			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
 		}
-		if s.Metadata.CreationDate != nil {
-			g.creationDate = *s.Metadata.CreationDate
-		}
+		g.publisher = s.Metadata.STLPublisher
 		if s.Metadata.RevisionDate != nil {
 			g.revisionDate = *s.Metadata.RevisionDate
 		}
-		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
 		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
-		g.publisher = s.Metadata.STLPublisher
-		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
 	}
 
 	// Timecode first in cue
@@ -640,7 +646,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	for _, l := range i.Lines {
 		var lineItems []string
 		for _, li := range l.Items {
-			lineItems = append(lineItems, asStyledLineItemString(li))
+			lineItems = append(lineItems, li.STLString())
 		}
 		lines = append(lines, strings.Join(lineItems, " "))
 	}
@@ -656,7 +662,7 @@ func verticalPositionFromStyle(sa *StyleAttributes) int {
 	}
 }
 
-func asStyledLineItemString(li LineItem) string {
+func (li LineItem) STLString() string {
 	rs := li.Text
 	if li.InlineStyle != nil {
 		if li.InlineStyle.STLItalics != nil && *li.InlineStyle.STLItalics {

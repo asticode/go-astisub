@@ -56,7 +56,6 @@ func TestOPNSTL(t *testing.T) {
 	// Open
 	s, err := astisub.OpenFile("./testdata/example-opn-in.stl")
 	assert.NoError(t, err)
-	//assertSubtitleItems(t, s)
 	// Metadata
 	assert.Equal(t, &astisub.Metadata{
 		Framerate: 25,
