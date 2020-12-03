@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astisub"
+	"github.com/saintberry/go-astisub"
 	"github.com/stretchr/testify/assert"
 )
 

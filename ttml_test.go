@@ -3,9 +3,11 @@ package astisub_test
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
+	"strings"
 	"testing"
 
-	"github.com/asticode/go-astisub"
+	"github.com/saintberry/go-astisub"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,4 +50,22 @@ func TestTTML(t *testing.T) {
 	err = s.WriteToTTML(w)
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestTTMLWithNoBreakSpace(t *testing.T) {
+	a := assert.New(t)
+	file, err := os.Open("./testdata/example-with-nbsp.dfxp")
+	a.Nil(err)
+
+	s, err := astisub.ReadFromTTML(file)
+	a.Nil(err)
+
+	var buf = &bytes.Buffer{}
+	err = s.WriteToWebVTT(buf)
+	a.Nil(err)
+
+	str := buf.String()
+	i := strings.Index(str, "Hi, Paul.")
+
+	a.Equal(buf.Bytes()[i+9:i+12], []byte{0x20, 0xc2, 0xa0})
 }
