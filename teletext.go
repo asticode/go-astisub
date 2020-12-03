@@ -2,17 +2,17 @@ package astisub
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"log"
 	"math/bits"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/asticode/go-astilog"
-	"github.com/asticode/go-astitools/bits"
-	"github.com/asticode/go-astitools/ptr"
+	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astits"
-	"github.com/pkg/errors"
 )
 
 // Errors
@@ -341,7 +341,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 	var pid uint16
 	if pid, err = teletextPID(dmx, o); err != nil {
 		if err != ErrNoValidTeletextPID {
-			err = errors.Wrap(err, "astisub: getting teletext PID failed")
+			err = fmt.Errorf("astisub: getting teletext PID failed: %w", err)
 		}
 		return
 	}
@@ -363,7 +363,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 				err = nil
 				break
 			}
-			err = errors.Wrap(err, "astisub: fetching next data failed")
+			err = fmt.Errorf("astisub: fetching next data failed: %w", err)
 			return
 		}
 
@@ -434,7 +434,7 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 				err = ErrNoValidTeletextPID
 				return
 			}
-			err = errors.Wrap(err, "astisub: fetching next data failed")
+			err = fmt.Errorf("astisub: fetching next data failed: %w", err)
 			return
 		}
 
@@ -458,17 +458,16 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 
 			// Set pid
 			pid = pids[0]
-			astilog.Debugf("astisub: no teletext pid specified, using pid %d", pid)
+			log.Printf("astisub: no teletext pid specified, using pid %d", pid)
 
 			// Rewind
 			if _, err = dmx.Rewind(); err != nil {
-				err = errors.Wrap(err, "astisub: rewinding failed")
+				err = fmt.Errorf("astisub: rewinding failed: %w", err)
 				return
 			}
 			return
 		}
 	}
-	return
 }
 
 type teletextPageBuffer struct {
@@ -556,11 +555,11 @@ func (b *teletextPageBuffer) parseDataUnit(i []byte, id uint8, t time.Time) {
 	}
 
 	// Magazine number and packet number
-	h1, ok := astibits.Hamming84Decode(i[2])
+	h1, ok := astikit.ByteHamming84Decode(i[2])
 	if !ok {
 		return
 	}
-	h2, ok := astibits.Hamming84Decode(i[3])
+	h2, ok := astikit.ByteHamming84Decode(i[3])
 	if !ok {
 		return
 	}
@@ -573,7 +572,6 @@ func (b *teletextPageBuffer) parseDataUnit(i []byte, id uint8, t time.Time) {
 
 	// Parse packet
 	b.parsePacket(i[4:], magazineNumber, packetNumber, t)
-	return
 }
 
 // TODO Add tests
@@ -584,7 +582,7 @@ func (b *teletextPageBuffer) parsePacket(i []byte, magazineNumber, packetNumber 
 		b.parsePacketData(i, packetNumber)
 	} else {
 		// Designation code
-		designationCode, ok := astibits.Hamming84Decode(i[0])
+		designationCode, ok := astikit.ByteHamming84Decode(i[0])
 		if !ok {
 			return
 		}
@@ -605,13 +603,13 @@ func (b *teletextPageBuffer) parsePacket(i []byte, magazineNumber, packetNumber 
 // TODO Add tests
 func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t time.Time) (transmissionDone bool) {
 	// Page number units
-	pageNumberUnits, ok := astibits.Hamming84Decode(i[0])
+	pageNumberUnits, ok := astikit.ByteHamming84Decode(i[0])
 	if !ok {
 		return
 	}
 
 	// Page number tens
-	pageNumberTens, ok := astibits.Hamming84Decode(i[1])
+	pageNumberTens, ok := astikit.ByteHamming84Decode(i[1])
 	if !ok {
 		return
 	}
@@ -625,7 +623,7 @@ func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t
 	// Update magazine and page number
 	if b.magazineNumber == 0 && b.pageNumber == 0 {
 		// C6
-		controlBits, ok := astibits.Hamming84Decode(i[5])
+		controlBits, ok := astikit.ByteHamming84Decode(i[5])
 		if !ok {
 			return
 		}
@@ -635,12 +633,12 @@ func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t
 		if subtitleFlag {
 			b.magazineNumber = magazineNumber
 			b.pageNumber = pageNumber
-			astilog.Debugf("astisub: no teletext page specified, using page %d%.2d", b.magazineNumber, b.pageNumber)
+			log.Printf("astisub: no teletext page specified, using page %d%.2d", b.magazineNumber, b.pageNumber)
 		}
 	}
 
 	// C11 --> C14
-	controlBits, ok := astibits.Hamming84Decode(i[7])
+	controlBits, ok := astikit.ByteHamming84Decode(i[7])
 	if !ok {
 		return
 	}
@@ -681,7 +679,7 @@ func (b *teletextPageBuffer) parsePacketData(i []byte, packetNumber uint8) {
 	// Loop through input
 	b.currentPage.rows = append(b.currentPage.rows, int(packetNumber))
 	for idx := uint8(0); idx < 40; idx++ {
-		v, ok := astibits.Parity(bits.Reverse8(i[idx]))
+		v, ok := astikit.ByteParity(bits.Reverse8(i[idx]))
 		if !ok {
 			v = 0
 		}
@@ -697,11 +695,8 @@ func (b *teletextPageBuffer) parsePacket28And29(i []byte, packetNumber, designat
 	}
 
 	// Triplet 1
-	// TODO Implement hamming 24/18
-	triplet1, ok := astibits.Hamming2418Decode(uint32(i[2]<<16) | uint32(i[1])<<8 | uint32(i[0]))
-	if !ok {
-		return
-	}
+	// TODO triplet1 should be the results of hamming 24/18 decoding
+	triplet1 := uint32(i[2])<<16 | uint32(i[1])<<8 | uint32(i[0])
 
 	// We only process x/28 format 1
 	if packetNumber == 28 && triplet1&0xf > 0 {
@@ -714,7 +709,6 @@ func (b *teletextPageBuffer) parsePacket28And29(i []byte, packetNumber, designat
 	} else {
 		b.cd.setTripletM29(triplet1)
 	}
-	return
 }
 
 // TODO Add tests
@@ -751,7 +745,7 @@ func newTeletextCharacterDecoder() *teletextCharacterDecoder {
 // TODO Add tests
 func (d *teletextCharacterDecoder) setTripletM29(i uint32) {
 	if *d.tripletM29 != i {
-		d.tripletM29 = astiptr.UInt32(i)
+		d.tripletM29 = astikit.UInt32Ptr(i)
 		d.updateCharset(d.lastPageCharsetCode, true)
 	}
 }
@@ -759,7 +753,7 @@ func (d *teletextCharacterDecoder) setTripletM29(i uint32) {
 // TODO Add tests
 func (d *teletextCharacterDecoder) setTripletX28(i uint32) {
 	if *d.tripletX28 != i {
-		d.tripletX28 = astiptr.UInt32(i)
+		d.tripletX28 = astikit.UInt32Ptr(i)
 		d.updateCharset(d.lastPageCharsetCode, true)
 	}
 }
@@ -804,7 +798,6 @@ func (d *teletextCharacterDecoder) updateCharset(pageCharsetCode *uint8, force b
 			d.c[teletextNationalSubsetCharactersPositionInG0[k]] = v
 		}
 	}
-	return
 }
 
 type teletextPage struct {
@@ -825,7 +818,7 @@ func newTeletextPage(charsetCode uint8, start time.Time) *teletextPage {
 
 func (p *teletextPage) parse(s *Subtitles, d *teletextCharacterDecoder, firstTime time.Time) {
 	// Update charset
-	d.updateCharset(astiptr.UInt8(p.charsetCode), false)
+	d.updateCharset(astikit.UInt8Ptr(p.charsetCode), false)
 
 	// No data
 	if len(p.data) == 0 {
@@ -899,15 +892,15 @@ func parseTeletextRow(i *Item, d decoder, fs func() styler, row []byte) {
 		case 0xb:
 			started = true
 		case 0xc:
-			doubleHeight = astiptr.Bool(false)
-			doubleSize = astiptr.Bool(false)
-			doubleWidth = astiptr.Bool(false)
+			doubleHeight = astikit.BoolPtr(false)
+			doubleSize = astikit.BoolPtr(false)
+			doubleWidth = astikit.BoolPtr(false)
 		case 0xd:
-			doubleHeight = astiptr.Bool(true)
+			doubleHeight = astikit.BoolPtr(true)
 		case 0xe:
-			doubleWidth = astiptr.Bool(true)
+			doubleWidth = astikit.BoolPtr(true)
 		case 0xf:
-			doubleSize = astiptr.Bool(true)
+			doubleSize = astikit.BoolPtr(true)
 		default:
 			if s != nil {
 				s.parseSpacingAttribute(v)
@@ -972,7 +965,7 @@ func appendTeletextLineItem(l *Line, li LineItem, s styler) {
 		}
 
 		// Get number of spaces before
-		li.InlineStyle.TeletextSpacesBefore = astiptr.Int(0)
+		li.InlineStyle.TeletextSpacesBefore = astikit.IntPtr(0)
 		for _, c := range li.Text {
 			if c == ' ' {
 				*li.InlineStyle.TeletextSpacesBefore++
@@ -982,7 +975,7 @@ func appendTeletextLineItem(l *Line, li LineItem, s styler) {
 		}
 
 		// Get number of spaces after
-		li.InlineStyle.TeletextSpacesAfter = astiptr.Int(0)
+		li.InlineStyle.TeletextSpacesAfter = astikit.IntPtr(0)
 		for idx := len(li.Text) - 1; idx >= 0; idx-- {
 			if li.Text[idx] == ' ' {
 				*li.InlineStyle.TeletextSpacesAfter++

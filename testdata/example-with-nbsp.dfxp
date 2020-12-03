@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tt 
+	xmlns="http://www.w3.org/ns/ttml"
+	xmlns:ttp="http://www.w3.org/ns/ttml#parameter"
+	xmlns:tts="http://www.w3.org/ns/ttml#styling"
+	xmlns:ttm="http://www.w3.org/ns/ttml#metadata"
+	xmlns:itts="http://www.w3.org/ns/ttml/profile/imsc1#styling"
+
+	xml:lang="en"
+	ttp:timeBase="smpte"
+	ttp:frameRate="25"
+	ttp:frameRateMultiplier="1 1"
+>
+<head>
+	<metadata>
+		<ttm:copyright>Screen Subtitling Systems</ttm:copyright>
+	</metadata>
+	<styling>
+		<!-- s1 specifies default color, font, and text alignment -->
+		<style xml:id="backgroundStyle"
+			tts:backgroundColor="rgba(0,0,0,0)"
+			tts:displayAlign="after"
+			tts:extent="100% 48%"
+			tts:origin="0% 50%"
+			tts:fontFamily="Microsoft Sans Serif"
+			tts:fontSize="19px"
+			tts:fontStyle="normal"
+			tts:textAlign="center"
+		/>
+		<style xml:id="speakerStyle"
+			tts:backgroundColor="rgba(0,0,0,0)"
+			tts:color="#FFFFFF"
+			tts:textOutline="#000000 1px 1px"
+			style="backgroundStyle"
+		/>
+		<style xml:id="backgroundStyleTop"
+			tts:backgroundColor="rgba(0,0,0,0)"
+			tts:displayAlign="before"
+			tts:extent="100% 40%"
+			tts:origin="0% 10%"
+			tts:fontFamily="Microsoft Sans Serif"
+			tts:fontSize="19px"
+			tts:fontStyle="normal"
+			tts:textAlign="center"
+		/>
+		<style xml:id="speakerStyleTop"
+			tts:backgroundColor="rgba(0,0,0,0)"
+			tts:color="#FFFFFF"
+			tts:textOutline="#000000 1px 1px"
+			style="backgroundStyleTop"
+		/>
+
+	</styling>
+	<layout>
+		<region xml:id="speaker" style="speakerStyle" tts:zIndex="1"/>
+		<region xml:id="background" style="backgroundStyle" tts:zIndex="0"/>
+		<region xml:id="speakerTop" style="speakerStyleTop" tts:zIndex="3"/>
+		<region xml:id="backgroundTop" style="backgroundStyleTop" tts:zIndex="2"/>
+	</layout>
+
+</head>
+
+<body>
+	<div >
+		<p begin="00:00:11.960" end="00:00:14.680" region="speakerTop"><span ebutts:multiRowAlign="center" tts:color="yellow">Have you ever wondered</span><br/><span ebutts:multiRowAlign="center" tts:color="yellow">what it&apos;s like to be deaf?</span></p>
+		<p begin="00:00:14.840" end="00:00:19.280" region="speakerTop"><span ebutts:multiRowAlign="center" tts:color="yellow">Join me as I go undercover</span><br/><span ebutts:multiRowAlign="center" tts:color="yellow">in this brave new experiment</span></p>
+		<p begin="00:00:19.440" end="00:00:22.000" region="speakerTop"><span ebutts:multiRowAlign="center" tts:color="yellow">to live as a deaf person</span><br/><span ebutts:multiRowAlign="center" tts:color="yellow">for a week.</span></p>
+		<p begin="00:00:22.160" end="00:00:25.400" region="speakerTop"><span ebutts:multiRowAlign="center" tts:color="yellow">Using specially designed ear plugs,</span><br/><span ebutts:multiRowAlign="center" tts:color="yellow">I will live and...</span></p>
+		<p begin="00:00:27.760" end="00:00:30.160" region="speakerTop">What a load of shit!</p>
+		<p begin="00:02:17.120" end="00:02:21.280" region="speakerTop"><span tts:textAlign="center" tts:color="cyan">Hi, Paul.  How are you today?</span></p>
+	</div>
+</body>
+</tt>

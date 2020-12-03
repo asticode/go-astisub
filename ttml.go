@@ -1,21 +1,20 @@
 package astisub
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
-	"math"
+	"io/ioutil"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"sort"
-
-	"github.com/asticode/go-astitools/map"
-	"github.com/asticode/go-astitools/string"
-	"github.com/pkg/errors"
+	"github.com/asticode/go-astikit"
 	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/charmap"
 )
 
 // https://www.w3.org/TR/ttaf1-dfxp/
@@ -29,13 +28,14 @@ const (
 )
 
 // TTML language mapping
-var ttmlLanguageMapping = astimap.NewMap(ttmlLanguageEnglish, LanguageEnglish).
+var ttmlLanguageMapping = astikit.NewBiMap().
+	Set(ttmlLanguageEnglish, LanguageEnglish).
 	Set(ttmlLanguageFrench, LanguageFrench)
 
 // TTML Clock Time Frames and Offset Time
 var (
-	ttmlRegexpClockTimeFrames = regexp.MustCompile("\\:[\\d]+$")
-	ttmlRegexpOffsetTime      = regexp.MustCompile("^(\\d+)(\\.(\\d+))?(h|m|s|ms|f|t)$")
+	ttmlRegexpClockTimeFrames = regexp.MustCompile(`\:[\d]+$`)
+	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+(\.\d+)?)(h|m|s|ms|f|t)$`)
 )
 
 // TTMLIn represents an input TTML that must be unmarshaled
@@ -47,17 +47,21 @@ type TTMLIn struct {
 	Regions   []TTMLInRegion   `xml:"head>layout>region"`
 	Styles    []TTMLInStyle    `xml:"head>styling>style"`
 	Subtitles []TTMLInSubtitle `xml:"body>div>p"`
+	Tickrate  int              `xml:"tickRate,attr"`
 	XMLName   xml.Name         `xml:"tt"`
 }
 
 // metadata returns the Metadata of the TTML
-func (t TTMLIn) metadata() *Metadata {
-	return &Metadata{
+func (t TTMLIn) metadata() (m *Metadata) {
+	m = &Metadata{
 		Framerate:     t.Framerate,
-		Language:      ttmlLanguageMapping.B(astistring.ToLength(t.Lang, " ", 2)).(string),
 		Title:         t.Metadata.Title,
 		TTMLCopyright: t.Metadata.Copyright,
 	}
+	if v, ok := ttmlLanguageMapping.Get(astikit.StrPad(t.Lang, ' ', 2, astikit.PadCut)); ok {
+		m.Language = v.(string)
+	}
+	return
 }
 
 // TTMLInMetadata represents an input TTML Metadata
@@ -169,7 +173,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 			if err == io.EOF {
 				break
 			}
-			err = errors.Wrap(err, "astisub: getting next token failed")
+			err = fmt.Errorf("astisub: getting next token failed: %w", err)
 			return
 		}
 
@@ -177,7 +181,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 		if se, ok := t.(xml.StartElement); ok {
 			var e = TTMLInItem{}
 			if err = d.DecodeElement(&e, &se); err != nil {
-				err = errors.Wrap(err, "astisub: decoding xml.StartElement failed")
+				err = fmt.Errorf("astisub: decoding xml.StartElement failed: %w", err)
 				return
 			}
 			*i = append(*i, e)
@@ -203,74 +207,67 @@ type TTMLInItem struct {
 type TTMLInDuration struct {
 	d                 time.Duration
 	frames, framerate int // Framerate is in frame/s
+	ticks, tickrate   int // Tickrate is in ticks/s
 }
 
 // UnmarshalText implements the TextUnmarshaler interface
 // Possible formats are:
 // - hh:mm:ss.mmm
 // - hh:mm:ss:fff (fff being frames)
+// - [ticks]t ([ticks] being the tick amount)
 func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
-	var text = string(i)
+	// Reset duration
+	d.d = time.Duration(0)
+	d.frames = 0
+	d.ticks = 0
+
+	// Check offset time
+	text := string(i)
 	if matches := ttmlRegexpOffsetTime.FindStringSubmatch(text); matches != nil {
-		metric := matches[4]
-		value, err := strconv.Atoi(matches[1])
-
-		if err != nil {
-			err = errors.Wrapf(err, "astisub: failed to parse value %s", matches[1])
-			return err
+		// Parse value
+		var value float64
+		if value, err = strconv.ParseFloat(matches[1], 64); err != nil {
+			err = fmt.Errorf("astisub: failed to parse value %s", matches[1])
+			return
 		}
 
-		d.d = time.Duration(0)
+		// Parse metric
+		metric := matches[3]
 
-		var (
-			nsBase       int64
-			fraction     int
-			fractionBase float64
-		)
-
-		if len(matches[3]) > 0 {
-			fraction, err = strconv.Atoi(matches[3])
-			fractionBase = math.Pow10(len(matches[3]))
-
-			if err != nil {
-				err = errors.Wrapf(err, "astisub: failed to parse fraction %s", matches[3])
-				return err
+		// Update duration
+		if metric == "t" {
+			d.ticks = int(value)
+		} else if metric == "f" {
+			d.frames = int(value)
+		} else {
+			// Get timebase
+			var timebase time.Duration
+			switch metric {
+			case "h":
+				timebase = time.Hour
+			case "m":
+				timebase = time.Minute
+			case "s":
+				timebase = time.Second
+			case "ms":
+				timebase = time.Millisecond
+			default:
+				err = fmt.Errorf("astisub: invalid metric %s", metric)
+				return
 			}
+
+			// Update duration
+			d.d = time.Duration(value * float64(timebase.Nanoseconds()))
 		}
-
-		switch metric {
-		case "h":
-			nsBase = time.Hour.Nanoseconds()
-		case "m":
-			nsBase = time.Minute.Nanoseconds()
-		case "s":
-			nsBase = time.Second.Nanoseconds()
-		case "ms":
-			nsBase = time.Millisecond.Nanoseconds()
-		case "f":
-			nsBase = time.Second.Nanoseconds()
-			d.frames = value % d.framerate
-			value = value / d.framerate
-			// TODO: fraction of frames
-		case "t":
-			// TODO: implement ticks
-			return errors.New("astisub: offset time in ticks not implemented")
-		}
-
-		d.d += time.Duration(nsBase * int64(value))
-
-		if fractionBase > 0 {
-			d.d += time.Duration(nsBase * int64(fraction) / int64(fractionBase))
-		}
-
-		return nil
-
+		return
 	}
+
+	// Extract clock time frames
 	if indexes := ttmlRegexpClockTimeFrames.FindStringIndex(text); indexes != nil {
 		// Parse frames
 		var s = text[indexes[0]+1 : indexes[1]]
 		if d.frames, err = strconv.Atoi(s); err != nil {
-			err = errors.Wrapf(err, "astisub: atoi %s failed", s)
+			err = fmt.Errorf("astisub: atoi %s failed: %w", s, err)
 			return
 		}
 
@@ -283,11 +280,15 @@ func (d *TTMLInDuration) UnmarshalText(i []byte) (err error) {
 }
 
 // duration returns the input TTML Duration's time.Duration
-func (d TTMLInDuration) duration() time.Duration {
-	if d.framerate > 0 {
-		return d.d + time.Duration(float64(d.frames)/float64(d.framerate)*1e9)*time.Nanosecond
+func (d TTMLInDuration) duration() (o time.Duration) {
+	if d.ticks > 0 && d.tickrate > 0 {
+		return time.Duration(float64(d.ticks) * 1e9 / float64(d.tickrate))
 	}
-	return d.d
+	o = d.d
+	if d.frames > 0 && d.framerate > 0 {
+		o += time.Duration(float64(d.frames) / float64(d.framerate) * float64(time.Second.Nanoseconds()))
+	}
+	return
 }
 
 // Bypass XML charset reader that will fail io.Reader is not UTF-8
@@ -301,21 +302,36 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 
-	// Unmarshal XML
-	var ttml TTMLIn
+	// determine contentType
+	contentType := ""
+	var buf bytes.Buffer
+	tee := io.TeeReader(i, &buf)
+	content, err := ioutil.ReadAll(tee)
+	if err != nil {
+		return nil, err
+	}
+	if encode, _, certain := charset.DetermineEncoding(content, ""); encode == charmap.Windows1252 && !certain {
+		for start := 0; start < len(content); start += 1024 {
+			if _, name, _ := charset.DetermineEncoding(content[start:start+1024], ""); name == "utf-8" {
+				contentType ="text/html; charset=utf-8"
+			}
+		}
+	}
 
 	// Convert content or i to UTF-8 if needed
-	nr, err := charset.NewReader(i, "")
+	nr, err := charset.NewReader(&buf, contentType)
 	if err != nil {
-		err = errors.Wrap(err, "astisub: could not detect or convert character set to UTF-8")
+		err = fmt.Errorf("astisub: could not detect or convert character set to UTF-8: %w", err)
 		return
 	}
 
 	decoder := xml.NewDecoder(nr)
 	decoder.CharsetReader = bypassXMLReader
 
+	// Unmarshal XML
+	var ttml TTMLIn
 	if err = decoder.Decode(&ttml); err != nil {
-		err = errors.Wrap(err, "astisub: xml decoding failed")
+		err = fmt.Errorf("astisub: xml decoding failed: %w", err)
 		return
 	}
 
@@ -364,7 +380,10 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	for _, ts := range ttml.Subtitles {
 		// Init item
 		ts.Begin.framerate = ttml.Framerate
+		ts.Begin.tickrate = ttml.Tickrate
 		ts.End.framerate = ttml.Framerate
+		ts.End.tickrate = ttml.Tickrate
+
 		var s = &Item{
 			EndAt:       ts.End.duration(),
 			InlineStyle: ts.TTMLInStyleAttributes.styleAttributes(),
@@ -392,7 +411,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		// Unmarshal items
 		var items = TTMLInItems{}
 		if err = xml.Unmarshal([]byte("<span>"+ts.Items+"</span>"), &items); err != nil {
-			err = errors.Wrap(err, "astisub: unmarshaling items failed")
+			err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
 			return
 		}
 
@@ -585,7 +604,9 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 
 	// Add metadata
 	if s.Metadata != nil {
-		ttml.Lang = ttmlLanguageMapping.A(s.Metadata.Language).(string)
+		if v, ok := ttmlLanguageMapping.GetInverse(s.Metadata.Language); ok {
+			ttml.Lang = v.(string)
+		}
 		if len(s.Metadata.TTMLCopyright) > 0 || len(s.Metadata.Title) > 0 {
 			ttml.Metadata = &TTMLOutMetadata{
 				Copyright: s.Metadata.TTMLCopyright,
@@ -684,7 +705,7 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 	var e = xml.NewEncoder(o)
 	e.Indent("", "    ")
 	if err = e.Encode(ttml); err != nil {
-		err = errors.Wrap(err, "astisub: xml encoding failed")
+		err = fmt.Errorf("astisub: xml encoding failed: %w", err)
 		return
 	}
 	return

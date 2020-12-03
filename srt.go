@@ -2,12 +2,11 @@ package astisub
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // Constants
@@ -33,14 +32,22 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 	// Scan
 	var line string
+	var lineNum int
 	var s = &Item{}
 	for scanner.Scan() {
 		// Fetch line
-		line = scanner.Text()
+		line = strings.TrimSpace(scanner.Text())
+		lineNum++
+
+		// Remove BOM header
+		if lineNum == 1 {
+			line = strings.TrimPrefix(line, string(BytesBOM))
+		}
 
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
 			// Remove last item of previous subtitle since it's the index
+			index := s.Lines[len(s.Lines)-1]
 			s.Lines = s.Lines[:len(s.Lines)-1]
 
 			// Remove trailing empty lines
@@ -65,14 +72,25 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Init subtitle
 			s = &Item{}
 
-			// Fetch time boundaries
-			boundaries := strings.Split(line, srtTimeBoundariesSeparator)
-			if s.StartAt, err = parseDurationSRT(boundaries[0]); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing srt duration %s failed", boundaries[0])
+			// Fetch Index
+			s.Index, _ = strconv.Atoi(index.String())
+
+			// Extract time boundaries
+			s1 := strings.Split(line, srtTimeBoundariesSeparator)
+			if l := len(s1); l < 2 {
+				err = fmt.Errorf("astisub: line %d: time boundaries has only %d element(s)", lineNum, l)
 				return
 			}
-			if s.EndAt, err = parseDurationSRT(boundaries[1]); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing srt duration %s failed", boundaries[1])
+			// We do this to eliminate extra stuff like positions which are not documented anywhere
+			s2 := strings.Split(s1[1], " ")
+
+			// Parse time boundaries
+			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, s1[0], err)
+				return
+			}
+			if s.EndAt, err = parseDurationSRT(s2[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, s2[0], err)
 				return
 			}
 
@@ -128,7 +146,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 
 	// Write
 	if _, err = o.Write(c); err != nil {
-		err = errors.Wrap(err, "astisub: writing failed")
+		err = fmt.Errorf("astisub: writing failed: %w", err)
 		return
 	}
 	return

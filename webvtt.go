@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"sort"
-
-	"github.com/pkg/errors"
+	"golang.org/x/net/html"
 )
 
 // https://www.w3.org/TR/webvtt1/
@@ -27,6 +27,7 @@ const (
 // Vars
 var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
+	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)`)
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -37,18 +38,19 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 // ReadFromWebVTT parses a .vtt content
 // TODO Tags (u, i, b)
 // TODO Class
-// TODO Speaker name
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 	var scanner = bufio.NewScanner(i)
 	var line string
+	var lineNum int
 
 	// Skip the header
 	for scanner.Scan() {
+		lineNum++
 		line = scanner.Text()
 		line = strings.TrimPrefix(line, string(BytesBOM))
-		if len(line) > 0 && strings.Fields(line)[0] == "WEBVTT" {
+		if fs := strings.Fields(line); len(fs) > 0 && fs[0] == "WEBVTT" {
 			break
 		}
 	}
@@ -57,10 +59,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var item = &Item{}
 	var blockName string
 	var comments []string
+	var index int
 	for scanner.Scan() {
 		// Fetch line
-		line = scanner.Text()
-		// Check prefixes
+		line = strings.TrimSpace(scanner.Text())
+		lineNum++
+
 		switch {
 		// Comment
 		case strings.HasPrefix(line, "NOTE "):
@@ -78,7 +82,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				// Split on "="
 				var split = strings.Split(part, "=")
 				if len(split) <= 1 {
-					err = fmt.Errorf("astisub: Invalid region style %s", part)
+					err = fmt.Errorf("astisub: line %d: Invalid region style %s", lineNum, part)
 					return
 				}
 
@@ -88,7 +92,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					r.ID = split[1]
 				case "lines":
 					if r.InlineStyle.WebVTTLines, err = strconv.Atoi(split[1]); err != nil {
-						err = errors.Wrapf(err, "atoi of %s failed", split[1])
+						err = fmt.Errorf("atoi of %s failed: %w", split[1], err)
 						return
 					}
 				case "regionanchor":
@@ -106,7 +110,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Add region
 			o.Regions[r.ID] = r
 		// Style
-		case strings.HasPrefix(line, "STYLE "):
+		case strings.HasPrefix(line, "STYLE"):
 			blockName = webvttBlockNameStyle
 		// Time boundaries
 		case strings.Contains(line, webvttTimeBoundariesSeparator):
@@ -116,32 +120,42 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Init new item
 			item = &Item{
 				Comments:    comments,
+				Index:       index,
 				InlineStyle: &StyleAttributes{},
 			}
 
+			// Reset index
+			index = 0
+
 			// Split line on time boundaries
-			var parts = strings.Split(line, webvttTimeBoundariesSeparator)
-			// Split line on space to catch inline styles as well
-			var partsRight = strings.Split(parts[1], " ")
+			var left = strings.Split(line, webvttTimeBoundariesSeparator)
+
+			// Split line on space to get remaining of time data
+			var right = strings.Split(left[1], " ")
 
 			// Parse time boundaries
-			if item.StartAt, err = parseDurationWebVTT(parts[0]); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing webvtt duration %s failed", parts[0])
+			if item.StartAt, err = parseDurationWebVTT(left[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, left[0], err)
 				return
 			}
-			if item.EndAt, err = parseDurationWebVTT(partsRight[0]); err != nil {
-				err = errors.Wrapf(err, "astisub: parsing webvtt duration %s failed", partsRight[0])
+			if item.EndAt, err = parseDurationWebVTT(right[0]); err != nil {
+				err = fmt.Errorf("astisub: line %d: parsing webvtt duration %s failed: %w", lineNum, right[0], err)
 				return
 			}
 
 			// Parse style
-			if len(partsRight) > 1 {
+			if len(right) > 1 {
 				// Add styles
-				for index := 1; index < len(partsRight); index++ {
+				for index := 1; index < len(right); index++ {
+					// Empty
+					if right[index] == "" {
+						continue
+					}
+
 					// Split line on ":"
-					var split = strings.Split(partsRight[index], ":")
+					var split = strings.Split(right[index], ":")
 					if len(split) <= 1 {
-						err = fmt.Errorf("astisub: Invalid inline style %s", partsRight[index])
+						err = fmt.Errorf("astisub: line %d: Invalid inline style '%s'", lineNum, right[index])
 						return
 					}
 
@@ -155,7 +169,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 						item.InlineStyle.WebVTTPosition = split[1]
 					case "region":
 						if _, ok := o.Regions[split[1]]; !ok {
-							err = fmt.Errorf("astisub: Unknown region %s", split[1])
+							err = fmt.Errorf("astisub: line %d: Unknown region %s", lineNum, split[1])
 							return
 						}
 						item.Region = o.Regions[split[1]]
@@ -182,10 +196,45 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameStyle:
 				// TODO Do something with the style
 			case webvttBlockNameText:
-				item.Lines = append(item.Lines, Line{Items: []LineItem{{Text: line}}})
+				// Parse line
+				if l := parseTextWebVTT(line); len(l.Items) > 0 {
+					item.Lines = append(item.Lines, l)
+				}
 			default:
 				// This is the ID
-				// TODO Do something with the id
+				index, _ = strconv.Atoi(line)
+			}
+		}
+	}
+	return
+}
+
+// parseTextWebVTT parses the input line to fill the Line
+func parseTextWebVTT(i string) (o Line) {
+	// Create tokenizer
+	tr := html.NewTokenizer(strings.NewReader(i))
+
+	// Loop
+	for {
+		// Get next tag
+		t := tr.Next()
+
+		// Process error
+		if err := tr.Err(); err != nil {
+			break
+		}
+
+		switch t {
+		case html.StartTagToken:
+			// Parse voice name
+			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); matches != nil && len(matches) > 3 {
+				if s := strings.TrimSpace(matches[3]); s != "" {
+					o.VoiceName = s
+				}
+			}
+		case html.TextToken:
+			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
+				o.Items = append(o.Items, LineItem{Text: s})
 			}
 		}
 	}
@@ -308,7 +357,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	// Write
 	if _, err = o.Write(c); err != nil {
-		err = errors.Wrap(err, "astisub: writing failed")
+		err = fmt.Errorf("astisub: writing failed: %w", err)
 		return
 	}
 	return

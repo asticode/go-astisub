@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asticode/go-astitools/ptr"
+	"github.com/asticode/go-astikit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,45 +95,45 @@ func TestSTLStyler(t *testing.T) {
 	// Parse spacing attributes
 	s := newSTLStyler()
 	s.parseSpacingAttribute(0x80)
-	assert.Equal(t, stlStyler{italics: astiptr.Bool(true)}, *s)
+	assert.Equal(t, stlStyler{italics: astikit.BoolPtr(true)}, *s)
 	s.parseSpacingAttribute(0x81)
-	assert.Equal(t, stlStyler{italics: astiptr.Bool(false)}, *s)
+	assert.Equal(t, stlStyler{italics: astikit.BoolPtr(false)}, *s)
 	s = newSTLStyler()
 	s.parseSpacingAttribute(0x82)
-	assert.Equal(t, stlStyler{underline: astiptr.Bool(true)}, *s)
+	assert.Equal(t, stlStyler{underline: astikit.BoolPtr(true)}, *s)
 	s.parseSpacingAttribute(0x83)
-	assert.Equal(t, stlStyler{underline: astiptr.Bool(false)}, *s)
+	assert.Equal(t, stlStyler{underline: astikit.BoolPtr(false)}, *s)
 	s = newSTLStyler()
 	s.parseSpacingAttribute(0x84)
-	assert.Equal(t, stlStyler{boxing: astiptr.Bool(true)}, *s)
+	assert.Equal(t, stlStyler{boxing: astikit.BoolPtr(true)}, *s)
 	s.parseSpacingAttribute(0x85)
-	assert.Equal(t, stlStyler{boxing: astiptr.Bool(false)}, *s)
+	assert.Equal(t, stlStyler{boxing: astikit.BoolPtr(false)}, *s)
 
 	// Has been set
 	s = newSTLStyler()
 	assert.False(t, s.hasBeenSet())
-	s.boxing = astiptr.Bool(true)
+	s.boxing = astikit.BoolPtr(true)
 	assert.True(t, s.hasBeenSet())
 	s = newSTLStyler()
-	s.italics = astiptr.Bool(true)
+	s.italics = astikit.BoolPtr(true)
 	assert.True(t, s.hasBeenSet())
 	s = newSTLStyler()
-	s.underline = astiptr.Bool(true)
+	s.underline = astikit.BoolPtr(true)
 	assert.True(t, s.hasBeenSet())
 
 	// Has changed
 	s = newSTLStyler()
 	sa := &StyleAttributes{}
 	assert.False(t, s.hasChanged(sa))
-	s.boxing = astiptr.Bool(true)
+	s.boxing = astikit.BoolPtr(true)
 	assert.True(t, s.hasChanged(sa))
 	sa.STLBoxing = s.boxing
 	assert.False(t, s.hasChanged(sa))
-	s.italics = astiptr.Bool(true)
+	s.italics = astikit.BoolPtr(true)
 	assert.True(t, s.hasChanged(sa))
 	sa.STLItalics = s.italics
 	assert.False(t, s.hasChanged(sa))
-	s.underline = astiptr.Bool(true)
+	s.underline = astikit.BoolPtr(true)
 	assert.True(t, s.hasChanged(sa))
 	sa.STLUnderline = s.underline
 	assert.False(t, s.hasChanged(sa))
@@ -143,13 +143,13 @@ func TestSTLStyler(t *testing.T) {
 	sa = &StyleAttributes{}
 	s.update(sa)
 	assert.Equal(t, StyleAttributes{}, *sa)
-	s.boxing = astiptr.Bool(true)
+	s.boxing = astikit.BoolPtr(true)
 	s.update(sa)
 	assert.Equal(t, StyleAttributes{STLBoxing: s.boxing}, *sa)
-	s.italics = astiptr.Bool(true)
+	s.italics = astikit.BoolPtr(true)
 	s.update(sa)
 	assert.Equal(t, StyleAttributes{STLBoxing: s.boxing, STLItalics: s.italics}, *sa)
-	s.underline = astiptr.Bool(true)
+	s.underline = astikit.BoolPtr(true)
 	s.update(sa)
 	assert.Equal(t, StyleAttributes{STLBoxing: s.boxing, STLItalics: s.italics, STLUnderline: s.underline}, *sa)
 }
