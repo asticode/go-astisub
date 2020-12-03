@@ -297,6 +297,12 @@ func bypassXMLReader(label string, input io.Reader) (io.Reader, error) {
 	return input, nil
 }
 
+// Bypass XML charset reader that will fail io.Reader is not UTF-8
+// @see https://groups.google.com/forum/#!topic/golang-nuts/tXcECEKC2rs
+func bypassXMLReader(label string, input io.Reader) (io.Reader, error) {
+	return input, nil
+}
+
 // ReadFromTTML parses a .ttml content
 func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
