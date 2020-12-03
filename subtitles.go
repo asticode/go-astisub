@@ -303,6 +303,9 @@ type Metadata struct {
 	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
 	STLMaximumNumberOfDisplayableRows                   *int
 	STLPublisher                                        string
+	STLDisplayStandardCode                              string
+	STLSubtitleListReferenceCode                        string
+	STLCountryOfOrigin                                  string
 	Title                                               string
 	TTMLCopyright                                       string
 	CreationDate                                        *time.Time

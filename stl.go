@@ -192,7 +192,12 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLPublisher:                                        g.publisher,
+		STLDisplayStandardCode:                              g.displayStandardCode,
+		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
+		STLCountryOfOrigin:                                  g.countryOfOrigin,
 		Title:                                               g.originalProgramTitle,
+		CreationDate:                                        &g.creationDate,
+		RevisionDate:                                        &g.revisionDate,
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
 		o.Metadata.Language = v.(string)
@@ -315,13 +320,14 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		codePageNumber:           stlCodePageNumberMultilingual,
 		countryOfOrigin:          stlCountryCodeFrance,
 		creationDate:             Now(),
+		revisionDate:             Now(),
 		diskSequenceNumber:       1,
 		displayStandardCode:      stlDisplayStandardCodeLevel1Teletext,
 		framerate:                25,
 		languageCode:             stlLanguageCodeFrench,
 		maximumNumberOfDisplayableCharactersInAnyTextRow: 40,
 		maximumNumberOfDisplayableRows:                   23,
-		subtitleListReferenceCode:                        "12345678",
+		subtitleListReferenceCode:                        "",
 		timecodeStatus:                                   stlTimecodeStatusIntendedForUse,
 		totalNumberOfDisks:                               1,
 		totalNumberOfSubtitleGroups:                      1,
@@ -342,13 +348,16 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		if s.Metadata.STLMaximumNumberOfDisplayableRows != nil {
 			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
 		}
-		g.publisher = s.Metadata.STLPublisher
 		if s.Metadata.CreationDate != nil {
 			g.creationDate = *s.Metadata.CreationDate
 		}
 		if s.Metadata.RevisionDate != nil {
 			g.revisionDate = *s.Metadata.RevisionDate
 		}
+		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
+		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
+		g.publisher = s.Metadata.STLPublisher
+		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
 	}
 
 	// Timecode first in cue
@@ -651,13 +660,13 @@ func asStyledLineItemString(li LineItem) string {
 	rs := li.Text
 	if li.InlineStyle != nil {
 		if li.InlineStyle.STLItalics != nil && *li.InlineStyle.STLItalics {
-			rs = fmt.Sprint(0x80) + rs + fmt.Sprint(0x81)
+			rs = string(rune(0x80)) + rs + string(rune(0x81))
 		}
 		if li.InlineStyle.STLUnderline != nil && *li.InlineStyle.STLUnderline {
-			rs = fmt.Sprint(0x82) + rs + fmt.Sprint(0x83)
+			rs = string(rune(0x82)) + rs + string(rune(0x83))
 		}
 		if li.InlineStyle.STLBoxing != nil && *li.InlineStyle.STLBoxing {
-			rs = fmt.Sprint(0x84) + rs + fmt.Sprint(0x85)
+			rs = string(rune(0x84)) + rs + string(rune(0x85))
 		}
 	}
 	return rs
