@@ -158,30 +158,13 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
-type Justification struct {
-	value int
-}
-
-const (
-	justificationUnchangedValue = 1
-	justificationLeftValue      = 2
-	justificationCenterValue    = 3
-	justificationRightValue     = 4
-)
+type Justification int
 
 var (
-	JustificationUnchanged = Justification{
-		value: justificationUnchangedValue,
-	}
-	JustificationLeft = Justification{
-		value: justificationLeftValue,
-	}
-	JustificationCentered = Justification{
-		value: justificationCenterValue,
-	}
-	JustificationRight = Justification{
-		value: justificationRightValue,
-	}
+	JustificationUnchanged = Justification(1)
+	JustificationLeft      = Justification(2)
+	JustificationCentered  = Justification(3)
+	JustificationRight     = Justification(4)
 )
 
 // StyleAttributes represents style attributes
@@ -279,10 +262,8 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 // TODO Merge attributes
 type Metadata struct {
 	Comments                                            []string
-	CreationDate                                        *time.Time
 	Framerate                                           int
 	Language                                            string
-	RevisionDate                                        *time.Time
 	SSACollisions                                       string
 	SSAOriginalEditing                                  string
 	SSAOriginalScript                                   string
@@ -297,10 +278,12 @@ type Metadata struct {
 	SSAUpdateDetails                                    string
 	SSAWrapStyle                                        string
 	STLCountryOfOrigin                                  string
+	STLCreationDate                                     *time.Time
 	STLDisplayStandardCode                              string
 	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
 	STLMaximumNumberOfDisplayableRows                   *int
 	STLPublisher                                        string
+	STLRevisionDate                                     *time.Time
 	STLSubtitleListReferenceCode                        string
 	Title                                               string
 	TTMLCopyright                                       string

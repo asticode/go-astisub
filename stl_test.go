@@ -22,17 +22,17 @@ func TestSTL(t *testing.T) {
 	assertSubtitleItems(t, s)
 	// Metadata
 	assert.Equal(t, &astisub.Metadata{
-		Framerate: 25,
-		Language:  astisub.LanguageFrench,
+		Framerate:       25,
+		Language:        astisub.LanguageFrench,
+		STLCreationDate: &creationDate,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(40),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(23),
 		STLPublisher:                                        "Copyright test",
 		STLDisplayStandardCode:                              "1",
+		STLRevisionDate:                                     &revisionDate,
 		STLSubtitleListReferenceCode:                        "12345678",
 		STLCountryOfOrigin:                                  "FRA",
-		Title:                                               "Title test",
-		CreationDate:                                        &creationDate,
-		RevisionDate:                                        &revisionDate},
+		Title:                                               "Title test"},
 		s.Metadata)
 
 	// No subtitles to write
@@ -58,16 +58,16 @@ func TestOPNSTL(t *testing.T) {
 	assert.NoError(t, err)
 	// Metadata
 	assert.Equal(t, &astisub.Metadata{
-		Framerate: 25,
-		Language:  astisub.LanguageEnglish,
+		Framerate:              25,
+		Language:               astisub.LanguageEnglish,
+		STLCountryOfOrigin:     "NOR",
+		STLCreationDate:        &creationDate,
+		STLDisplayStandardCode: "0",
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(38),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(11),
 		STLPublisher:                                        "",
-		STLDisplayStandardCode:                              "0",
-		STLCountryOfOrigin:                                  "NOR",
-		Title:                                               "",
-		CreationDate:                                        &creationDate,
-		RevisionDate:                                        &revisionDate},
+		STLRevisionDate:                                     &revisionDate,
+		Title:                                               ""},
 		s.Metadata)
 
 	// No subtitles to write

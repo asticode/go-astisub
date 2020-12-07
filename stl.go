@@ -3,6 +3,7 @@ package astisub
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -194,14 +195,14 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		CreationDate:           &g.creationDate,
 		Framerate:              g.framerate,
-		RevisionDate:           &g.revisionDate,
 		STLCountryOfOrigin:     g.countryOfOrigin,
+		STLCreationDate:        &g.creationDate,
 		STLDisplayStandardCode: g.displayStandardCode,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLPublisher:                                        g.publisher,
+		STLRevisionDate:                                     &g.revisionDate,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
 		Title:                                               g.originalProgramTitle,
 	}
@@ -228,7 +229,7 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			continue
 		}
 
-		justification := parseJustificationAttribute(t.justificationCode)
+		justification := parseSTLJustificationCode(t.justificationCode)
 		rows := bytes.Split(t.text, []byte{stlLineSeparator})
 
 		position := STLPosition{
@@ -253,7 +254,10 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		// Loop through rows
 		for _, text := range bytes.Split(t.text, []byte{stlLineSeparator}) {
 			if g.displayStandardCode == stlDisplayStandardCodeOpenSubtitling {
-				parseOpenSubtitleRow(i, ch, func() styler { return newSTLStyler() }, text)
+				err = parseOpenSubtitleRow(i, ch, func() styler { return newSTLStyler() }, text)
+				if err != nil {
+					return nil, err
+				}
 			} else {
 				parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
 			}
@@ -343,8 +347,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 
 	// Add metadata
 	if s.Metadata != nil {
-		if s.Metadata.CreationDate != nil {
-			g.creationDate = *s.Metadata.CreationDate
+		if s.Metadata.STLCreationDate != nil {
+			g.creationDate = *s.Metadata.STLCreationDate
 		}
 		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
 		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
@@ -360,8 +364,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
 		}
 		g.publisher = s.Metadata.STLPublisher
-		if s.Metadata.RevisionDate != nil {
-			g.revisionDate = *s.Metadata.RevisionDate
+		if s.Metadata.STLRevisionDate != nil {
+			g.revisionDate = *s.Metadata.STLRevisionDate
 		}
 		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
 	}
@@ -638,7 +642,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
 		timecodeOut:          i.EndAt,
-		verticalPosition:     verticalPositionFromStyle(i.InlineStyle),
+		verticalPosition:     stlVerticalPositionFromStyle(i.InlineStyle),
 	}
 
 	// Add text
@@ -654,7 +658,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	return
 }
 
-func verticalPositionFromStyle(sa *StyleAttributes) int {
+func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
 	if sa != nil && sa.STLPosition != nil {
 		return sa.STLPosition.VerticalPosition
 	} else {
@@ -952,7 +956,7 @@ func encodeTextSTL(i string) (o []byte) {
 	return
 }
 
-func parseJustificationAttribute(i byte) Justification {
+func parseSTLJustificationCode(i byte) Justification {
 	switch i {
 	case 0x00:
 		return JustificationUnchanged
@@ -983,7 +987,7 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) erro
 		}
 
 		if isTeletextControlCode(v) {
-			return fmt.Errorf("teletext control code in open text")
+			return errors.New("teletext control code in open text")
 		}
 		if s != nil {
 			s.parseSpacingAttribute(v)
