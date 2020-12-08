@@ -344,7 +344,9 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range item.Lines {
-			c = append(c, []byte(l.String())...)
+			for _, li := range l.Items {
+				c = append(c, li.webVTTBytes()...)
+			}
 			c = append(c, bytesLineSeparator...)
 		}
 
@@ -361,4 +363,16 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		return
 	}
 	return
+}
+
+func (li LineItem) webVTTBytes() []byte {
+	var c []byte
+	if li.InlineStyle != nil && li.InlineStyle.WebVTTItalics {
+		c = append(c, []byte("<i>")...)
+		c = append(c, []byte(li.Text)...)
+		c = append(c, []byte("</i>")...)
+	} else {
+		c = append(c, []byte(li.Text)...)
+	}
+	return c
 }

@@ -158,6 +158,15 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
+type Justification int
+
+var (
+	JustificationUnchanged = Justification(1)
+	JustificationLeft      = Justification(2)
+	JustificationCentered  = Justification(3)
+	JustificationRight     = Justification(4)
+)
+
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
 	SSAAlignment         *int
@@ -188,6 +197,8 @@ type StyleAttributes struct {
 	SSAUnderline         *bool
 	STLBoxing            *bool
 	STLItalics           *bool
+	STLJustification     *Justification
+	STLPosition          *STLPosition
 	STLUnderline         *bool
 	TeletextColor        *Color
 	TeletextDoubleHeight *bool
@@ -221,6 +232,7 @@ type StyleAttributes struct {
 	TTMLWritingMode      string
 	TTMLZIndex           int
 	WebVTTAlign          string
+	WebVTTItalics        bool
 	WebVTTLine           string
 	WebVTTLines          int
 	WebVTTPosition       string
@@ -265,9 +277,14 @@ type Metadata struct {
 	SSATimer                                            *float64
 	SSAUpdateDetails                                    string
 	SSAWrapStyle                                        string
+	STLCountryOfOrigin                                  string
+	STLCreationDate                                     *time.Time
+	STLDisplayStandardCode                              string
 	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
 	STLMaximumNumberOfDisplayableRows                   *int
 	STLPublisher                                        string
+	STLRevisionDate                                     *time.Time
+	STLSubtitleListReferenceCode                        string
 	Title                                               string
 	TTMLCopyright                                       string
 }

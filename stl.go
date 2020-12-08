@@ -3,6 +3,7 @@ package astisub
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -161,6 +162,14 @@ const (
 // TTI Special Extension Block Number
 const extensionBlockNumberReservedUserData = 0xfe
 
+const stlLineSeparator = 0x8a
+
+type STLPosition struct {
+	VerticalPosition int
+	MaxRows          int
+	Rows             int
+}
+
 // ReadFromSTL parses an .stl content
 func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -189,10 +198,15 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Framerate: g.framerate,
+		Framerate:              g.framerate,
+		STLCountryOfOrigin:     g.countryOfOrigin,
+		STLCreationDate:        &g.creationDate,
+		STLDisplayStandardCode: g.displayStandardCode,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLPublisher:                                        g.publisher,
+		STLRevisionDate:                                     &g.revisionDate,
+		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
 		Title:                                               g.originalProgramTitle,
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
@@ -218,15 +232,38 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 			continue
 		}
 
+		justification := parseSTLJustificationCode(t.justificationCode)
+		rows := bytes.Split(t.text, []byte{stlLineSeparator})
+
+		position := STLPosition{
+			MaxRows:          g.maximumNumberOfDisplayableRows,
+			Rows:             len(rows),
+			VerticalPosition: t.verticalPosition,
+		}
+
+		styleAttributes := StyleAttributes{
+			STLJustification: &justification,
+			STLPosition:      &position,
+		}
+		styleAttributes.propagateSTLAttributes()
+
 		// Create item
 		var i = &Item{
-			EndAt:   t.timecodeOut - g.timecodeStartOfProgramme,
-			StartAt: t.timecodeIn - g.timecodeStartOfProgramme,
+			EndAt:       t.timecodeOut - g.timecodeStartOfProgramme,
+			InlineStyle: &styleAttributes,
+			StartAt:     t.timecodeIn - g.timecodeStartOfProgramme,
 		}
 
 		// Loop through rows
-		for _, text := range bytes.Split(t.text, []byte{0x8a}) {
-			parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
+		for _, text := range bytes.Split(t.text, []byte{stlLineSeparator}) {
+			if g.displayStandardCode == stlDisplayStandardCodeOpenSubtitling {
+				err = parseOpenSubtitleRow(i, ch, func() styler { return newSTLStyler() }, text)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				parseTeletextRow(i, ch, func() styler { return newSTLStyler() }, text)
+			}
 		}
 
 		// Append item
@@ -302,7 +339,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		languageCode:             stlLanguageCodeFrench,
 		maximumNumberOfDisplayableCharactersInAnyTextRow: 40,
 		maximumNumberOfDisplayableRows:                   23,
-		subtitleListReferenceCode:                        "12345678",
+		revisionDate:                                     Now(),
+		subtitleListReferenceCode:                        "",
 		timecodeStatus:                                   stlTimecodeStatusIntendedForUse,
 		totalNumberOfDisks:                               1,
 		totalNumberOfSubtitleGroups:                      1,
@@ -312,6 +350,11 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 
 	// Add metadata
 	if s.Metadata != nil {
+		if s.Metadata.STLCreationDate != nil {
+			g.creationDate = *s.Metadata.STLCreationDate
+		}
+		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
+		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
 		g.framerate = s.Metadata.Framerate
 		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
 			g.languageCode = v.(string)
@@ -324,6 +367,10 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
 		}
 		g.publisher = s.Metadata.STLPublisher
+		if s.Metadata.STLRevisionDate != nil {
+			g.revisionDate = *s.Metadata.STLRevisionDate
+		}
+		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
 	}
 
 	// Timecode first in cue
@@ -598,16 +645,44 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
 		timecodeOut:          i.EndAt,
-		verticalPosition:     20,
+		verticalPosition:     stlVerticalPositionFromStyle(i.InlineStyle),
 	}
 
 	// Add text
 	var lines []string
 	for _, l := range i.Lines {
-		lines = append(lines, l.String())
+		var lineItems []string
+		for _, li := range l.Items {
+			lineItems = append(lineItems, li.STLString())
+		}
+		lines = append(lines, strings.Join(lineItems, " "))
 	}
-	t.text = []byte(strings.Join(lines, "\n"))
+	t.text = []byte(strings.Join(lines, string(rune(stlLineSeparator))))
 	return
+}
+
+func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
+	if sa != nil && sa.STLPosition != nil {
+		return sa.STLPosition.VerticalPosition
+	} else {
+		return 20
+	}
+}
+
+func (li LineItem) STLString() string {
+	rs := li.Text
+	if li.InlineStyle != nil {
+		if li.InlineStyle.STLItalics != nil && *li.InlineStyle.STLItalics {
+			rs = string(rune(0x80)) + rs + string(rune(0x81))
+		}
+		if li.InlineStyle.STLUnderline != nil && *li.InlineStyle.STLUnderline {
+			rs = string(rune(0x82)) + rs + string(rune(0x83))
+		}
+		if li.InlineStyle.STLBoxing != nil && *li.InlineStyle.STLBoxing {
+			rs = string(rune(0x84)) + rs + string(rune(0x85))
+		}
+	}
+	return rs
 }
 
 // parseTTIBlock parses a TTI block
@@ -882,4 +957,90 @@ func encodeTextSTL(i string) (o []byte) {
 		}
 	}
 	return
+}
+
+func parseSTLJustificationCode(i byte) Justification {
+	switch i {
+	case 0x00:
+		return JustificationUnchanged
+	case 0x01:
+		return JustificationLeft
+	case 0x02:
+		return JustificationCentered
+	case 0x03:
+		return JustificationRight
+	default:
+		return JustificationUnchanged
+	}
+}
+
+func isTeletextControlCode(i byte) (b bool) {
+	return i <= 0x1f
+}
+
+func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) error {
+	// Loop through columns
+	var l = Line{}
+	var li = LineItem{InlineStyle: &StyleAttributes{}}
+	var s styler
+	for _, v := range row {
+		// Create specific styler
+		if fs != nil {
+			s = fs()
+		}
+
+		if isTeletextControlCode(v) {
+			return errors.New("teletext control code in open text")
+		}
+		if s != nil {
+			s.parseSpacingAttribute(v)
+		}
+
+		// Style has been set
+		if s != nil && s.hasBeenSet() {
+			// Style has changed
+			if s.hasChanged(li.InlineStyle) {
+				if len(li.Text) > 0 {
+					// Append line item
+					appendOpenSubtitleLineItem(&l, li, s)
+
+					// Create new line item
+					sa := &StyleAttributes{}
+					*sa = *li.InlineStyle
+					li = LineItem{InlineStyle: sa}
+				}
+				s.update(li.InlineStyle)
+			}
+		} else {
+			// Append text
+			li.Text += string(d.decode(v))
+		}
+	}
+
+	appendOpenSubtitleLineItem(&l, li, s)
+
+	// Append line
+	if len(l.Items) > 0 {
+		i.Lines = append(i.Lines, l)
+	}
+	return nil
+}
+
+func appendOpenSubtitleLineItem(l *Line, li LineItem, s styler) {
+	// There's some text
+	if len(strings.TrimSpace(li.Text)) > 0 {
+		// Make sure inline style exists
+		if li.InlineStyle == nil {
+			li.InlineStyle = &StyleAttributes{}
+		}
+
+		// Propagate style attributes
+		if s != nil {
+			s.propagateStyleAttributes(li.InlineStyle)
+		}
+
+		// Append line item
+		li.Text = strings.TrimSpace(li.Text)
+		l.Items = append(l.Items, li)
+	}
 }
