@@ -367,7 +367,16 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 func (li LineItem) webVTTBytes() []byte {
 	var c []byte
-	if li.InlineStyle != nil && li.InlineStyle.WebVTTItalics {
+	var color string
+
+	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != "" {
+		color = cssColor(li.InlineStyle.TTMLColor)
+	}
+	if color != "" {
+		c = append(c, []byte("<c."+color+">")...)
+		c = append(c, []byte(li.Text)...)
+		c = append(c, []byte("</c>")...)
+	} else if li.InlineStyle != nil && li.InlineStyle.WebVTTItalics {
 		c = append(c, []byte("<i>")...)
 		c = append(c, []byte(li.Text)...)
 		c = append(c, []byte("</i>")...)
@@ -375,4 +384,15 @@ func (li LineItem) webVTTBytes() []byte {
 		c = append(c, []byte(li.Text)...)
 	}
 	return c
+}
+
+func cssColor(rgb string) string {
+	colors := map[string]string{
+		"#00ffff": "cyan",    // narrator, thought
+		"#ffff00": "yellow",  // out of vision
+		"#ff0000": "red",     // noises
+		"#ff00ff": "magenta", // song
+		"#00ff00": "lime",    // foreign speak
+	}
+	return colors[strings.ToLower(rgb)] // returning the empty string is ok
 }
