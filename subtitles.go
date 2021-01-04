@@ -246,7 +246,18 @@ type StyleAttributes struct {
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
 
-func (sa *StyleAttributes) propagateSTLAttributes() {}
+func (sa *StyleAttributes) propagateSTLAttributes() {
+	if sa.STLJustification != nil {
+		switch *sa.STLJustification {
+		case JustificationCentered:
+			// default to middle anyway?
+		case JustificationRight:
+			sa.WebVTTAlign = "right"
+		case JustificationLeft:
+			sa.WebVTTAlign = "left"
+		}
+	}
+}
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
