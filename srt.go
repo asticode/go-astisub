@@ -39,6 +39,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
 
+		// Print out the wrong number of lines
+		fmt.Errorf("error in the (%v) line", lineNum)
+
 		// Remove BOM header
 		if lineNum == 1 {
 			line = strings.TrimPrefix(line, string(BytesBOM))
