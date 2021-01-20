@@ -207,6 +207,7 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		STLPublisher:                                        g.publisher,
 		STLRevisionDate:                                     &g.revisionDate,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
+		STLTimecodeStartOfProgramme:                         g.timecodeStartOfProgramme,
 		Title:                                               g.originalProgramTitle,
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
@@ -342,6 +343,7 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		revisionDate:                                     Now(),
 		subtitleListReferenceCode:                        "",
 		timecodeStatus:                                   stlTimecodeStatusIntendedForUse,
+		timecodeStartOfProgramme:                         0,
 		totalNumberOfDisks:                               1,
 		totalNumberOfSubtitleGroups:                      1,
 		totalNumberOfSubtitles:                           len(s.Items),
@@ -371,6 +373,7 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 			g.revisionDate = *s.Metadata.STLRevisionDate
 		}
 		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
+		g.timecodeStartOfProgramme = s.Metadata.STLTimecodeStartOfProgramme
 	}
 
 	// Timecode first in cue

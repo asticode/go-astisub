@@ -285,6 +285,7 @@ type Metadata struct {
 	STLPublisher                                        string
 	STLRevisionDate                                     *time.Time
 	STLSubtitleListReferenceCode                        string
+	STLTimecodeStartOfProgramme                         time.Duration
 	Title                                               string
 	TTMLCopyright                                       string
 }
