@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astisub"
+	"github.com/publica-project/go-astisub"
 	"github.com/stretchr/testify/assert"
 )
 

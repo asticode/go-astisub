@@ -1,5 +1,5 @@
-[![GoReportCard](http://goreportcard.com/badge/github.com/asticode/go-astisub)](http://goreportcard.com/report/github.com/asticode/go-astisub)
-[![GoDoc](https://godoc.org/github.com/asticode/go-astisub?status.svg)](https://godoc.org/github.com/asticode/go-astisub)
+[![GoReportCard](http://goreportcard.com/badge/github.com/publica-project/go-astisub)](http://goreportcard.com/report/github.com/publica-project/go-astisub)
+[![GoDoc](https://godoc.org/github.com/publica-project/go-astisub?status.svg)](https://godoc.org/github.com/publica-project/go-astisub)
 [![Travis](https://travis-ci.org/asticode/go-astisub.svg?branch=master)](https://travis-ci.org/asticode/go-astisub#)
 [![Coveralls](https://coveralls.io/repos/github/asticode/go-astisub/badge.svg?branch=master)](https://coveralls.io/github/asticode/go-astisub)
 
@@ -13,7 +13,7 @@ Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfrag
 
 To install the library and command line program, use the following:
 
-    go get -u github.com/asticode/go-astisub/...
+    go get -u github.com/publica-project/go-astisub/...
 
 # Using the library in your code
 
