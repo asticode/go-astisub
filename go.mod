@@ -1,4 +1,4 @@
-module github.com/asticode/go-astisub
+module github.com/publica-project/go-astisub
 
 go 1.13
 
