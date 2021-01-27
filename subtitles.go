@@ -458,6 +458,7 @@ func (s *Subtitles) Slice(start, end time.Duration) {
 			startIndex = i
 		} else if s.Items[i].StartAt < start {
 			s.Items[i].StartAt = start
+			startIndex = i
 		}
 		if s.Items[i].StartAt > end {
 			if i < endIndex {

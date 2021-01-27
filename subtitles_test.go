@@ -128,16 +128,20 @@ func TestSubtitles_Fragment(t *testing.T) {
 
 func TestSubtitles_Slice(t *testing.T) {
 	// Init
-	var s = mockSubtitles()
-	s.Items = append(s.Items, &astisub.Item{EndAt: 10*time.Second, StartAt: 7*time.Second})
+	var s = &astisub.Subtitles{Items: []*astisub.Item{
+		{StartAt: time.Second, EndAt: 3 * time.Second},
+		{StartAt: 5 * time.Second, EndAt: 8 * time.Second},
+		{StartAt: 10 * time.Second, EndAt: 12 * time.Second},
+		{StartAt: 12 * time.Second, EndAt: 15 * time.Second},
+	}}
 
 	// Slice
-	s.Slice(2*time.Second, 5*time.Second)
+	s.Slice(6*time.Second, 11*time.Second)
 	assert.Len(t, s.Items, 2)
-	assert.Equal(t, 2*time.Second, s.Items[0].StartAt)
-	assert.Equal(t, 3*time.Second, s.Items[0].EndAt)
-	assert.Equal(t, 3*time.Second, s.Items[1].StartAt)
-	assert.Equal(t, 5*time.Second, s.Items[1].EndAt)
+	assert.Equal(t, 6*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 8*time.Second, s.Items[0].EndAt)
+	assert.Equal(t, 10*time.Second, s.Items[1].StartAt)
+	assert.Equal(t, 11*time.Second, s.Items[1].EndAt)
 }
 
 func TestSubtitles_Merge(t *testing.T) {
