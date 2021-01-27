@@ -2,6 +2,7 @@ package astisub
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -27,7 +28,10 @@ const (
 // Vars
 var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
-	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)`)
+	// https://regex101.com/r/ZjiW36/1
+	webVTTRegexpStartTag               = regexp.MustCompile(`(<([a-zA-Z]+)([\.\w]*)([\s\w]+)*>)`)
+	// https://regex101.com/r/vFQbnb/1
+	webVTTRegexpEndTag                 = regexp.MustCompile(`(</([a-zA-Z])>)`)
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -214,6 +218,8 @@ func parseTextWebVTT(i string) (o Line) {
 	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
 
+	var lineBuffer []byte
+	var startTag string
 	// Loop
 	for {
 		// Get next tag
@@ -226,17 +232,35 @@ func parseTextWebVTT(i string) (o Line) {
 
 		switch t {
 		case html.StartTagToken:
+			matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw()))
+			if len(matches) > 2 {
+				startTag = matches[2]
+			}
 			// Parse voice name
-			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); matches != nil && len(matches) > 3 {
-				if s := strings.TrimSpace(matches[3]); s != "" {
-					o.VoiceName = s
+			if startTag == "v" {
+				if len(matches) > 4 {
+					if s := strings.TrimSpace(matches[4]); s != "" {
+						o.VoiceName = s
+					}
 				}
+			} else {
+				lineBuffer = append(lineBuffer, bytes.TrimSpace(tr.Raw())...)
 			}
 		case html.TextToken:
-			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
-				o.Items = append(o.Items, LineItem{Text: s})
+			lineBuffer = append(lineBuffer, bytes.TrimSpace(tr.Raw())...)
+		case html.EndTagToken:
+			var tag string
+			matches := webVTTRegexpEndTag.FindStringSubmatch(string(tr.Raw()))
+			if len(matches) > 2 {
+				tag = matches[2]
+			}
+			if tag != "v" && tag == startTag {
+				lineBuffer = append(lineBuffer, bytes.TrimSpace(tr.Raw())...)
 			}
 		}
+	}
+	if s := strings.TrimSpace(string(lineBuffer)); s != "" {
+		o.Items = append(o.Items, LineItem{Text: s})
 	}
 	return
 }

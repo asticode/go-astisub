@@ -34,4 +34,12 @@ func TestParseTextWebVTT(t *testing.T) {
 		assert.Equal(t, 1, len(s.Items))
 		assert.Equal(t, "Incorrect end tag", s.Items[0].Text)
 	})
+
+	t.Run("When non-voice tag", func(t *testing.T) {
+		testData := `<i>Italicized text</i>`
+
+		s := parseTextWebVTT(testData)
+		assert.Equal(t, 1, len(s.Items))
+		assert.Equal(t, testData, s.Items[0].Text)
+	})
 }
