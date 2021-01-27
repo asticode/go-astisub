@@ -449,6 +449,31 @@ func (s *Subtitles) Fragment(f time.Duration) {
 	s.Order()
 }
 
+// Slice removes subtitles before start, and after end
+func (s *Subtitles) Slice(start, end time.Duration) {
+	var startIndex int
+	var endIndex = len(s.Items)-1
+	for i := range s.Items {
+		if s.Items[i].EndAt < start {
+			startIndex = i
+		} else if s.Items[i].StartAt < start {
+			s.Items[i].StartAt = start
+		}
+		if s.Items[i].StartAt > end {
+			if i < endIndex {
+				endIndex = i
+			}
+			break
+		} else if s.Items[i].EndAt > end {
+			s.Items[i].EndAt = end
+		}
+	}
+
+	items := s.Items[:endIndex+1]
+	items = items[startIndex:]
+	s.Items = items
+}
+
 // IsEmpty returns whether the subtitles are empty
 func (s Subtitles) IsEmpty() bool {
 	return len(s.Items) == 0

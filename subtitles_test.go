@@ -126,6 +126,19 @@ func TestSubtitles_Fragment(t *testing.T) {
 	assert.Equal(t, 5*time.Second, s.Items[2].EndAt)
 }
 
+func TestSubtitles_Slice(t *testing.T) {
+	// Init
+	var s = mockSubtitles()
+
+	// Slice
+	s.Slice(2*time.Second, 5*time.Second)
+	assert.Len(t, s.Items, 2)
+	assert.Equal(t, 2*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 3*time.Second, s.Items[0].EndAt)
+	assert.Equal(t, 3*time.Second, s.Items[1].StartAt)
+	assert.Equal(t, 5*time.Second, s.Items[1].EndAt)
+}
+
 func TestSubtitles_Merge(t *testing.T) {
 	var s1 = &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 3 * time.Second, StartAt: time.Second}, {EndAt: 8 * time.Second, StartAt: 5 * time.Second}, {EndAt: 12 * time.Second, StartAt: 10 * time.Second}}, Regions: map[string]*astisub.Region{"region_0": {ID: "region_0"}, "region_1": {ID: "region_1"}}, Styles: map[string]*astisub.Style{"style_0": {ID: "style_0"}, "style_1": {ID: "style_1"}}}
 	var s2 = &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 4 * time.Second, StartAt: 2 * time.Second}, {EndAt: 7 * time.Second, StartAt: 6 * time.Second}, {EndAt: 11 * time.Second, StartAt: 9 * time.Second}, {EndAt: 14 * time.Second, StartAt: 13 * time.Second}}, Regions: map[string]*astisub.Region{"region_1": {ID: "region_1"}, "region_2": {ID: "region_2"}}, Styles: map[string]*astisub.Style{"style_1": {ID: "style_1"}, "style_2": {ID: "style_2"}}}
