@@ -469,7 +469,7 @@ func (s *Subtitles) Slice(start, end time.Duration) {
 		}
 	}
 
-	items := s.Items[:endIndex+1]
+	items := s.Items[:endIndex]
 	items = items[startIndex:]
 	s.Items = items
 }

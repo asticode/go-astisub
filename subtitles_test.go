@@ -129,6 +129,7 @@ func TestSubtitles_Fragment(t *testing.T) {
 func TestSubtitles_Slice(t *testing.T) {
 	// Init
 	var s = mockSubtitles()
+	s.Items = append(s.Items, &astisub.Item{EndAt: 10*time.Second, StartAt: 7*time.Second})
 
 	// Slice
 	s.Slice(2*time.Second, 5*time.Second)
