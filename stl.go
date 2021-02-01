@@ -666,7 +666,11 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 
 func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
 	if sa != nil && sa.STLPosition != nil {
-		return sa.STLPosition.VerticalPosition
+		vp := sa.STLPosition.VerticalPosition
+		if vp < 1 {
+			vp = 1
+		}
+		return vp
 	} else {
 		return 20
 	}
