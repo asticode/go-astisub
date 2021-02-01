@@ -142,6 +142,10 @@ func TestSubtitles_Slice(t *testing.T) {
 	assert.Equal(t, 8*time.Second, s.Items[0].EndAt)
 	assert.Equal(t, 10*time.Second, s.Items[1].StartAt)
 	assert.Equal(t, 11*time.Second, s.Items[1].EndAt)
+
+
+	var empty = &astisub.Subtitles{Items: []*astisub.Item{}}
+	empty.Slice(0, 3 *time.Second)
 }
 
 func TestSubtitles_Merge(t *testing.T) {
