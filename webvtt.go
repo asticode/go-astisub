@@ -2,6 +2,7 @@ package astisub
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -26,6 +27,8 @@ const (
 
 // Vars
 var (
+	bytesWebVTTItalicEndTag            = []byte("</i>")
+	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)`)
 )
@@ -215,6 +218,7 @@ func parseTextWebVTT(i string) (o Line) {
 	tr := html.NewTokenizer(strings.NewReader(i))
 
 	// Loop
+	italic := false
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -225,16 +229,42 @@ func parseTextWebVTT(i string) (o Line) {
 		}
 
 		switch t {
+		case html.EndTagToken:
+			// Parse italic
+			if bytes.Equal(tr.Raw(), bytesWebVTTItalicEndTag) {
+				italic = false
+				continue
+			}
 		case html.StartTagToken:
 			// Parse voice name
 			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); matches != nil && len(matches) > 3 {
 				if s := strings.TrimSpace(matches[3]); s != "" {
 					o.VoiceName = s
 				}
+				continue
+			}
+
+			// Parse italic
+			if bytes.Equal(tr.Raw(), bytesWebVTTItalicStartTag) {
+				italic = true
+				continue
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
-				o.Items = append(o.Items, LineItem{Text: s})
+				// Get style attribute
+				var sa *StyleAttributes
+				if italic {
+					sa = &StyleAttributes{
+						WebVTTItalics: italic,
+					}
+					sa.propagateWebVTTAttributes()
+				}
+
+				// Append item
+				o.Items = append(o.Items, LineItem{
+					InlineStyle: sa,
+					Text:        s,
+				})
 			}
 		}
 	}
@@ -344,10 +374,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range item.Lines {
-			for _, li := range l.Items {
-				c = append(c, li.webVTTBytes()...)
-			}
-			c = append(c, bytesLineSeparator...)
+			c = append(c, l.webVTTBytes()...)
 		}
 
 		// Add new line
@@ -365,25 +392,42 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	return
 }
 
-func (li LineItem) webVTTBytes() []byte {
-	var c []byte
-	var color string
+func (l Line) webVTTBytes() (c []byte) {
+	if l.VoiceName != "" {
+		c = append(c, []byte("<v "+l.VoiceName+">")...)
+	}
+	for _, li := range l.Items {
+		c = append(c, li.webVTTBytes()...)
+	}
+	c = append(c, bytesLineSeparator...)
+	return
+}
 
+func (li LineItem) webVTTBytes() (c []byte) {
+	// Get color
+	var color string
 	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != "" {
 		color = cssColor(li.InlineStyle.TTMLColor)
 	}
+
+	// Get italics
+	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
+
+	// Append
 	if color != "" {
 		c = append(c, []byte("<c."+color+">")...)
-		c = append(c, []byte(li.Text)...)
-		c = append(c, []byte("</c>")...)
-	} else if li.InlineStyle != nil && li.InlineStyle.WebVTTItalics {
-		c = append(c, []byte("<i>")...)
-		c = append(c, []byte(li.Text)...)
-		c = append(c, []byte("</i>")...)
-	} else {
-		c = append(c, []byte(li.Text)...)
 	}
-	return c
+	if i {
+		c = append(c, []byte("<i>")...)
+	}
+	c = append(c, []byte(li.Text)...)
+	if i {
+		c = append(c, []byte("</i>")...)
+	}
+	if color != "" {
+		c = append(c, []byte("</c>")...)
+	}
+	return
 }
 
 func cssColor(rgb string) string {

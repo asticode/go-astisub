@@ -52,11 +52,11 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	NOTE this a example with voicename
 
 	1
-	00:02:34.00 --> 00:02:35.00
+	00:02:34.000 --> 00:02:35.000
 	<v.first.local Roger Bingham> I'm the fist speaker
 
 	2
-	00:02:34.00 --> 00:02:35.00
+	00:02:34.000 --> 00:02:35.000
 	<v Bingham> I'm the second speaker
 
 	3
@@ -75,4 +75,28 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	assert.Equal(t, "Bingham", s.Items[1].Lines[0].VoiceName)
 	assert.Equal(t, "Lee", s.Items[2].Lines[0].VoiceName)
 	assert.Equal(t, "Bob", s.Items[3].Lines[0].VoiceName)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+NOTE this a example with voicename
+
+1
+00:02:34.000 --> 00:02:35.000
+<v Roger Bingham>I'm the fist speaker
+
+2
+00:02:34.000 --> 00:02:35.000
+<v Bingham>I'm the second speaker
+
+3
+00:00:04.000 --> 00:00:08.000
+<v Lee>What are you doing here?
+
+4
+00:00:04.000 --> 00:00:08.000
+<v Bob>Incorrect tag?
+`, b.String())
 }
