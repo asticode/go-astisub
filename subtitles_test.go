@@ -89,8 +89,18 @@ func TestSubtitles_ForceDuration(t *testing.T) {
 }
 
 func TestSubtitles_Fragment(t *testing.T) {
+	// identical time between a subtitle and a fragment to the millisecond case (VID-409)
+	s := &astisub.Subtitles{Items: []*astisub.Item{{StartAt: 6893333000000, EndAt: 6898380000000, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}}}}
+	s.Fragment(2666666666)                                             // 2,66s / 24 FPS, 64 GOP
+	assert.Equal(t, 6893333000000*time.Nanosecond, s.Items[0].StartAt) // 1h54m53.333
+	assert.Equal(t, 6895999998276*time.Nanosecond, s.Items[0].EndAt)   // 1h54m55.999998276s
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}, s.Items[0].Lines)
+	assert.Equal(t, 6895999998276*time.Nanosecond, s.Items[1].StartAt) // 1h54m55.999998276s
+	assert.Equal(t, 6898380000000*time.Nanosecond, s.Items[1].EndAt)   // 1h54m58.38s
+	assert.Equal(t, []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}, s.Items[1].Lines)
+
 	// Init
-	var s = mockSubtitles()
+	s = mockSubtitles()
 
 	// Fragment
 	s.Fragment(2 * time.Second)

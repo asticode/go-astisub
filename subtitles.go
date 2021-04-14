@@ -457,20 +457,26 @@ func (s *Subtitles) Fragment(f time.Duration) {
 			var newSub = &Item{}
 			*newSub = *sub
 
+			// We compare the timings in milliseconds, because it is their output time format (VID-409)
+			subStartAtMs := sub.StartAt / time.Millisecond
+			fragmentStartAtMs := fragmentStartAt / time.Millisecond
+			subEndAtMs := sub.EndAt / time.Millisecond
+			fragmentEndAtMs := fragmentEndAt / time.Millisecond
+
 			// A switch is more readable here
 			switch {
 			// Subtitle contains fragment start at
 			// |____________________|                         <- subtitle
 			//           |                        |
 			//   fragment start at        fragment end at
-			case sub.StartAt < fragmentStartAt && sub.EndAt > fragmentStartAt:
+			case subStartAtMs < fragmentStartAtMs && subEndAtMs > fragmentStartAtMs:
 				sub.StartAt = fragmentStartAt
 				newSub.EndAt = fragmentStartAt
 			// Subtitle contains fragment end at
 			//                         |____________________| <- subtitle
 			//           |                        |
 			//   fragment start at        fragment end at
-			case sub.StartAt < fragmentEndAt && sub.EndAt > fragmentEndAt:
+			case subStartAtMs < fragmentEndAtMs && subEndAtMs > fragmentEndAtMs:
 				sub.StartAt = fragmentEndAt
 				newSub.EndAt = fragmentEndAt
 			default:
