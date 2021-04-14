@@ -237,7 +237,7 @@ func parseTextWebVTT(i string) (o Line) {
 			}
 		case html.StartTagToken:
 			// Parse voice name
-			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); matches != nil && len(matches) > 3 {
+			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); len(matches) > 3 {
 				if s := strings.TrimSpace(matches[3]); s != "" {
 					o.VoiceName = s
 				}
