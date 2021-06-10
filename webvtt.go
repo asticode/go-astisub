@@ -299,22 +299,37 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
+		} else if s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
+		} else if s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("regionanchor="+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
+		} else if s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("scroll="+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
+		} else if s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("viewportanchor="+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
+		} else if s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("width="+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
 		}
 		c = append(c, bytesLineSeparator...)
 	}
@@ -406,8 +421,8 @@ func (l Line) webVTTBytes() (c []byte) {
 func (li LineItem) webVTTBytes() (c []byte) {
 	// Get color
 	var color string
-	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != "" {
-		color = cssColor(li.InlineStyle.TTMLColor)
+	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != nil {
+		color = cssColor(*li.InlineStyle.TTMLColor)
 	}
 
 	// Get italics

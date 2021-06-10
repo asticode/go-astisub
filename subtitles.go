@@ -3,6 +3,7 @@ package astisub
 import (
 	"errors"
 	"fmt"
+	"github.com/asticode/go-astisub/util"
 	"math"
 	"os"
 	"path/filepath"
@@ -207,30 +208,30 @@ type StyleAttributes struct {
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
 	// TODO Use pointers with real types below
-	TTMLBackgroundColor  string // https://htmlcolorcodes.com/fr/
-	TTMLColor            string
-	TTMLDirection        string
-	TTMLDisplay          string
-	TTMLDisplayAlign     string
-	TTMLExtent           string
-	TTMLFontFamily       string
-	TTMLFontSize         string
-	TTMLFontStyle        string
-	TTMLFontWeight       string
-	TTMLLineHeight       string
-	TTMLOpacity          string
-	TTMLOrigin           string
-	TTMLOverflow         string
-	TTMLPadding          string
-	TTMLShowBackground   string
-	TTMLTextAlign        string
-	TTMLTextDecoration   string
-	TTMLTextOutline      string
-	TTMLUnicodeBidi      string
-	TTMLVisibility       string
-	TTMLWrapOption       string
-	TTMLWritingMode      string
-	TTMLZIndex           int
+	TTMLBackgroundColor  *string // https://htmlcolorcodes.com/fr/
+	TTMLColor            *string
+	TTMLDirection        *string
+	TTMLDisplay          *string
+	TTMLDisplayAlign     *string
+	TTMLExtent           *string
+	TTMLFontFamily       *string
+	TTMLFontSize         *string
+	TTMLFontStyle        *string
+	TTMLFontWeight       *string
+	TTMLLineHeight       *string
+	TTMLOpacity          *string
+	TTMLOrigin           *string
+	TTMLOverflow         *string
+	TTMLPadding          *string
+	TTMLShowBackground   *string
+	TTMLTextAlign        *string
+	TTMLTextDecoration   *string
+	TTMLTextOutline      *string
+	TTMLUnicodeBidi      *string
+	TTMLVisibility       *string
+	TTMLWrapOption       *string
+	TTMLWritingMode      *string
+	TTMLZIndex           *int
 	WebVTTAlign          string
 	WebVTTItalics        bool
 	WebVTTLine           string
@@ -261,11 +262,22 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
-		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
+		sa.TTMLColor = util.StringToPointer("#" + sa.TeletextColor.TTMLString())
 	}
 }
 
-func (sa *StyleAttributes) propagateTTMLAttributes() {}
+func (sa *StyleAttributes) propagateTTMLAttributes() {
+	if sa.TTMLTextAlign != nil {
+		sa.WebVTTAlign = *sa.TTMLTextAlign
+	}
+}
+
+func (sa *StyleAttributes) propagateTTMLRegionAttributes() {
+	if sa.TTMLExtent != nil {
+		dimensions := strings.Split(*sa.TTMLExtent, " ")
+		sa.WebVTTWidth = dimensions[0]
+	}
+}
 
 func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 

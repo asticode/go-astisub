@@ -1,6 +1,7 @@
 package astisub
 
 import (
+	"github.com/asticode/go-astisub/util"
 	"testing"
 	"time"
 
@@ -79,56 +80,56 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextColor:        ColorBlack,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#000000",
+			TTMLColor:            util.StringToPointer("#000000"),
 		}},
 		{Text: "red", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorRed,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ff0000",
+			TTMLColor:            util.StringToPointer("#ff0000"),
 		}},
 		{Text: "green", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorGreen,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#008000",
+			TTMLColor:            util.StringToPointer("#008000"),
 		}},
 		{Text: "yellow", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorYellow,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ffff00",
+			TTMLColor:            util.StringToPointer("#ffff00"),
 		}},
 		{Text: "blue", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorBlue,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#0000ff",
+			TTMLColor:            util.StringToPointer("#0000ff"),
 		}},
 		{Text: "magenta", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorMagenta,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ff00ff",
+			TTMLColor:            util.StringToPointer("#ff00ff"),
 		}},
 		{Text: "cyan", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorCyan,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#00ffff",
+			TTMLColor:            util.StringToPointer("#00ffff"),
 		}},
 		{Text: "white", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ffffff",
+			TTMLColor:            util.StringToPointer("#ffffff"),
 		}},
 		{Text: "double height", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
 			TeletextDoubleHeight: astikit.BoolPtr(true),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ffffff",
+			TTMLColor:            util.StringToPointer("#ffffff"),
 		}},
 		{Text: "double width", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -136,7 +137,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleWidth:  astikit.BoolPtr(true),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ffffff",
+			TTMLColor:            util.StringToPointer("#ffffff"),
 		}},
 		{Text: "double size", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -145,7 +146,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleSize:   astikit.BoolPtr(true),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ffffff",
+			TTMLColor:            util.StringToPointer("#ffffff"),
 		}},
 		{Text: "reset", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -154,7 +155,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleSize:   astikit.BoolPtr(false),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            "#ffffff",
+			TTMLColor:            util.StringToPointer("#ffffff"),
 		}},
 	}, i.Lines[0].Items)
 }
