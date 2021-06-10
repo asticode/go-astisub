@@ -673,7 +673,7 @@ func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
 }
 
 func (li LineItem) STLString() string {
-	rs := li.Text
+	rs := strings.TrimSpace(li.Text)
 	if li.InlineStyle != nil {
 		if li.InlineStyle.STLItalics != nil && *li.InlineStyle.STLItalics {
 			rs = string(rune(0x80)) + rs + string(rune(0x81))
