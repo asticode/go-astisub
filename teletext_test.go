@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"github.com/asticode/go-astisub/util"
 	"testing"
 	"time"
 
@@ -80,56 +79,56 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextColor:        ColorBlack,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#000000"),
+			TTMLColor:            astikit.StrPtr("#000000"),
 		}},
 		{Text: "red", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorRed,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ff0000"),
+			TTMLColor:            astikit.StrPtr("#ff0000"),
 		}},
 		{Text: "green", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorGreen,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#008000"),
+			TTMLColor:            astikit.StrPtr("#008000"),
 		}},
 		{Text: "yellow", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorYellow,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ffff00"),
+			TTMLColor:            astikit.StrPtr("#ffff00"),
 		}},
 		{Text: "blue", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorBlue,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#0000ff"),
+			TTMLColor:            astikit.StrPtr("#0000ff"),
 		}},
 		{Text: "magenta", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorMagenta,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ff00ff"),
+			TTMLColor:            astikit.StrPtr("#ff00ff"),
 		}},
 		{Text: "cyan", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorCyan,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#00ffff"),
+			TTMLColor:            astikit.StrPtr("#00ffff"),
 		}},
 		{Text: "white", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ffffff"),
+			TTMLColor:            astikit.StrPtr("#ffffff"),
 		}},
 		{Text: "double height", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
 			TeletextDoubleHeight: astikit.BoolPtr(true),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ffffff"),
+			TTMLColor:            astikit.StrPtr("#ffffff"),
 		}},
 		{Text: "double width", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -137,7 +136,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleWidth:  astikit.BoolPtr(true),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ffffff"),
+			TTMLColor:            astikit.StrPtr("#ffffff"),
 		}},
 		{Text: "double size", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -146,7 +145,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleSize:   astikit.BoolPtr(true),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ffffff"),
+			TTMLColor:            astikit.StrPtr("#ffffff"),
 		}},
 		{Text: "reset", InlineStyle: &StyleAttributes{
 			TeletextColor:        ColorWhite,
@@ -155,7 +154,7 @@ func TestParseTeletextRow(t *testing.T) {
 			TeletextDoubleSize:   astikit.BoolPtr(false),
 			TeletextSpacesAfter:  astikit.IntPtr(0),
 			TeletextSpacesBefore: astikit.IntPtr(0),
-			TTMLColor:            util.StringToPointer("#ffffff"),
+			TTMLColor:            astikit.StrPtr("#ffffff"),
 		}},
 	}, i.Lines[0].Items)
 }

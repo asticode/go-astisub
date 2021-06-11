@@ -3,10 +3,11 @@ package astisub
 import (
 	"errors"
 	"fmt"
-	"github.com/asticode/go-astisub/util"
+	"github.com/asticode/go-astikit"
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -262,7 +263,7 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
-		sa.TTMLColor = util.StringToPointer("#" + sa.TeletextColor.TTMLString())
+		sa.TTMLColor = astikit.StrPtr("#" + sa.TeletextColor.TTMLString())
 	}
 }
 
@@ -340,8 +341,8 @@ func (l Line) String() string {
 		texts = append(texts, i.Text)
 	}
 	t := strings.Join(texts, " ")
-	t = strings.ReplaceAll(t, "  ", " ")
-	return t
+	space := regexp.MustCompile(`\s+`)
+	return space.ReplaceAllString(t, " ")
 }
 
 // LineItem represents a formatted line item

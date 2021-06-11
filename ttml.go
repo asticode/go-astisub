@@ -98,19 +98,19 @@ type TTMLInStyleAttributes struct {
 
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
 func (s TTMLInStyleAttributes) styleAttributes() (o *StyleAttributes) {
-	o = getStyleAttributes(s)
+	o = newStyleAttributesFromTTMLInStyleAttributes(s)
 	o.propagateTTMLAttributes()
 	return
 }
 
 // StyleAttributes converts TTMLInStyleAttributes for region into a StyleAttributes
 func (s TTMLInStyleAttributes) regionStyleAttributes() (o *StyleAttributes) {
-	o = getStyleAttributes(s)
+	o = newStyleAttributesFromTTMLInStyleAttributes(s)
 	o.propagateTTMLRegionAttributes()
 	return
 }
 
-func getStyleAttributes(s TTMLInStyleAttributes) *StyleAttributes {
+func newStyleAttributesFromTTMLInStyleAttributes(s TTMLInStyleAttributes) *StyleAttributes {
 	return &StyleAttributes{
 		TTMLBackgroundColor: s.BackgroundColor,
 		TTMLColor:           s.Color,
