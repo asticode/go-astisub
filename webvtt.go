@@ -411,8 +411,11 @@ func (l Line) webVTTBytes() (c []byte) {
 	if l.VoiceName != "" {
 		c = append(c, []byte("<v "+l.VoiceName+">")...)
 	}
-	for _, li := range l.Items {
+	for idx, li := range l.Items {
 		c = append(c, li.webVTTBytes()...)
+		if idx < len(l.Items)-1 {
+			c = append(c, []byte(" ")...)
+		}
 	}
 	c = append(c, bytesLineSeparator...)
 	return
@@ -436,7 +439,6 @@ func (li LineItem) webVTTBytes() (c []byte) {
 		c = append(c, []byte("<i>")...)
 	}
 	c = append(c, []byte(li.Text)...)
-	c = append(c, []byte(" ")...)
 	if i {
 		c = append(c, []byte("</i>")...)
 	}
