@@ -337,6 +337,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		s.Style = o.Styles[id]
 	}
 
+	var regionParentStyles = make(map[string]*Style)
 	// Loop through regions
 	for _, tr := range ttml.Regions {
 		var r = &Region{
@@ -348,7 +349,28 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				err = fmt.Errorf("astisub: Style %s requested by region %s doesn't exist", tr.Style, r.ID)
 				return
 			}
-			r.Style = o.Styles[tr.Style]
+			if _, ok := regionParentStyles[tr.Style]; !ok {
+				//creating new style for region, as region styles need to be migrated differently than cue styles. Ref: https://w3c.github.io/ttml-webvtt-mapping/#mapping-positioning-information
+				s := *o.Styles[tr.Style]
+				s.InlineStyle.propagateTTMLRegionAttributes()
+				//updating parent style attributes
+				if s.Style != nil {
+					stop := false
+					var sArray = make([]*Style, 0, 0)
+					sArray = append(sArray, &s)
+					for !stop {
+						temp := sArray[len(sArray)-1]
+						temp.Style.InlineStyle.propagateTTMLRegionAttributes()
+						if temp.Style.Style == nil {
+							stop = true
+							continue
+						}
+						sArray = append(sArray, temp.Style.Style)
+					}
+				}
+				regionParentStyles[tr.Style] = &s
+			}
+			r.Style = regionParentStyles[tr.Style]
 		}
 		o.Regions[r.ID] = r
 	}
