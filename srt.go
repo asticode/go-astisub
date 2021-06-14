@@ -104,7 +104,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: line}}})
+			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: strings.TrimSpace(line)}}})
 		}
 	}
 	return
