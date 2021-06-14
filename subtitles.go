@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -350,9 +349,7 @@ func (l Line) String() string {
 	for _, i := range l.Items {
 		texts = append(texts, i.Text)
 	}
-	t := strings.Join(texts, " ")
-	space := regexp.MustCompile(`\s+`)
-	return space.ReplaceAllString(t, " ")
+	return strings.Join(texts, " ")
 }
 
 // LineItem represents a formatted line item
