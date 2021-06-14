@@ -440,6 +440,7 @@ func (li LineItem) webVTTBytes() (c []byte) {
 		c = append(c, []byte("<i>")...)
 	}
 	c = append(c, []byte(li.Text)...)
+	c = append(c, []byte(" ")...)
 	if i {
 		c = append(c, []byte("</i>")...)
 	}
