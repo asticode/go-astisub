@@ -413,6 +413,7 @@ func (l Line) webVTTBytes() (c []byte) {
 	}
 	for idx, li := range l.Items {
 		c = append(c, li.webVTTBytes()...)
+		// condition to avoid adding space as the last character.
 		if idx < len(l.Items)-1 {
 			c = append(c, []byte(" ")...)
 		}

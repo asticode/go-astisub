@@ -405,7 +405,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			// New line decoded as a line break. This can happen if there's a "br" tag within the text since
 			// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
 			// chardata xml tag.
-			for idx, li := range strings.Split(tt.Text, "\\n") {
+			for idx, li := range strings.Split(tt.Text, "\n") {
 				// New line
 				if idx > 0 {
 					s.Lines = append(s.Lines, *l)
@@ -648,12 +648,16 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		// Add lines
 		for _, line := range item.Lines {
 			// Loop through line items
-			for _, lineItem := range line.Items {
+			for idx, lineItem := range line.Items {
 				// Init ttml item
 				var ttmlItem = TTMLOutItem{
 					Text:                   lineItem.Text,
 					TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(lineItem.InlineStyle),
 					XMLName:                xml.Name{Local: "span"},
+				}
+				// condition to avoid adding space as the last character.
+				if idx < len(line.Items)-1 {
+					ttmlItem.Text = ttmlItem.Text + " "
 				}
 
 				// Add style
