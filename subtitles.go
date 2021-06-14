@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -275,9 +274,19 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 
 func (sa *StyleAttributes) propagateTTMLRegionAttributes() {
 	if sa.TTMLExtent != nil {
+		lineHeight := 5 //assuming height of line as 5.33vh
 		dimensions := strings.Split(*sa.TTMLExtent, " ")
 		sa.WebVTTWidth = dimensions[0]
+		if height, err := strconv.Atoi(strings.ReplaceAll(dimensions[1], "%", "")); err == nil {
+			sa.WebVTTLines = height / lineHeight
+		}
+
 	}
+	if sa.TTMLOrigin != nil {
+		sa.WebVTTRegionAnchor = "0%,0%"
+		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+	}
+
 }
 
 func (sa *StyleAttributes) propagateWebVTTAttributes() {}
@@ -340,9 +349,7 @@ func (l Line) String() string {
 	for _, i := range l.Items {
 		texts = append(texts, i.Text)
 	}
-	t := strings.Join(texts, " ")
-	space := regexp.MustCompile(`\s+`)
-	return space.ReplaceAllString(t, " ")
+	return strings.Join(texts, " ")
 }
 
 // LineItem represents a formatted line item

@@ -927,7 +927,7 @@ func newSSAEventFromItem(i Item) (e *ssaEvent) {
 		if len(l.VoiceName) > 0 {
 			e.name = l.VoiceName
 		}
-		lines = append(lines, strings.Join(items, ""))
+		lines = append(lines, strings.Join(items, " "))
 	}
 	e.text = strings.Join(lines, "\\n")
 	return
@@ -1014,7 +1014,7 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 					e.style = item
 				}
 			case ssaEventFormatNameText:
-				e.text = item
+				e.text = strings.TrimSpace(item)
 			}
 		// Marked
 		case ssaEventFormatNameMarked:

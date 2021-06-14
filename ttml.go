@@ -432,15 +432,6 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			}
 
 		}
-		//if multiple items in `l` are present without new line then adding space at end so it can become readable after concatenation
-		if len(l.Items) > 0 {
-			for idx, item := range l.Items {
-				if idx == len(l.Items)-1 {
-					continue
-				}
-				l.Items[idx].Text = item.Text + " "
-			}
-		}
 		s.Lines = append(s.Lines, *l)
 
 		// Append subtitle
