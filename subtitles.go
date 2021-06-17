@@ -266,22 +266,39 @@ func (sa *StyleAttributes) propagateTeletextAttributes() {
 	}
 }
 
+//reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
 func (sa *StyleAttributes) propagateTTMLAttributes() {
 	if sa.TTMLTextAlign != nil {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
 	}
 	if sa.TTMLExtent != nil {
+		//region settings
 		lineHeight := 5 //assuming height of line as 5.33vh
 		dimensions := strings.Split(*sa.TTMLExtent, " ")
 		sa.WebVTTWidth = dimensions[0]
 		if height, err := strconv.Atoi(strings.ReplaceAll(dimensions[1], "%", "")); err == nil {
 			sa.WebVTTLines = height / lineHeight
 		}
+		//cue settings
+		//default TTML WritingMode is lrtb i.e. left to right, top to bottom
+		sa.WebVTTSize = dimensions[1]
+		if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
+			sa.WebVTTSize = dimensions[0]
+		}
 	}
 	if sa.TTMLOrigin != nil {
+		//region settings
 		sa.WebVTTRegionAnchor = "0%,0%"
 		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
 		sa.WebVTTScroll = "up"
+		//cue settings
+		coordinates := strings.Split(*sa.TTMLOrigin, " ")
+		sa.WebVTTLine = coordinates[0]
+		sa.WebVTTPosition = coordinates[1]
+		if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
+			sa.WebVTTLine = coordinates[1]
+			sa.WebVTTPosition = coordinates[0]
+		}
 	}
 }
 
