@@ -98,20 +98,7 @@ type TTMLInStyleAttributes struct {
 
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
 func (s TTMLInStyleAttributes) styleAttributes() (o *StyleAttributes) {
-	o = newStyleAttributesFromTTMLInStyleAttributes(s)
-	o.propagateTTMLAttributes()
-	return
-}
-
-// StyleAttributes converts TTMLInStyleAttributes for region into a StyleAttributes
-func (s TTMLInStyleAttributes) regionStyleAttributes() (o *StyleAttributes) {
-	o = newStyleAttributesFromTTMLInStyleAttributes(s)
-	o.propagateTTMLRegionAttributes()
-	return
-}
-
-func newStyleAttributesFromTTMLInStyleAttributes(s TTMLInStyleAttributes) *StyleAttributes {
-	return &StyleAttributes{
+	o = &StyleAttributes{
 		TTMLBackgroundColor: s.BackgroundColor,
 		TTMLColor:           s.Color,
 		TTMLDirection:       s.Direction,
@@ -137,6 +124,8 @@ func newStyleAttributesFromTTMLInStyleAttributes(s TTMLInStyleAttributes) *Style
 		TTMLWritingMode:     s.WritingMode,
 		TTMLZIndex:          s.ZIndex,
 	}
+	o.propagateTTMLAttributes()
+	return
 }
 
 // TTMLInHeader represents an input TTML header
@@ -337,40 +326,18 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		s.Style = o.Styles[id]
 	}
 
-	var regionParentStyles = make(map[string]*Style)
 	// Loop through regions
 	for _, tr := range ttml.Regions {
 		var r = &Region{
 			ID:          tr.ID,
-			InlineStyle: tr.TTMLInStyleAttributes.regionStyleAttributes(),
+			InlineStyle: tr.TTMLInStyleAttributes.styleAttributes(),
 		}
 		if len(tr.Style) > 0 {
 			if _, ok := o.Styles[tr.Style]; !ok {
 				err = fmt.Errorf("astisub: Style %s requested by region %s doesn't exist", tr.Style, r.ID)
 				return
 			}
-			if _, ok := regionParentStyles[tr.Style]; !ok {
-				//creating new style for region, as region styles need to be migrated differently than cue styles. Ref: https://w3c.github.io/ttml-webvtt-mapping/#mapping-positioning-information
-				s := *o.Styles[tr.Style]
-				s.InlineStyle.propagateTTMLRegionAttributes()
-				//updating parent style attributes
-				if s.Style != nil {
-					stop := false
-					var sArray = make([]*Style, 0, 0)
-					sArray = append(sArray, &s)
-					for !stop {
-						temp := sArray[len(sArray)-1]
-						temp.Style.InlineStyle.propagateTTMLRegionAttributes()
-						if temp.Style.Style == nil {
-							stop = true
-							continue
-						}
-						sArray = append(sArray, temp.Style.Style)
-					}
-				}
-				regionParentStyles[tr.Style] = &s
-			}
-			r.Style = regionParentStyles[tr.Style]
+			r.Style = o.Styles[tr.Style]
 		}
 		o.Regions[r.ID] = r
 	}

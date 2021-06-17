@@ -270,9 +270,6 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 	if sa.TTMLTextAlign != nil {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
 	}
-}
-
-func (sa *StyleAttributes) propagateTTMLRegionAttributes() {
 	if sa.TTMLExtent != nil {
 		lineHeight := 5 //assuming height of line as 5.33vh
 		dimensions := strings.Split(*sa.TTMLExtent, " ")
@@ -285,8 +282,8 @@ func (sa *StyleAttributes) propagateTTMLRegionAttributes() {
 	if sa.TTMLOrigin != nil {
 		sa.WebVTTRegionAnchor = "0%,0%"
 		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+		sa.WebVTTScroll = "up"
 	}
-
 }
 
 func (sa *StyleAttributes) propagateWebVTTAttributes() {}

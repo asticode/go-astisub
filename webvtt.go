@@ -299,35 +299,35 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
-		} else if s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
-		} else if s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("regionanchor="+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
-		} else if s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("scroll="+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
-		} else if s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("viewportanchor="+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
-		} else if s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("width="+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
 		}
@@ -361,14 +361,23 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			if item.InlineStyle.WebVTTAlign != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("align:"+item.InlineStyle.WebVTTAlign)...)
+			} else if item.Style != nil && item.Style.InlineStyle.WebVTTAlign != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("align:"+item.Style.InlineStyle.WebVTTAlign)...)
 			}
 			if item.InlineStyle.WebVTTLine != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("line:"+item.InlineStyle.WebVTTLine)...)
+			} else if item.Style != nil && item.Style.InlineStyle.WebVTTLine != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("line:"+item.Style.InlineStyle.WebVTTLine)...)
 			}
 			if item.InlineStyle.WebVTTPosition != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("position:"+item.InlineStyle.WebVTTPosition)...)
+			} else if item.Style != nil && item.Style.InlineStyle.WebVTTPosition != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("position:"+item.Style.InlineStyle.WebVTTPosition)...)
 			}
 			if item.Region != nil {
 				c = append(c, bytesSpace...)
@@ -377,10 +386,16 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			if item.InlineStyle.WebVTTSize != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("size:"+item.InlineStyle.WebVTTSize)...)
+			} else if item.Style != nil && item.Style.InlineStyle.WebVTTSize != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("size:"+item.Style.InlineStyle.WebVTTSize)...)
 			}
 			if item.InlineStyle.WebVTTVertical != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("vertical:"+item.InlineStyle.WebVTTVertical)...)
+			} else if item.Style != nil && item.Style.InlineStyle.WebVTTVertical != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("vertical:"+item.Style.InlineStyle.WebVTTVertical)...)
 			}
 		}
 
