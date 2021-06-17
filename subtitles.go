@@ -277,7 +277,6 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 		if height, err := strconv.Atoi(strings.ReplaceAll(dimensions[1], "%", "")); err == nil {
 			sa.WebVTTLines = height / lineHeight
 		}
-
 	}
 	if sa.TTMLOrigin != nil {
 		sa.WebVTTRegionAnchor = "0%,0%"
