@@ -98,20 +98,7 @@ type TTMLInStyleAttributes struct {
 
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
 func (s TTMLInStyleAttributes) styleAttributes() (o *StyleAttributes) {
-	o = newStyleAttributesFromTTMLInStyleAttributes(s)
-	o.propagateTTMLAttributes()
-	return
-}
-
-// StyleAttributes converts TTMLInStyleAttributes for region into a StyleAttributes
-func (s TTMLInStyleAttributes) regionStyleAttributes() (o *StyleAttributes) {
-	o = newStyleAttributesFromTTMLInStyleAttributes(s)
-	o.propagateTTMLRegionAttributes()
-	return
-}
-
-func newStyleAttributesFromTTMLInStyleAttributes(s TTMLInStyleAttributes) *StyleAttributes {
-	return &StyleAttributes{
+	o = &StyleAttributes{
 		TTMLBackgroundColor: s.BackgroundColor,
 		TTMLColor:           s.Color,
 		TTMLDirection:       s.Direction,
@@ -137,6 +124,8 @@ func newStyleAttributesFromTTMLInStyleAttributes(s TTMLInStyleAttributes) *Style
 		TTMLWritingMode:     s.WritingMode,
 		TTMLZIndex:          s.ZIndex,
 	}
+	o.propagateTTMLAttributes()
+	return
 }
 
 // TTMLInHeader represents an input TTML header
@@ -341,7 +330,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	for _, tr := range ttml.Regions {
 		var r = &Region{
 			ID:          tr.ID,
-			InlineStyle: tr.TTMLInStyleAttributes.regionStyleAttributes(),
+			InlineStyle: tr.TTMLInStyleAttributes.styleAttributes(),
 		}
 		if len(tr.Style) > 0 {
 			if _, ok := o.Styles[tr.Style]; !ok {
