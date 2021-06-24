@@ -415,10 +415,6 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("align:"+item.Style.InlineStyle.WebVTTAlign)...)
 			}
-			if item.Region != nil {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("region:"+item.Region.ID)...)
-			}
 			if item.InlineStyle.WebVTTLine != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("line:"+item.InlineStyle.WebVTTLine)...)
