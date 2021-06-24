@@ -31,6 +31,8 @@ var (
 	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)([\s\w]+)+>)`)
+	webVTTCueBegin                     = "::cue(.%s) {"
+	webVTTCueEnd                       = "}"
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -336,6 +338,54 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	if len(s.Regions) > 0 {
 		c = append(c, bytesLineSeparator...)
 	}
+	//Add Style
+	if s.Styles != nil {
+		c = append(c, []byte("STYLE")...)
+		c = append(c, bytesLineSeparator...)
+	}
+	for id, style := range s.Styles {
+		c = append(c, []byte(fmt.Sprintf(webVTTCueBegin, id))...)
+		c = append(c, bytesLineSeparator...)
+		if style.InlineStyle.WebVTTBackgroundColor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("background-color: "+style.InlineStyle.WebVTTBackgroundColor+";")...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTBackgroundColor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("background-color: "+style.Style.InlineStyle.WebVTTBackgroundColor+";")...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTColor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("color: "+style.InlineStyle.WebVTTColor+";")...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTColor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("color: "+style.Style.InlineStyle.WebVTTColor+";")...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTFontFamily != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-family: "+style.InlineStyle.WebVTTFontFamily+";")...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontFamily != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-family: "+style.Style.InlineStyle.WebVTTFontFamily+";")...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTFontSize != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-size: "+style.InlineStyle.WebVTTFontSize+";")...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontSize != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-size: "+style.Style.InlineStyle.WebVTTFontSize+";")...)
+			c = append(c, bytesLineSeparator...)
+		}
+		c = append(c, []byte(webVTTCueEnd)...)
+		c = append(c, bytesLineSeparator...)
+		c = append(c, bytesLineSeparator...)
+	}
 
 	// Loop through subtitles
 	for index, item := range s.Items {
@@ -364,6 +414,10 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTAlign != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("align:"+item.Style.InlineStyle.WebVTTAlign)...)
+			}
+			if item.Region != nil {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("region:"+item.Region.ID)...)
 			}
 			if item.InlineStyle.WebVTTLine != "" {
 				c = append(c, bytesSpace...)
@@ -423,17 +477,45 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 }
 
 func (l Line) webVTTBytes() (c []byte) {
+
 	if l.VoiceName != "" {
 		c = append(c, []byte("<v "+l.VoiceName+">")...)
 	}
 	for idx, li := range l.Items {
-		c = append(c, li.webVTTBytes()...)
+		c = append(c, li.webVTTBytesWithStyle()...)
 		// condition to avoid adding space as the last character.
 		if idx < len(l.Items)-1 {
 			c = append(c, []byte(" ")...)
 		}
 	}
 	c = append(c, bytesLineSeparator...)
+	return
+}
+
+func (li LineItem) webVTTBytesWithStyle() (c []byte) {
+	// Get style
+	var style string
+	if li.Style != nil {
+		style = li.Style.ID
+	}
+
+	// Get italics
+	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
+
+	// Append
+	if style != "" {
+		c = append(c, []byte("<c."+style+">")...)
+	}
+	if i {
+		c = append(c, []byte("<i>")...)
+	}
+	c = append(c, []byte(li.Text)...)
+	if i {
+		c = append(c, []byte("</i>")...)
+	}
+	if style != "" {
+		c = append(c, []byte("</c>")...)
+	}
 	return
 }
 

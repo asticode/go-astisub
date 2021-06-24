@@ -24,6 +24,11 @@ const (
 	ttmlLanguageNorwegian = "no"
 )
 
+const (
+	defaultBodyStyleID = "defaultBodyStyleID"
+	defaultRegion      = "defaultRegionID"
+)
+
 // TTML language mapping
 var ttmlLanguageMapping = astikit.NewBiMap().
 	Set(ttmlLanguageEnglish, LanguageEnglish).
@@ -39,14 +44,14 @@ var (
 // TTMLIn represents an input TTML that must be unmarshaled
 // We split it from the output TTML as we can't add strict namespace without breaking retrocompatibility
 type TTMLIn struct {
-	Framerate int              `xml:"frameRate,attr"`
-	Lang      string           `xml:"lang,attr"`
-	Metadata  TTMLInMetadata   `xml:"head>metadata"`
-	Regions   []TTMLInRegion   `xml:"head>layout>region"`
-	Styles    []TTMLInStyle    `xml:"head>styling>style"`
-	Subtitles []TTMLInSubtitle `xml:"body>div>p"`
-	Tickrate  int              `xml:"tickRate,attr"`
-	XMLName   xml.Name         `xml:"tt"`
+	Framerate int            `xml:"frameRate,attr"`
+	Lang      string         `xml:"lang,attr"`
+	Metadata  TTMLInMetadata `xml:"head>metadata"`
+	Regions   []TTMLInRegion `xml:"head>layout>region"`
+	Styles    []TTMLInStyle  `xml:"head>styling>style"`
+	Body      TTMLInBody     `xml:"body"`
+	Tickrate  int            `xml:"tickRate,attr"`
+	XMLName   xml.Name       `xml:"tt"`
 }
 
 // metadata returns the Metadata of the TTML
@@ -145,6 +150,14 @@ type TTMLInRegion struct {
 type TTMLInStyle struct {
 	TTMLInHeader
 	XMLName xml.Name `xml:"style"`
+}
+
+// TTMLInBody represents an input TTML body attributes
+type TTMLInBody struct {
+	Region string `xml:"region,attr,omitempty"`
+	Style  string `xml:"style,attr,omitempty"`
+	TTMLInStyleAttributes
+	Subtitles []TTMLInSubtitle `xml:"div>p"`
 }
 
 // TTMLInSubtitle represents an input TTML subtitle
@@ -326,6 +339,28 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		s.Style = o.Styles[id]
 	}
 
+	//take care of body style
+	defaultBodyStyle := ""
+	if len(ttml.Body.Style) > 0 {
+		defaultBodyStyle = ttml.Body.Style
+	}
+	//if true create a new default body style and push it in o.Styles
+	if ttml.Body.TTMLInStyleAttributes != (TTMLInStyleAttributes{}) {
+		var s = &Style{
+			ID:          defaultBodyStyleID,
+			InlineStyle: ttml.Body.TTMLInStyleAttributes.styleAttributes(),
+		}
+		if defaultBodyStyle != "" {
+			if _, ok := o.Styles[defaultBodyStyle]; !ok {
+				err = fmt.Errorf("astisub: Style %s requested by style %s doesn't exist", defaultBodyStyle, s.ID)
+				return
+			}
+			s.Style = o.Styles[defaultBodyStyle]
+		}
+		o.Styles[s.ID] = s
+		defaultBodyStyle = defaultBodyStyleID
+	}
+
 	// Loop through regions
 	for _, tr := range ttml.Regions {
 		var r = &Region{
@@ -343,7 +378,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Loop through subtitles
-	for _, ts := range ttml.Subtitles {
+	for _, ts := range ttml.Body.Subtitles {
 		// Init item
 		ts.Begin.framerate = ttml.Framerate
 		ts.Begin.tickrate = ttml.Tickrate
@@ -372,6 +407,8 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				return
 			}
 			s.Style = o.Styles[ts.Style]
+		} else if defaultBodyStyle != "" {
+			s.Style = o.Styles[defaultBodyStyle]
 		}
 
 		// Unmarshal items
@@ -382,6 +419,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		}
 
 		// Loop through texts
+		parentTagStyle := ts.Style
 		var l = &Line{}
 		for _, tt := range items {
 			// New line specified with the "br" tag
@@ -414,6 +452,10 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 						return
 					}
 					t.Style = o.Styles[tt.Style]
+				} else if parentTagStyle != "" {
+					t.Style = o.Styles[parentTagStyle]
+				} else if defaultBodyStyle != "" {
+					t.Style = o.Styles[defaultBodyStyle]
 				}
 
 				// Append items
