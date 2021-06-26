@@ -247,6 +247,12 @@ type StyleAttributes struct {
 	WebVTTFontFamily      string
 	WebVTTFontSize        string
 	WebVTTColor           string
+	WebVTTFontStyle       string
+	WebVTTFontWeight      string
+	WebVTTLineHeight      string
+	WebVTTTextDecoration  string
+	WebVTTTextOutline     string
+	WebVTTVisibility      string
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
@@ -272,6 +278,21 @@ func (sa *StyleAttributes) propagateTeletextAttributes() {
 
 //reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
 func (sa *StyleAttributes) propagateTTMLAttributes() {
+	if sa.TTMLFontStyle != nil {
+		sa.WebVTTFontStyle = *sa.TTMLFontStyle
+	}
+	if sa.TTMLFontWeight != nil {
+		sa.WebVTTFontWeight = *sa.TTMLFontWeight
+	}
+	if sa.TTMLLineHeight != nil {
+		sa.WebVTTLineHeight = *sa.TTMLLineHeight
+	}
+	if sa.TTMLTextDecoration != nil {
+		sa.WebVTTTextDecoration = *sa.TTMLTextDecoration
+	}
+	if sa.TTMLTextOutline != nil {
+		sa.WebVTTTextOutline = *sa.TTMLTextOutline
+	}
 	if sa.TTMLFontFamily != nil {
 		sa.WebVTTFontFamily = *sa.TTMLFontFamily
 	}
@@ -283,6 +304,9 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 	}
 	if sa.TTMLColor != nil {
 		sa.WebVTTColor = *sa.TTMLColor
+	}
+	if sa.TTMLVisibility != nil {
+		sa.WebVTTVisibility = *sa.TTMLVisibility
 	}
 	if sa.TTMLTextAlign != nil {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
@@ -298,9 +322,9 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 			//cue settings
 			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
-			sa.WebVTTSize = dimensions[1]
+			sa.WebVTTSize = dimensions[0]
 			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTSize = dimensions[0]
+				sa.WebVTTSize = dimensions[1]
 			}
 		}
 	}

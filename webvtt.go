@@ -382,6 +382,60 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			c = append(c, []byte("font-size: "+style.Style.InlineStyle.WebVTTFontSize+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
+		if style.InlineStyle.WebVTTFontStyle != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-style: "+style.InlineStyle.WebVTTFontStyle)...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontStyle != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-style: "+style.Style.InlineStyle.WebVTTFontStyle)...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTFontWeight != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-weight: "+style.InlineStyle.WebVTTFontWeight)...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontWeight != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-weight: "+style.Style.InlineStyle.WebVTTFontWeight)...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTLineHeight != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("line-height: "+style.InlineStyle.WebVTTLineHeight)...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTLineHeight != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("line-height: "+style.Style.InlineStyle.WebVTTLineHeight)...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTTextDecoration != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("text-decoration: "+style.InlineStyle.WebVTTTextDecoration)...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTTextDecoration != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("text-decoration: "+style.Style.InlineStyle.WebVTTTextDecoration)...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTTextOutline != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("outline-color: "+style.InlineStyle.WebVTTTextOutline)...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTTextOutline != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("outline-color: "+style.Style.InlineStyle.WebVTTTextOutline)...)
+			c = append(c, bytesLineSeparator...)
+		}
+		if style.InlineStyle.WebVTTVisibility != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("visibility: "+style.InlineStyle.WebVTTVisibility)...)
+			c = append(c, bytesLineSeparator...)
+		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTVisibility != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("visibility: "+style.Style.InlineStyle.WebVTTVisibility)...)
+			c = append(c, bytesLineSeparator...)
+		}
 		c = append(c, []byte(webVTTCueEnd)...)
 		c = append(c, bytesLineSeparator...)
 		c = append(c, bytesLineSeparator...)
