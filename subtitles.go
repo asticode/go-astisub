@@ -323,7 +323,7 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			//cue settings
 			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
 			sa.WebVTTSize = dimensions[0]
-			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
+			if sa.TTMLWritingMode != nil && (*sa.TTMLWritingMode == "lr" || *sa.TTMLWritingMode == "rl") {
 				sa.WebVTTSize = dimensions[1]
 			}
 		}
@@ -334,13 +334,14 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
 		sa.WebVTTScroll = "up"
 		//cue settings
+		//default TTML WritingMode is lrtb i.e. left to right, top to bottom
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
 		if len(coordinates) > 1 {
-			sa.WebVTTLine = coordinates[0]
-			sa.WebVTTPosition = coordinates[1]
-			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTLine = coordinates[1]
-				sa.WebVTTPosition = coordinates[0]
+			sa.WebVTTLine = coordinates[1]
+			sa.WebVTTPosition = coordinates[0]
+			if sa.TTMLWritingMode != nil && (*sa.TTMLWritingMode == "lr" || *sa.TTMLWritingMode == "rl") {
+				sa.WebVTTLine = coordinates[0]
+				sa.WebVTTPosition = coordinates[1]
 			}
 		}
 	}
