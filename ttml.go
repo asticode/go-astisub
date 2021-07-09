@@ -199,15 +199,6 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 			if e.XMLName.Local == "metadata" && len(strings.TrimSpace(e.Text)) == 0 {
 				continue
 			}
-			//if strings.Contains(e.RawText, "<tt:br/>") || strings.Contains(e.RawText, "<tt:br><tt:br/>") || strings.Contains(e.RawText, "<br/>") || strings.Contains(e.RawText, "<br><br/>") {
-			//	// Unmarshal items
-			//	var items = TTMLInItems{}
-			//	se.
-			//	if err = xml.Unmarshal([]byte("<span>"+e.RawText+"</span>"), &items); err != nil {
-			//		err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
-			//		return
-			//	}
-			//}
 			*i = append(*i, e)
 		} else if b, ok := t.(xml.CharData); ok {
 			var str = strings.TrimSpace(string(b))
