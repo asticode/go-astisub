@@ -297,45 +297,45 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	}
 	sort.Strings(k)
 	for _, id := range k {
-		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)
+		c = append(c, []byte("REGION")...)
+		c = append(c, bytesLineSeparator...)
+		c = append(c, []byte("id:"+s.Regions[id].ID)...)
 		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("lines:"+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
 		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("lines:"+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("regionanchor:"+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
 		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("regionanchor:"+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("scroll:"+s.Regions[id].InlineStyle.WebVTTScroll)...)
 		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("scroll:"+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("viewportanchor:"+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
 		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("viewportanchor:"+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("width:"+s.Regions[id].InlineStyle.WebVTTWidth)...)
 		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
+			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte("width:"+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
 		}
 		c = append(c, bytesLineSeparator...)
-	}
-	if len(s.Regions) > 0 {
 		c = append(c, bytesLineSeparator...)
 	}
 	//Add Style
@@ -344,100 +344,122 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		c = append(c, bytesLineSeparator...)
 	}
 	for id, style := range s.Styles {
-		c = append(c, []byte(fmt.Sprintf(webVTTCueBegin, id))...)
+		c = append(c, []byte(fmt.Sprintf(webVTTCueBegin, convertStyle(id)))...)
 		c = append(c, bytesLineSeparator...)
 		if style.InlineStyle.WebVTTBackgroundColor != "" {
+			c = append(c, bytesSpace...)
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("background-color: "+style.InlineStyle.WebVTTBackgroundColor+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTBackgroundColor != "" {
+			c = append(c, bytesSpace...)
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("background-color: "+style.Style.InlineStyle.WebVTTBackgroundColor+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTColor != "" {
 			c = append(c, bytesSpace...)
+			c = append(c, bytesSpace...)
 			c = append(c, []byte("color: "+style.InlineStyle.WebVTTColor+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTColor != "" {
+			c = append(c, bytesSpace...)
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("color: "+style.Style.InlineStyle.WebVTTColor+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTFontFamily != "" {
 			c = append(c, bytesSpace...)
+			c = append(c, bytesSpace...)
 			c = append(c, []byte("font-family: "+style.InlineStyle.WebVTTFontFamily+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontFamily != "" {
+			c = append(c, bytesSpace...)
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("font-family: "+style.Style.InlineStyle.WebVTTFontFamily+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTFontSize != "" {
 			c = append(c, bytesSpace...)
+			c = append(c, bytesSpace...)
 			c = append(c, []byte("font-size: "+style.InlineStyle.WebVTTFontSize+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontSize != "" {
+			c = append(c, bytesSpace...)
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("font-size: "+style.Style.InlineStyle.WebVTTFontSize+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTFontStyle != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("font-style: "+style.InlineStyle.WebVTTFontStyle)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-style: "+style.InlineStyle.WebVTTFontStyle+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontStyle != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("font-style: "+style.Style.InlineStyle.WebVTTFontStyle)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-style: "+style.Style.InlineStyle.WebVTTFontStyle+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTFontWeight != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("font-weight: "+style.InlineStyle.WebVTTFontWeight)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-weight: "+style.InlineStyle.WebVTTFontWeight+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTFontWeight != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("font-weight: "+style.Style.InlineStyle.WebVTTFontWeight)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("font-weight: "+style.Style.InlineStyle.WebVTTFontWeight+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTLineHeight != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("line-height: "+style.InlineStyle.WebVTTLineHeight)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("line-height: "+style.InlineStyle.WebVTTLineHeight+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTLineHeight != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("line-height: "+style.Style.InlineStyle.WebVTTLineHeight)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("line-height: "+style.Style.InlineStyle.WebVTTLineHeight+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTTextDecoration != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("text-decoration: "+style.InlineStyle.WebVTTTextDecoration)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("text-decoration: "+style.InlineStyle.WebVTTTextDecoration+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTTextDecoration != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("text-decoration: "+style.Style.InlineStyle.WebVTTTextDecoration)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("text-decoration: "+style.Style.InlineStyle.WebVTTTextDecoration+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTTextOutline != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("outline-color: "+style.InlineStyle.WebVTTTextOutline)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("outline-color: "+style.InlineStyle.WebVTTTextOutline+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTTextOutline != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("outline-color: "+style.Style.InlineStyle.WebVTTTextOutline)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("outline-color: "+style.Style.InlineStyle.WebVTTTextOutline+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		if style.InlineStyle.WebVTTVisibility != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("visibility: "+style.InlineStyle.WebVTTVisibility)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("visibility: "+style.InlineStyle.WebVTTVisibility+";")...)
 			c = append(c, bytesLineSeparator...)
 		} else if style.Style != nil && style.Style.InlineStyle != nil && style.Style.InlineStyle.WebVTTVisibility != "" {
 			c = append(c, bytesSpace...)
-			c = append(c, []byte("visibility: "+style.Style.InlineStyle.WebVTTVisibility)...)
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("visibility: "+style.Style.InlineStyle.WebVTTVisibility+";")...)
 			c = append(c, bytesLineSeparator...)
 		}
 		c = append(c, []byte(webVTTCueEnd)...)
 		c = append(c, bytesLineSeparator...)
+	}
+	if s.Styles != nil {
 		c = append(c, bytesLineSeparator...)
 	}
 
@@ -461,7 +483,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		c = append(c, []byte(formatDurationWebVTT(item.EndAt))...)
 
 		// Add styles
-		if item.InlineStyle != nil {
+		if item.InlineStyle != nil || item.Style != nil {
 			if item.InlineStyle.WebVTTAlign != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("align:"+item.InlineStyle.WebVTTAlign)...)
@@ -554,7 +576,7 @@ func (li LineItem) webVTTBytesWithStyle() (c []byte) {
 
 	// Append
 	if style != "" {
-		c = append(c, []byte("<c."+style+">")...)
+		c = append(c, []byte("<c."+convertStyle(style)+">")...)
 	}
 	if i {
 		c = append(c, []byte("<i>")...)
@@ -605,4 +627,9 @@ func cssColor(rgb string) string {
 		"#00ff00": "lime",    // foreign speak
 	}
 	return colors[strings.ToLower(rgb)] // returning the empty string is ok
+}
+
+//convertStyle replaces underscore( _ ) with hyphen(-). VTT STYLE doesn't support underscore in class name.
+func convertStyle(styleID string) string {
+	return strings.ReplaceAll(styleID, "_", "-")
 }
