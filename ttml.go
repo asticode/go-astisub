@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -24,6 +25,11 @@ const (
 	ttmlLanguageNorwegian = "no"
 )
 
+const (
+	defaultBodyStyleID = "defaultBodyStyleID"
+	customStyle        = "customStyle-%v"
+)
+
 // TTML language mapping
 var ttmlLanguageMapping = astikit.NewBiMap().
 	Set(ttmlLanguageEnglish, LanguageEnglish).
@@ -39,14 +45,14 @@ var (
 // TTMLIn represents an input TTML that must be unmarshaled
 // We split it from the output TTML as we can't add strict namespace without breaking retrocompatibility
 type TTMLIn struct {
-	Framerate int              `xml:"frameRate,attr"`
-	Lang      string           `xml:"lang,attr"`
-	Metadata  TTMLInMetadata   `xml:"head>metadata"`
-	Regions   []TTMLInRegion   `xml:"head>layout>region"`
-	Styles    []TTMLInStyle    `xml:"head>styling>style"`
-	Subtitles []TTMLInSubtitle `xml:"body>div>p"`
-	Tickrate  int              `xml:"tickRate,attr"`
-	XMLName   xml.Name         `xml:"tt"`
+	Framerate int            `xml:"frameRate,attr"`
+	Lang      string         `xml:"lang,attr"`
+	Metadata  TTMLInMetadata `xml:"head>metadata"`
+	Regions   []TTMLInRegion `xml:"head>layout>region"`
+	Styles    []TTMLInStyle  `xml:"head>styling>style"`
+	Body      TTMLInBody     `xml:"body"`
+	Tickrate  int            `xml:"tickRate,attr"`
+	XMLName   xml.Name       `xml:"tt"`
 }
 
 // metadata returns the Metadata of the TTML
@@ -147,6 +153,14 @@ type TTMLInStyle struct {
 	XMLName xml.Name `xml:"style"`
 }
 
+// TTMLInBody represents an input TTML body attributes
+type TTMLInBody struct {
+	Region string `xml:"region,attr,omitempty"`
+	Style  string `xml:"style,attr,omitempty"`
+	TTMLInStyleAttributes
+	Subtitles []TTMLInSubtitle `xml:"div>p"`
+}
+
 // TTMLInSubtitle represents an input TTML subtitle
 type TTMLInSubtitle struct {
 	Begin  *TTMLInDuration `xml:"begin,attr,omitempty"`
@@ -182,6 +196,9 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 				err = fmt.Errorf("astisub: decoding xml.StartElement failed: %w", err)
 				return
 			}
+			if e.XMLName.Local == "metadata" && len(strings.TrimSpace(e.Text)) == 0 {
+				continue
+			}
 			*i = append(*i, e)
 		} else if b, ok := t.(xml.CharData); ok {
 			var str = strings.TrimSpace(string(b))
@@ -196,7 +213,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 // TTMLInItem represents an input TTML item
 type TTMLInItem struct {
 	Style string `xml:"style,attr,omitempty"`
-	Text  string `xml:",chardata"`
+	Text  string `xml:",innerxml"`
 	TTMLInStyleAttributes
 	XMLName xml.Name
 }
@@ -326,24 +343,44 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		s.Style = o.Styles[id]
 	}
 
+	//take care of body style
+	defaultBodyStyle := ""
+	defaultRegion := ""
+	if len(ttml.Body.Style) > 0 {
+		defaultBodyStyle = ttml.Body.Style
+	}
+	if len(ttml.Body.Region) > 0 {
+		defaultRegion = ttml.Body.Region
+	}
+	//if true create a new default body style and push it in o.Styles
+	if ttml.Body.TTMLInStyleAttributes != (TTMLInStyleAttributes{}) {
+		var s = &Style{
+			ID:          defaultBodyStyleID,
+			InlineStyle: ttml.Body.TTMLInStyleAttributes.styleAttributes(),
+		}
+		if defaultBodyStyle != "" {
+			if _, ok := o.Styles[defaultBodyStyle]; !ok {
+				err = fmt.Errorf("astisub: Style %s requested by style %s doesn't exist", defaultBodyStyle, s.ID)
+				return
+			}
+			s.Style = o.Styles[defaultBodyStyle]
+		}
+		o.Styles[s.ID] = s
+		defaultBodyStyle = defaultBodyStyleID
+	}
+
 	// Loop through regions
+	//ttml region doesn't support tts:style
 	for _, tr := range ttml.Regions {
 		var r = &Region{
 			ID:          tr.ID,
 			InlineStyle: tr.TTMLInStyleAttributes.styleAttributes(),
 		}
-		if len(tr.Style) > 0 {
-			if _, ok := o.Styles[tr.Style]; !ok {
-				err = fmt.Errorf("astisub: Style %s requested by region %s doesn't exist", tr.Style, r.ID)
-				return
-			}
-			r.Style = o.Styles[tr.Style]
-		}
 		o.Regions[r.ID] = r
 	}
 
 	// Loop through subtitles
-	for _, ts := range ttml.Subtitles {
+	for _, ts := range ttml.Body.Subtitles {
 		// Init item
 		ts.Begin.framerate = ttml.Framerate
 		ts.Begin.tickrate = ttml.Tickrate
@@ -351,13 +388,18 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		ts.End.tickrate = ttml.Tickrate
 
 		var s = &Item{
-			EndAt:       ts.End.duration(),
-			InlineStyle: ts.TTMLInStyleAttributes.styleAttributes(),
-			StartAt:     ts.Begin.duration(),
+			EndAt:   ts.End.duration(),
+			StartAt: ts.Begin.duration(),
 		}
 
 		// Add region
 		if len(ts.Region) > 0 {
+			if _, ok := o.Regions[ts.Region]; !ok {
+				err = fmt.Errorf("astisub: Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
+				return
+			}
+			s.Region = o.Regions[ts.Region]
+		} else if defaultRegion != "" {
 			if _, ok := o.Regions[ts.Region]; !ok {
 				err = fmt.Errorf("astisub: Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
 				return
@@ -372,15 +414,30 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				return
 			}
 			s.Style = o.Styles[ts.Style]
+		} else if defaultBodyStyle != "" {
+			s.Style = o.Styles[defaultBodyStyle]
 		}
 
 		// Unmarshal items
 		var items = TTMLInItems{}
+		ts.Items = strings.ReplaceAll(ts.Items, "<br/>", "\\n")
+		ts.Items = strings.ReplaceAll(ts.Items, "<tt:br/>", "\\n")
+		ts.Items = strings.ReplaceAll(ts.Items, "<br><br/>", "\\n")
+		ts.Items = strings.ReplaceAll(ts.Items, "<tt:br><tt:br/>", "\\n")
 		if err = xml.Unmarshal([]byte("<span>"+ts.Items+"</span>"), &items); err != nil {
 			err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
 			return
 		}
 
+		//if multiple spans within a <p> have style or inline style with positioning data then
+		//the data is overridden in top to bottom order and the entire <p> assumes the last overridden position
+		parentTagStyle := ts.Style
+		finalAlignment := ts.TTMLInStyleAttributes.TextAlign
+		finalDisplayAlignment := ts.TTMLInStyleAttributes.DisplayAlign
+		finalOrigin := ts.TTMLInStyleAttributes.Origin
+		finalExtent := ts.TTMLInStyleAttributes.Extent
+		finalWritingMode := ts.TTMLInStyleAttributes.WritingMode
+		finalPadding := ts.TTMLInStyleAttributes.Padding
 		// Loop through texts
 		var l = &Line{}
 		for _, tt := range items {
@@ -394,7 +451,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			// New line decoded as a line break. This can happen if there's a "br" tag within the text since
 			// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
 			// chardata xml tag.
-			for idx, li := range strings.Split(tt.Text, "\n") {
+			for idx, li := range strings.Split(tt.Text, "\\n") {
 				// New line
 				if idx > 0 {
 					s.Lines = append(s.Lines, *l)
@@ -414,6 +471,29 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 						return
 					}
 					t.Style = o.Styles[tt.Style]
+					if t.InlineStyle.TTMLTextAlign != nil {
+						finalAlignment = t.InlineStyle.TTMLTextAlign
+						finalDisplayAlignment = t.InlineStyle.TTMLDisplayAlign
+						finalOrigin = t.InlineStyle.TTMLOrigin
+						finalExtent = t.InlineStyle.TTMLExtent
+						finalWritingMode = t.InlineStyle.TTMLWritingMode
+						finalPadding = t.InlineStyle.TTMLPadding
+					} else if t.Style.InlineStyle.TTMLTextAlign != nil {
+						finalAlignment = t.Style.InlineStyle.TTMLTextAlign
+						finalDisplayAlignment = t.Style.InlineStyle.TTMLDisplayAlign
+						finalOrigin = t.Style.InlineStyle.TTMLOrigin
+						finalExtent = t.Style.InlineStyle.TTMLExtent
+						finalWritingMode = t.Style.InlineStyle.TTMLWritingMode
+						finalPadding = t.Style.InlineStyle.TTMLPadding
+					}
+				} else if parentTagStyle != "" {
+					t.Style = o.Styles[parentTagStyle]
+				} else if defaultBodyStyle != "" {
+					t.Style = o.Styles[defaultBodyStyle]
+				}
+
+				if t.InlineStyle.TTMLTextAlign != nil {
+					finalAlignment = t.InlineStyle.TTMLTextAlign
 				}
 
 				// Append items
@@ -422,11 +502,184 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 		}
 		s.Lines = append(s.Lines, *l)
-
+		//setting final alignment of entire <p>
+		if finalAlignment != nil {
+			ts.TTMLInStyleAttributes.TextAlign = finalAlignment
+		}
+		if finalExtent != nil {
+			ts.TTMLInStyleAttributes.Extent = finalExtent
+		}
+		if finalOrigin != nil {
+			ts.TTMLInStyleAttributes.Origin = finalOrigin
+		}
+		if finalDisplayAlignment != nil {
+			ts.TTMLInStyleAttributes.DisplayAlign = finalDisplayAlignment
+		}
+		if finalPadding != nil {
+			ts.TTMLInStyleAttributes.Padding = finalPadding
+		}
+		if finalWritingMode != nil {
+			ts.TTMLInStyleAttributes.WritingMode = finalWritingMode
+		}
+		s.InlineStyle = ts.TTMLInStyleAttributes.styleAttributes()
 		// Append subtitle
 		o.Items = append(o.Items, s)
 	}
+
+	//Pushing Inline style from parent tag to every child tag then combining it with child tag's Style to create a new style and then assigning that style to the child tag.
+	customStyleNumber := 1
+	var customStyleMap = make(map[Style]string)
+	for _, item := range o.Items {
+		parentInlineStyle := item.InlineStyle
+		var lines []Line
+		for _, line := range item.Lines {
+			var lineItems []LineItem
+			for _, lineItem := range line.Items {
+				//as parent style may contain only position settings we should not consider that as a new inline style
+				styleAttr := StyleAttributes{
+					TTMLTextAlign:    parentInlineStyle.TTMLTextAlign,
+					TTMLOrigin:       parentInlineStyle.TTMLOrigin,
+					TTMLExtent:       parentInlineStyle.TTMLExtent,
+					TTMLDisplayAlign: parentInlineStyle.TTMLDisplayAlign,
+					TTMLPadding:      parentInlineStyle.TTMLPadding,
+					TTMLWritingMode:  parentInlineStyle.TTMLWritingMode,
+				}
+				styleAttr.propagateTTMLAttributes()
+				if *parentInlineStyle == styleAttr && *lineItem.InlineStyle == (StyleAttributes{}) {
+					lineItems = append(lineItems, lineItem)
+					continue
+				}
+				if *parentInlineStyle != styleAttr && *lineItem.InlineStyle == (StyleAttributes{}) {
+					lineItem.InlineStyle = parentInlineStyle
+				} else if *parentInlineStyle != styleAttr && *lineItem.InlineStyle != (StyleAttributes{}) {
+					//combine both inline style to create a new inline style
+					inlineStyle := combineInlineStyles(parentInlineStyle, *lineItem.InlineStyle)
+					lineItem.InlineStyle = inlineStyle
+				}
+				// if only inline style is present, create a new style from it, as multiple formats (VTT) doesn't support inline + style.
+				if *lineItem.InlineStyle != (StyleAttributes{}) {
+					var inlineStyle *StyleAttributes
+					inlineStyle = lineItem.InlineStyle
+					if lineItem.Style != nil {
+						inlineStyle = combineInlineStyles(lineItem.Style.InlineStyle, *lineItem.InlineStyle)
+					}
+					newStyle := &Style{
+						InlineStyle: inlineStyle,
+					}
+					if lineItem.Style != nil {
+						newStyle.Style = lineItem.Style.Style
+					}
+					newStyle.InlineStyle.propagateTTMLAttributes()
+					ok, id := checkIfCustomStyleExists(customStyleMap, newStyle)
+					if ok {
+						newStyle = o.Styles[id]
+					} else {
+						newID := fmt.Sprintf(customStyle, customStyleNumber)
+						customStyleNumber++
+						customStyleMap[*newStyle] = newID
+						newStyle.ID = newID
+						o.Styles[newStyle.ID] = newStyle
+					}
+					lineItem.Style = newStyle
+				}
+				lineItems = append(lineItems, lineItem)
+			}
+			line.Items = lineItems
+			lines = append(lines, line)
+		}
+		item.Lines = lines
+	}
+
 	return
+}
+
+func checkIfCustomStyleExists(styleMap map[Style]string, style *Style) (bool, string) {
+	for s, id := range styleMap {
+		if reflect.DeepEqual(*s.InlineStyle, *style.InlineStyle) && s.Style == style.Style {
+			return true, id
+		}
+	}
+	return false, ""
+}
+
+//combineInlineStyles combines two StyleAttributes keeping everything from destination and adding missing data from source to destination
+func combineInlineStyles(source *StyleAttributes, destination StyleAttributes) *StyleAttributes {
+	if source == nil {
+		source = &StyleAttributes{}
+	}
+	if destination.TTMLColor == nil {
+		destination.TTMLColor = source.TTMLColor
+	}
+	if destination.TTMLTextAlign == nil {
+		destination.TTMLTextAlign = source.TTMLTextAlign
+	}
+	if destination.TTMLBackgroundColor == nil {
+		destination.TTMLBackgroundColor = source.TTMLBackgroundColor
+	}
+	if destination.TTMLOrigin == nil {
+		destination.TTMLOrigin = source.TTMLOrigin
+	}
+	if destination.TTMLFontStyle == nil {
+		destination.TTMLFontStyle = source.TTMLFontStyle
+	}
+	if destination.TTMLZIndex == nil {
+		destination.TTMLZIndex = source.TTMLZIndex
+	}
+	if destination.TTMLWritingMode == nil {
+		destination.TTMLWritingMode = source.TTMLWritingMode
+	}
+	if destination.TTMLWrapOption == nil {
+		destination.TTMLWrapOption = source.TTMLWrapOption
+	}
+	if destination.TTMLVisibility == nil {
+		destination.TTMLVisibility = source.TTMLVisibility
+	}
+	if destination.TTMLUnicodeBidi == nil {
+		destination.TTMLUnicodeBidi = source.TTMLUnicodeBidi
+	}
+	if destination.TTMLTextOutline == nil {
+		destination.TTMLTextOutline = source.TTMLTextOutline
+	}
+	if destination.TTMLTextDecoration == nil {
+		destination.TTMLTextDecoration = source.TTMLTextDecoration
+	}
+	if destination.TTMLShowBackground == nil {
+		destination.TTMLShowBackground = source.TTMLShowBackground
+	}
+	if destination.TTMLPadding == nil {
+		destination.TTMLPadding = source.TTMLPadding
+	}
+	if destination.TTMLOpacity == nil {
+		destination.TTMLOpacity = source.TTMLOpacity
+	}
+	if destination.TTMLOverflow == nil {
+		destination.TTMLOverflow = source.TTMLOverflow
+	}
+	if destination.TTMLLineHeight == nil {
+		destination.TTMLLineHeight = source.TTMLLineHeight
+	}
+	if destination.TTMLFontWeight == nil {
+		destination.TTMLFontWeight = source.TTMLFontWeight
+	}
+	if destination.TTMLFontSize == nil {
+		destination.TTMLFontSize = source.TTMLFontSize
+	}
+	if destination.TTMLFontFamily == nil {
+		destination.TTMLFontFamily = source.TTMLFontFamily
+	}
+	if destination.TTMLDirection == nil {
+		destination.TTMLDirection = source.TTMLDirection
+	}
+	if destination.TTMLDisplay == nil {
+		destination.TTMLDisplay = source.TTMLDisplay
+	}
+	if destination.TTMLDisplayAlign == nil {
+		destination.TTMLDisplayAlign = source.TTMLDisplayAlign
+	}
+	if destination.TTMLExtent == nil {
+		destination.TTMLExtent = source.TTMLExtent
+	}
+	return &destination
 }
 
 // TTMLOut represents an output TTML that must be marshaled

@@ -208,41 +208,51 @@ type StyleAttributes struct {
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
 	// TODO Use pointers with real types below
-	TTMLBackgroundColor  *string // https://htmlcolorcodes.com/fr/
-	TTMLColor            *string
-	TTMLDirection        *string
-	TTMLDisplay          *string
-	TTMLDisplayAlign     *string
-	TTMLExtent           *string
-	TTMLFontFamily       *string
-	TTMLFontSize         *string
-	TTMLFontStyle        *string
-	TTMLFontWeight       *string
-	TTMLLineHeight       *string
-	TTMLOpacity          *string
-	TTMLOrigin           *string
-	TTMLOverflow         *string
-	TTMLPadding          *string
-	TTMLShowBackground   *string
-	TTMLTextAlign        *string
-	TTMLTextDecoration   *string
-	TTMLTextOutline      *string
-	TTMLUnicodeBidi      *string
-	TTMLVisibility       *string
-	TTMLWrapOption       *string
-	TTMLWritingMode      *string
-	TTMLZIndex           *int
-	WebVTTAlign          string
-	WebVTTItalics        bool
-	WebVTTLine           string
-	WebVTTLines          int
-	WebVTTPosition       string
-	WebVTTRegionAnchor   string
-	WebVTTScroll         string
-	WebVTTSize           string
-	WebVTTVertical       string
-	WebVTTViewportAnchor string
-	WebVTTWidth          string
+	TTMLBackgroundColor   *string // https://htmlcolorcodes.com/fr/
+	TTMLColor             *string
+	TTMLDirection         *string
+	TTMLDisplay           *string
+	TTMLDisplayAlign      *string
+	TTMLExtent            *string
+	TTMLFontFamily        *string
+	TTMLFontSize          *string
+	TTMLFontStyle         *string
+	TTMLFontWeight        *string
+	TTMLLineHeight        *string
+	TTMLOpacity           *string
+	TTMLOrigin            *string
+	TTMLOverflow          *string
+	TTMLPadding           *string
+	TTMLShowBackground    *string
+	TTMLTextAlign         *string
+	TTMLTextDecoration    *string
+	TTMLTextOutline       *string
+	TTMLUnicodeBidi       *string
+	TTMLVisibility        *string
+	TTMLWrapOption        *string
+	TTMLWritingMode       *string
+	TTMLZIndex            *int
+	WebVTTAlign           string
+	WebVTTItalics         bool
+	WebVTTLine            string
+	WebVTTLines           int
+	WebVTTPosition        string
+	WebVTTRegionAnchor    string
+	WebVTTScroll          string
+	WebVTTSize            string
+	WebVTTVertical        string
+	WebVTTViewportAnchor  string
+	WebVTTWidth           string
+	WebVTTBackgroundColor string
+	WebVTTFontFamily      string
+	WebVTTFontSize        string
+	WebVTTColor           string
+	WebVTTFontStyle       string
+	WebVTTFontWeight      string
+	WebVTTLineHeight      string
+	WebVTTTextDecoration  string
+	WebVTTTextOutline     string
+	WebVTTVisibility      string
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
@@ -268,6 +278,36 @@ func (sa *StyleAttributes) propagateTeletextAttributes() {
 
 //reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
 func (sa *StyleAttributes) propagateTTMLAttributes() {
+	if sa.TTMLFontStyle != nil {
+		sa.WebVTTFontStyle = *sa.TTMLFontStyle
+	}
+	if sa.TTMLFontWeight != nil {
+		sa.WebVTTFontWeight = *sa.TTMLFontWeight
+	}
+	if sa.TTMLLineHeight != nil {
+		sa.WebVTTLineHeight = *sa.TTMLLineHeight
+	}
+	if sa.TTMLTextDecoration != nil {
+		sa.WebVTTTextDecoration = *sa.TTMLTextDecoration
+	}
+	if sa.TTMLTextOutline != nil {
+		sa.WebVTTTextOutline = *sa.TTMLTextOutline
+	}
+	if sa.TTMLFontFamily != nil {
+		sa.WebVTTFontFamily = *sa.TTMLFontFamily
+	}
+	if sa.TTMLFontSize != nil {
+		sa.WebVTTFontSize = *sa.TTMLFontSize
+	}
+	if sa.TTMLBackgroundColor != nil {
+		sa.WebVTTBackgroundColor = *sa.TTMLBackgroundColor
+	}
+	if sa.TTMLColor != nil {
+		sa.WebVTTColor = *sa.TTMLColor
+	}
+	if sa.TTMLVisibility != nil {
+		sa.WebVTTVisibility = *sa.TTMLVisibility
+	}
 	if sa.TTMLTextAlign != nil {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
 	}
@@ -282,9 +322,9 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 			//cue settings
 			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
-			sa.WebVTTSize = dimensions[1]
-			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTSize = dimensions[0]
+			sa.WebVTTSize = dimensions[0]
+			if sa.TTMLWritingMode != nil && (*sa.TTMLWritingMode == "lr" || *sa.TTMLWritingMode == "rl") {
+				sa.WebVTTSize = dimensions[1]
 			}
 		}
 	}
@@ -294,13 +334,14 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
 		sa.WebVTTScroll = "up"
 		//cue settings
+		//default TTML WritingMode is lrtb i.e. left to right, top to bottom
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
 		if len(coordinates) > 1 {
-			sa.WebVTTLine = coordinates[0]
-			sa.WebVTTPosition = coordinates[1]
-			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTLine = coordinates[1]
-				sa.WebVTTPosition = coordinates[0]
+			sa.WebVTTLine = coordinates[1]
+			sa.WebVTTPosition = coordinates[0]
+			if sa.TTMLWritingMode != nil && (*sa.TTMLWritingMode == "lr" || *sa.TTMLWritingMode == "rl") {
+				sa.WebVTTLine = coordinates[0]
+				sa.WebVTTPosition = coordinates[1]
 			}
 		}
 	}
