@@ -170,8 +170,14 @@ type STLPosition struct {
 	Rows             int
 }
 
+// STLOptions represents STL parsing options
+type STLOptions struct {
+	// IgnoreTimecodeStartOfProgramme - set STLTimecodeStartOfProgramme to zero before parsing
+	IgnoreTimecodeStartOfProgramme bool
+}
+
 // ReadFromSTL parses an .stl content
-func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
+func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 
@@ -209,6 +215,9 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
 		STLTimecodeStartOfProgramme:                         g.timecodeStartOfProgramme,
 		Title:                                               g.originalProgramTitle,
+	}
+	if opts.IgnoreTimecodeStartOfProgramme {
+		o.Metadata.STLTimecodeStartOfProgramme = 0
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
 		o.Metadata.Language = v.(string)
