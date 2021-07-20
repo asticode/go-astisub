@@ -213,11 +213,10 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 		STLPublisher:                                        g.publisher,
 		STLRevisionDate:                                     &g.revisionDate,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
-		STLTimecodeStartOfProgramme:                         g.timecodeStartOfProgramme,
 		Title:                                               g.originalProgramTitle,
 	}
-	if opts.IgnoreTimecodeStartOfProgramme {
-		o.Metadata.STLTimecodeStartOfProgramme = 0
+	if !opts.IgnoreTimecodeStartOfProgramme {
+		o.Metadata.STLTimecodeStartOfProgramme = g.timecodeStartOfProgramme
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
 		o.Metadata.Language = v.(string)
