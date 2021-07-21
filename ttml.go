@@ -451,7 +451,13 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			// New line decoded as a line break. This can happen if there's a "br" tag within the text since
 			// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
 			// chardata xml tag.
-			for idx, li := range strings.Split(tt.Text, "\\n") {
+			if strings.TrimSpace(tt.Text) == "\\n" {
+				s.Lines = append(s.Lines, *l)
+				l = &Line{}
+				continue
+			}
+			temp := strings.Split(tt.Text, "\\n")
+			for idx, li := range temp {
 				// New line
 				if idx > 0 {
 					s.Lines = append(s.Lines, *l)
