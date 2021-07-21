@@ -456,8 +456,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				l = &Line{}
 				continue
 			}
-			temp := strings.Split(tt.Text, "\\n")
-			for idx, li := range temp {
+			for idx, li := range strings.Split(tt.Text, "\\n") {
 				// New line
 				if idx > 0 {
 					s.Lines = append(s.Lines, *l)
