@@ -3,13 +3,14 @@ package astisub
 import (
 	"errors"
 	"fmt"
-	"github.com/asticode/go-astikit"
 	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/asticode/go-astikit"
 )
 
 // Bytes
@@ -54,6 +55,7 @@ var Now = func() time.Time {
 type Options struct {
 	Filename string
 	Teletext TeletextOptions
+	STL      STLOptions
 }
 
 // Open opens a subtitle reader based on options
@@ -73,7 +75,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	case ".ssa", ".ass":
 		s, err = ReadFromSSA(f)
 	case ".stl":
-		s, err = ReadFromSTL(f)
+		s, err = ReadFromSTL(f, o.STL)
 	case ".ts":
 		s, err = ReadFromTeletext(f, o.Teletext)
 	case ".ttml":
