@@ -258,9 +258,9 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 
 		// Create item
 		var i = &Item{
-			EndAt:       t.timecodeOut - g.timecodeStartOfProgramme,
+			EndAt:       t.timecodeOut - o.Metadata.STLTimecodeStartOfProgramme,
 			InlineStyle: &styleAttributes,
-			StartAt:     t.timecodeIn - g.timecodeStartOfProgramme,
+			StartAt:     t.timecodeIn - o.Metadata.STLTimecodeStartOfProgramme,
 		}
 
 		// Loop through rows

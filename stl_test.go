@@ -3,6 +3,7 @@ package astisub_test
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -81,4 +82,16 @@ func TestOPNSTL(t *testing.T) {
 	err = s.WriteToSTL(w)
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestIgnoreTimecodeStartOfProgramme(t *testing.T) {
+	opts := astisub.STLOptions{IgnoreTimecodeStartOfProgramme: true}
+	r, err := os.Open("./testdata/example-in-nonzero-offset.stl")
+	assert.NoError(t, err)
+	defer r.Close()
+
+	s, err := astisub.ReadFromSTL(r, opts)
+	assert.NoError(t, err)
+	firstStart := 99 * time.Second
+	assert.Equal(t, firstStart, s.Items[0].StartAt, "first start at 0")
 }
