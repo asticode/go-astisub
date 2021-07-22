@@ -339,11 +339,17 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		c = append(c, bytesLineSeparator...)
 	}
 	//Add Style
-	if s.Styles != nil {
+	if s.Styles != nil || len(s.Styles) != 0 {
 		c = append(c, []byte("STYLE")...)
 		c = append(c, bytesLineSeparator...)
 	}
-	for id, style := range s.Styles {
+	var ids []string
+	for id, _ := range s.Styles {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		style := s.Styles[id]
 		c = append(c, []byte(fmt.Sprintf(webVTTCueBegin, convertStyle(id)))...)
 		c = append(c, bytesLineSeparator...)
 		if style.InlineStyle.WebVTTBackgroundColor != "" {
