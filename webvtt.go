@@ -465,7 +465,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		c = append(c, []byte(webVTTCueEnd)...)
 		c = append(c, bytesLineSeparator...)
 	}
-	if s.Styles != nil {
+	if s.Styles != nil && len(s.Styles) != 0 {
 		c = append(c, bytesLineSeparator...)
 	}
 
