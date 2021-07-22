@@ -339,7 +339,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		c = append(c, bytesLineSeparator...)
 	}
 	//Add Style
-	if s.Styles != nil || len(s.Styles) != 0 {
+	if s.Styles != nil && len(s.Styles) != 0 {
 		c = append(c, []byte("STYLE")...)
 		c = append(c, bytesLineSeparator...)
 	}
