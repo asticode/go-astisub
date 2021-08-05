@@ -5,4 +5,6 @@ const (
 	LanguageEnglish   = "english"
 	LanguageFrench    = "french"
 	LanguageNorwegian = "norwegian"
+	LanguageChinese = "chinese"
+	LanguageJapanese = "japanese"
 )
