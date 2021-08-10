@@ -108,10 +108,10 @@ const (
 
 // STL country codes
 const (
-	stlCountryCodeFrance  = "FRA"
-	stlCountryCodeNorway  = "NOR"
 	stlCountryCodeChinese = "CHN"
+	stlCountryCodeFrance  = "FRA"
 	stlCountryCodeJapan   = "JPN"
+	stlCountryCodeNorway  = "NOR"
 )
 
 // STL cumulative status
@@ -144,20 +144,20 @@ const (
 
 // STL language codes
 const (
+	stlLanguageCodeChinese   = "75"
 	stlLanguageCodeEnglish   = "09"
 	stlLanguageCodeFrench    = "0F"
-	stlLanguageCodeNorwegian = "1E"
-	stlLanguageCodeChinese   = "75"
 	stllanguageCodeJapanese  = "69"
+	stlLanguageCodeNorwegian = "1E"
 )
 
 // STL language mapping
 var stlLanguageMapping = astikit.NewBiMap().
+	Set(stlLanguageCodeChinese, LanguageChinese).
 	Set(stlLanguageCodeEnglish, LanguageEnglish).
 	Set(stlLanguageCodeFrench, LanguageFrench).
-	Set(stlLanguageCodeNorwegian, LanguageNorwegian).
-	Set(stlLanguageCodeChinese, LanguageChinese).
-	Set(stllanguageCodeJapanese, LanguageJapanese)
+	Set(stllanguageCodeJapanese, LanguageJapanese).
+	Set(stlLanguageCodeNorwegian, LanguageNorwegian)
 
 	// STL timecode status
 const (
