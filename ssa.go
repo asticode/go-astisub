@@ -1069,6 +1069,8 @@ func (e *ssaEvent) item(styles map[string]*Style) (i *Item, err error) {
 				if lineItem != nil {
 					lineItem.Text = s[previousEffectEndOffset:idxs[0]]
 					l.Items = append(l.Items, *lineItem)
+				} else if idxs[0] > 0 {
+					l.Items = append(l.Items, LineItem{Text: s[previousEffectEndOffset:idxs[0]]})
 				}
 				previousEffectEndOffset = idxs[1]
 				lineItem = &LineItem{InlineStyle: &StyleAttributes{SSAEffect: s[idxs[0]:idxs[1]]}}
