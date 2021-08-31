@@ -728,11 +728,26 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, t.cumulativeStatus)                                                                                // Cumulative status
 	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                                              // Timecode in
 	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                                             // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                                                                   // Vertical position
+	o = append(o, validateVerticalPosition(t.verticalPosition, g.displayStandardCode))                               // Vertical position
 	o = append(o, t.justificationCode)                                                                               // Justification code
 	o = append(o, t.commentFlag)                                                                                     // Comment flag
 	o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
 	return
+}
+
+func validateVerticalPosition(vp int, dsc string) byte {
+	closed := false
+	switch dsc {
+	case stlDisplayStandardCodeLevel1Teletext, stlDisplayStandardCodeLevel2Teletext:
+		closed = true
+	}
+	if vp < 1 && closed {
+		vp = 1
+	}
+	if vp > 23 && closed {
+		vp = 23
+	}
+	return byte(uint8(vp))
 }
 
 // formatDurationSTLBytes formats a STL duration in bytes
