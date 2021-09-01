@@ -736,8 +736,10 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 }
 
 // According to EBU 3264 (https://tech.ebu.ch/docs/tech/tech3264.pdf):
+// page 12:
 // for teletext subtitles, VP contains a value in the range 1-23 decimal (01h-17h)
 // corresponding to theteletext row number of the first subtitle row.
+// page 6:
 // Teletext ("closed") subtitles are indicated via the Display Standard Code
 // in the GSI block.
 func validateVerticalPosition(vp int, dsc string) byte {
