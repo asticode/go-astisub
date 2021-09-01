@@ -728,11 +728,33 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, t.cumulativeStatus)                                                                                // Cumulative status
 	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                                              // Timecode in
 	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                                             // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                                                                   // Vertical position
+	o = append(o, validateVerticalPosition(t.verticalPosition, g.displayStandardCode))                               // Vertical position
 	o = append(o, t.justificationCode)                                                                               // Justification code
 	o = append(o, t.commentFlag)                                                                                     // Comment flag
 	o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
 	return
+}
+
+// According to EBU 3264 (https://tech.ebu.ch/docs/tech/tech3264.pdf):
+// page 12:
+// for teletext subtitles, VP contains a value in the range 1-23 decimal (01h-17h)
+// corresponding to theteletext row number of the first subtitle row.
+// page 6:
+// Teletext ("closed") subtitles are indicated via the Display Standard Code
+// in the GSI block.
+func validateVerticalPosition(vp int, dsc string) byte {
+	closed := false
+	switch dsc {
+	case stlDisplayStandardCodeLevel1Teletext, stlDisplayStandardCodeLevel2Teletext:
+		closed = true
+	}
+	if vp < 1 && closed {
+		vp = 1
+	}
+	if vp > 23 && closed {
+		vp = 23
+	}
+	return byte(uint8(vp))
 }
 
 // formatDurationSTLBytes formats a STL duration in bytes
