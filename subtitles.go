@@ -619,20 +619,25 @@ func (s *Subtitles) Unfragment() {
 		return
 	}
 
+	// Order
+	s.Order()
+
 	// Loop through items
 	for i := 0; i < len(s.Items)-1; i++ {
 		for j := i + 1; j < len(s.Items); j++ {
 			// Items are the same
-			if s.Items[i].String() == s.Items[j].String() && s.Items[i].EndAt == s.Items[j].StartAt {
-				s.Items[i].EndAt = s.Items[j].EndAt
+			if s.Items[i].String() == s.Items[j].String() && s.Items[i].EndAt >= s.Items[j].StartAt {
+				// Only override end time if longer
+				if s.Items[i].EndAt < s.Items[j].EndAt {
+					s.Items[i].EndAt = s.Items[j].EndAt
+				}
 				s.Items = append(s.Items[:j], s.Items[j+1:]...)
 				j--
+			} else if s.Items[i].EndAt < s.Items[j].StartAt {
+				break
 			}
 		}
 	}
-
-	// Order
-	s.Order()
 }
 
 // Write writes subtitles to a file

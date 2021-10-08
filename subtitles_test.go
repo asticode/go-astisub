@@ -126,6 +126,72 @@ func TestSubtitles_Fragment(t *testing.T) {
 	assert.Equal(t, 5*time.Second, s.Items[2].EndAt)
 }
 
+func TestSubtitles_Unfragment(t *testing.T) {
+	itemText := func(s string) []astisub.Line {
+		return []astisub.Line{{Items: []astisub.LineItem{{Text: s}}}}
+	}
+	items := []*astisub.Item{{
+		Lines:   itemText("subtitle-1"),
+		StartAt: 1 * time.Second,
+		EndAt:   2 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-2"),
+		StartAt: 2 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-3"),
+		StartAt: 3 * time.Second,
+		EndAt:   4 * time.Second,
+	}, {
+		// gap and nested within first subtitle-2; should not override end time
+		Lines:   itemText("subtitle-2"),
+		StartAt: 3 * time.Second,
+		EndAt:   4 * time.Second,
+	}, {
+		Lines: itemText("subtitle-3"),
+		// gap and start time equals previous end time
+		StartAt: 4 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		// should not be combined
+		Lines:   itemText("subtitle-3"),
+		StartAt: 6 * time.Second,
+		EndAt:   7 * time.Second,
+	}, {
+		// test correcting for out-of-orderness
+		Lines:   itemText("subtitle-1"),
+		StartAt: 0 * time.Second,
+		EndAt:   3 * time.Second,
+	}}
+
+	s := &astisub.Subtitles{Items: items}
+
+	s.Unfragment()
+
+	expected := []astisub.Item{{
+		Lines:   itemText("subtitle-1"),
+		StartAt: 0 * time.Second,
+		EndAt:   3 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-2"),
+		StartAt: 2 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-3"),
+		StartAt: 3 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-3"),
+		StartAt: 6 * time.Second,
+		EndAt:   7 * time.Second,
+	}}
+
+	assert.Equal(t, len(expected), len(s.Items))
+	for i := range expected {
+		assert.Equal(t, expected[i], *s.Items[i])
+	}
+}
+
 func TestSubtitles_Merge(t *testing.T) {
 	var s1 = &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 3 * time.Second, StartAt: time.Second}, {EndAt: 8 * time.Second, StartAt: 5 * time.Second}, {EndAt: 12 * time.Second, StartAt: 10 * time.Second}}, Regions: map[string]*astisub.Region{"region_0": {ID: "region_0"}, "region_1": {ID: "region_1"}}, Styles: map[string]*astisub.Style{"style_0": {ID: "style_0"}, "style_1": {ID: "style_1"}}}
 	var s2 = &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 4 * time.Second, StartAt: 2 * time.Second}, {EndAt: 7 * time.Second, StartAt: 6 * time.Second}, {EndAt: 11 * time.Second, StartAt: 9 * time.Second}, {EndAt: 14 * time.Second, StartAt: 13 * time.Second}}, Regions: map[string]*astisub.Region{"region_1": {ID: "region_1"}, "region_2": {ID: "region_2"}}, Styles: map[string]*astisub.Style{"style_1": {ID: "style_1"}, "style_2": {ID: "style_2"}}}
