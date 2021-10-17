@@ -13,6 +13,13 @@ import (
 	"github.com/asticode/go-astikit"
 )
 
+// Debug contains debug params
+var Debug struct {
+	enabled   bool          // should we output debug
+	numErrors int           // error counter
+	prevEnd   time.Duration // end time of previous sub
+}
+
 // Bytes
 var (
 	BytesBOM           = []byte{239, 187, 191}
@@ -56,6 +63,7 @@ type Options struct {
 	Filename string
 	Teletext TeletextOptions
 	STL      STLOptions
+	Debug    bool
 }
 
 // Open opens a subtitle reader based on options
@@ -68,6 +76,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	}
 	defer f.Close()
 
+	Debug.enabled = o.Debug
 	// Parse the content
 	switch filepath.Ext(strings.ToLower(o.Filename)) {
 	case ".srt":

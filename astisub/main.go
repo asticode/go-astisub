@@ -15,6 +15,7 @@ var (
 	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
+	debug            = flag.Bool("d", false, "show debug informations")
 )
 
 func main() {
@@ -36,7 +37,7 @@ func main() {
 	// Open first input path
 	var sub *astisub.Subtitles
 	var err error
-	if sub, err = astisub.Open(astisub.Options{Filename: (*inputPath.Slice)[0], Teletext: astisub.TeletextOptions{Page: *teletextPage}}); err != nil {
+	if sub, err = astisub.Open(astisub.Options{Filename: (*inputPath.Slice)[0], Teletext: astisub.TeletextOptions{Page: *teletextPage}, Debug: *debug}); err != nil {
 		log.Fatalf("%s while opening %s", err, (*inputPath.Slice)[0])
 	}
 

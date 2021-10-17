@@ -200,6 +200,15 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 		return
 	}
 
+	if Debug.enabled {
+		fmt.Printf("STL:GSIBlock\n")
+		fmt.Printf("STL:  DisplayStandardCode:0x%x\n", g.displayStandardCode)
+		fmt.Printf("STL:  TotalNumberOfTTIBlocks:%d\n", g.totalNumberOfTTIBlocks)
+		fmt.Printf("STL:  TotalNumberOfSubtitleGroups:%d\n", g.totalNumberOfSubtitleGroups)
+		fmt.Printf("STL:  TotalNumberOfSubtitles:%d\n", g.totalNumberOfSubtitles)
+		fmt.Printf("STL:\n")
+	}
+
 	// Create character handler
 	var ch *stlCharacterHandler
 	if ch, err = newSTLCharacterHandler(g.characterCodeTableNumber); err != nil {
@@ -284,6 +293,20 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 		// Append item
 		o.Items = append(o.Items, i)
 
+		if Debug.enabled {
+			warnTime := "   "
+			if i.StartAt > i.EndAt || Debug.prevEnd > i.StartAt {
+				warnTime = " ! "
+				Debug.numErrors++
+			}
+			fmt.Printf("STL: #%04d%s%09.3f - %09.3f%svp=%d\tlines=%d %s\n",
+				t.subtitleNumber, warnTime, i.StartAt.Seconds(), i.EndAt.Seconds(),
+				warnTime, t.verticalPosition, len(i.Lines), i.Lines)
+			Debug.prevEnd = i.EndAt
+		}
+	}
+	if Debug.enabled {
+		fmt.Printf("STL: %d error(s)\n", Debug.numErrors)
 	}
 	return
 }
