@@ -134,7 +134,7 @@ var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 
 // ReadFromSSA parses an .ssa content
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
-	o, err = ReadFromSSAWithOptions(i, SSAOptions{})
+	o, err = ReadFromSSAWithOptions(i, defaultSSAOptions())
 	return o, err
 }
 
@@ -181,7 +181,9 @@ func ReadFromSSAWithOptions(i io.Reader, opts SSAOptions) (o *Subtitles, err err
 				format = make(map[int]string)
 				continue
 			default:
-				opts.OnUnknownSectionName(line)
+				if opts.OnUnknownSectionName != nil {
+					opts.OnUnknownSectionName(line)
+				}
 				sectionName = ssaSectionNameUnknown
 				continue
 			}
@@ -201,7 +203,9 @@ func ReadFromSSAWithOptions(i io.Reader, opts SSAOptions) (o *Subtitles, err err
 		// Split on ":"
 		var split = strings.Split(line, ":")
 		if len(split) < 2 || split[0] == "" {
-			opts.OnInvalidLine(line)
+			if opts.OnInvalidLine != nil {
+				opts.OnInvalidLine(line)
+			}
 			continue
 		}
 		var header = strings.TrimSpace(split[0])
@@ -1276,12 +1280,18 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 }
 
 // SSAOptions
-type SSAOptions struct{}
-
-func (opts *SSAOptions) OnUnknownSectionName(name string) {
-	log.Printf("astisub: unknown section: %s", name)
+type SSAOptions struct {
+	OnUnknownSectionName func(name string)
+	OnInvalidLine        func(line string)
 }
 
-func (opts *SSAOptions) OnInvalidLine(line string) {
-	log.Printf("astisub: not understood: '%s', ignoring", line)
+func defaultSSAOptions() SSAOptions {
+	return SSAOptions{
+		OnUnknownSectionName: func(name string) {
+			log.Printf("astisub: unknown section: %s", name)
+		},
+		OnInvalidLine: func(line string) {
+			log.Printf("astisub: not understood: '%s', ignoring", line)
+		},
+	}
 }
