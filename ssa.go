@@ -134,6 +134,12 @@ var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 
 // ReadFromSSA parses an .ssa content
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
+	o, err = ReadFromSSAWithOptions(i, SSAOptions{})
+	return o, err
+}
+
+// ReadFromSSAWithOptions parses an .ssa content
+func ReadFromSSAWithOptions(i io.Reader, opts SSAOptions) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 	var scanner = bufio.NewScanner(i)
@@ -175,7 +181,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 				format = make(map[int]string)
 				continue
 			default:
-				log.Printf("astisub: unknown section: %s", line)
+				opts.OnUnknownSectionName(line)
 				sectionName = ssaSectionNameUnknown
 				continue
 			}
@@ -195,7 +201,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		// Split on ":"
 		var split = strings.Split(line, ":")
 		if len(split) < 2 || split[0] == "" {
-			log.Printf("astisub: not understood: '%s', ignoring", line)
+			opts.OnInvalidLine(line)
 			continue
 		}
 		var header = strings.TrimSpace(split[0])
@@ -1267,4 +1273,15 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		}
 	}
 	return
+}
+
+// SSAOptions
+type SSAOptions struct{}
+
+func (opts *SSAOptions) OnUnknownSectionName(name string) {
+	log.Printf("astisub: unknown section: %s", name)
+}
+
+func (opts *SSAOptions) OnInvalidLine(line string) {
+	log.Printf("astisub: not understood: '%s', ignoring", line)
 }
