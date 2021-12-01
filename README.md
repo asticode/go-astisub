@@ -13,7 +13,7 @@ Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfrag
 
 To install the library and command line program, use the following:
 
-    go get -u github.com/mysamimi/go-astisub/...
+    go get -u github.com/asticode/go-astisub/...
 
 # Using the library in your code
 

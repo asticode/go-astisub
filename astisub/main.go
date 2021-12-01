@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/asticode/go-astikit"
-	"github.com/mysamimi/go-astisub"
+	"github.com/asticode/go-astisub"
 )
 
 // Flags
