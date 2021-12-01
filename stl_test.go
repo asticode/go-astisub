@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astisub"
+	"github.com/mysamimi/go-astisub"
 	"github.com/stretchr/testify/assert"
 )
 
