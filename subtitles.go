@@ -596,6 +596,13 @@ func (s *Subtitles) Order() {
 	}
 }
 
+// FixIndex fix item index
+func (s *Subtitles) FixIndex() {
+	for i := 0; i < len(s.Items); i++ {
+		s.Items[i].Index = i + 1
+	}
+}
+
 // RemoveStyling removes the styling from the subtitles
 func (s *Subtitles) RemoveStyling() {
 	s.Regions = map[string]*Region{}
