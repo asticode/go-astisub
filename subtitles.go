@@ -589,6 +589,7 @@ func (s *Subtitles) Order() {
 				var tmp = s.Items[index-1]
 				s.Items[index-1] = s.Items[index]
 				s.Items[index] = tmp
+				s.Items[index].Index = index
 				swapped = true
 			}
 		}
