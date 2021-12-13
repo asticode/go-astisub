@@ -11,9 +11,13 @@ Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfrag
 
 # Installation
 
-To install the library and command line program, use the following:
+To install the library:
 
-    go get -u github.com/asticode/go-astisub/...
+    go get github.com/asticode/go-astisub
+
+To install the CLI:
+
+    go install github.com/asticode/go-astisub/astisub        
 
 # Using the library in your code
 
