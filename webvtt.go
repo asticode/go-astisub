@@ -3,6 +3,7 @@ package astisub
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -23,6 +24,7 @@ const (
 	webvttBlockNameStyle          = "style"
 	webvttBlockNameText           = "text"
 	webvttTimeBoundariesSeparator = " --> "
+	webvttTimestampMap            = "X-TIMESTAMP-MAP"
 )
 
 // Vars
@@ -36,6 +38,46 @@ var (
 // parseDurationWebVTT parses a .vtt duration
 func parseDurationWebVTT(i string) (time.Duration, error) {
 	return parseDuration(i, ".", 3)
+}
+
+// https://tools.ietf.org/html/rfc8216#section-3.5
+// Eg., `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:900000` => 10s
+//      `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000` => 2s
+func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) {
+	splits := strings.Split(line, "=")
+	if len(splits) <= 1 {
+		err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, no '=' found")
+		return
+	}
+	right := splits[1]
+
+	var local time.Duration
+	var mpegts int64
+	for _, split := range strings.Split(right, ",") {
+		splits := strings.SplitN(split, ":", 2)
+		if len(splits) <= 1 {
+			err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, part %q didn't contain ':'", right)
+			return
+		}
+
+		switch strings.ToLower(strings.TrimSpace(splits[0])) {
+		case "local":
+			local, err = parseDurationWebVTT(splits[1])
+			if err != nil {
+				err = fmt.Errorf("astisub: parsing webvtt duration failed: %w", err)
+				return
+			}
+		case "mpegts":
+			mpegts, err = strconv.ParseInt(splits[1], 10, 0)
+			if err != nil {
+				err = fmt.Errorf("astisub: parsing int %s failed: %w", splits[1], err)
+				return
+			}
+		}
+	}
+
+	timeOffset = time.Duration(mpegts)*time.Second/90000 - local
+	return
 }
 
 // ReadFromWebVTT parses a .vtt content
@@ -63,6 +105,8 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var blockName string
 	var comments []string
 	var index int
+	var timeOffset time.Duration
+
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
@@ -190,6 +234,19 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Append item
 			o.Items = append(o.Items, item)
+
+		case strings.HasPrefix(line, webvttTimestampMap):
+			if len(item.Lines) > 0 {
+				err = errors.New("astisub: found timestamp map after processing subtitle items")
+				return
+			}
+
+			timeOffset, err = parseTimestampMapWebVTT(line)
+			if err != nil {
+				err = fmt.Errorf("astisub: parsing webvtt timestamp map failed: %w", err)
+				return
+			}
+
 		// Text
 		default:
 			// Switch on block name
@@ -208,6 +265,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				index, _ = strconv.Atoi(line)
 			}
 		}
+	}
+
+	if timeOffset > 0 {
+		o.Add(timeOffset)
 	}
 	return
 }

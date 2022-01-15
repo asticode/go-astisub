@@ -100,3 +100,33 @@ NOTE this a example with voicename
 <v Bob>Incorrect tag?
 `, b.String())
 }
+
+func TestWebVTTWithTimestampMap(t *testing.T) {
+	testData := `WEBVTT
+	X-TIMESTAMP-MAP=MPEGTS:180000, LOCAL:00:00:00.000
+
+	00:00.933 --> 00:02.366
+	♪ ♪
+
+	00:02.400 --> 00:03.633
+	Evening.`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	assert.Len(t, s.Items, 2)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:00:02.933 --> 00:00:04.366
+♪ ♪
+
+2
+00:00:04.400 --> 00:00:05.633
+Evening.
+`, b.String())
+}
