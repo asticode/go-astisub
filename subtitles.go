@@ -596,10 +596,44 @@ func (s *Subtitles) Order() {
 	}
 }
 
+// ClipFrom clip items from input time
+func (s *Subtitles) ClipFrom(cf time.Duration) {
+	newIndex := 0
+	for index := 1; index < len(s.Items); index++ {
+		s.Items[index].StartAt -= cf
+		s.Items[index].EndAt -= cf
+		s.Items[index].Index = newIndex
+		if s.Items[index].StartAt < 0 {
+			s.Items[index].StartAt = 0
+		}
+		if s.Items[index].EndAt > 0 {
+			s.Items[index] = s.Items[newIndex]
+			newIndex++
+		}
+	}
+	s.Items = s.Items[:newIndex]
+}
+
+// ClipFrom clip items until input time
+func (s *Subtitles) ClipTo(ct time.Duration) {
+	lastIndex := 0
+	for index := 1; index < len(s.Items); index++ {
+		lastIndex = index
+		if s.Items[index].StartAt > ct {
+			break
+		}
+		if s.Items[index].EndAt > ct {
+			s.Items[index].EndAt = ct
+			break
+		}
+	}
+	s.Items = s.Items[:lastIndex]
+}
+
 // FixIndex fix item index
 func (s *Subtitles) FixIndex() {
 	for i := 0; i < len(s.Items); i++ {
-		s.Items[i].Index = i + 1
+		s.Items[i].Index = i
 	}
 }
 
