@@ -589,7 +589,6 @@ func (s *Subtitles) Order() {
 				var tmp = s.Items[index-1]
 				s.Items[index-1] = s.Items[index]
 				s.Items[index] = tmp
-				s.Items[index].Index = index
 				swapped = true
 			}
 		}
@@ -633,7 +632,7 @@ func (s *Subtitles) ClipTo(ct time.Duration) {
 // FixIndex fix item index
 func (s *Subtitles) FixIndex() {
 	for i := 0; i < len(s.Items); i++ {
-		s.Items[i].Index = i
+		s.Items[i].Index = i + 1
 	}
 }
 

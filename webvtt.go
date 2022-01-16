@@ -370,7 +370,7 @@ func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
 
 		// Add time boundaries
 		if writeWithIndex {
-			c = append(c, []byte(strconv.Itoa(item.Index+1))...)
+			c = append(c, []byte(strconv.Itoa(item.Index))...)
 		} else {
 			c = append(c, []byte(strconv.Itoa(index+1))...)
 		}
