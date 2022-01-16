@@ -598,7 +598,7 @@ func (s *Subtitles) Order() {
 // ClipFrom clip items from input time
 func (s *Subtitles) ClipFrom(cf time.Duration) {
 	newIndex := 0
-	for index := 1; index < len(s.Items); index++ {
+	for index := 0; index < len(s.Items); index++ {
 		s.Items[index].StartAt -= cf
 		s.Items[index].EndAt -= cf
 		s.Items[index].Index = newIndex
@@ -616,7 +616,7 @@ func (s *Subtitles) ClipFrom(cf time.Duration) {
 // ClipFrom clip items until input time
 func (s *Subtitles) ClipTo(ct time.Duration) {
 	lastIndex := 0
-	for index := 1; index < len(s.Items); index++ {
+	for index := 0; index < len(s.Items); index++ {
 		lastIndex = index
 		if s.Items[index].StartAt > ct {
 			break
@@ -626,7 +626,7 @@ func (s *Subtitles) ClipTo(ct time.Duration) {
 			break
 		}
 	}
-	s.Items = s.Items[:lastIndex]
+	s.Items = s.Items[:lastIndex+1]
 }
 
 // FixIndex fix item index
