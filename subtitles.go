@@ -606,7 +606,7 @@ func (s *Subtitles) ClipFrom(cf time.Duration) {
 			s.Items[index].StartAt = 0
 		}
 		if s.Items[index].EndAt > 0 {
-			s.Items[index] = s.Items[newIndex]
+			s.Items[newIndex] = s.Items[index]
 			newIndex++
 		}
 	}
