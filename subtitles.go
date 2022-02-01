@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -611,6 +612,35 @@ func (s *Subtitles) ClipFrom(cf time.Duration) {
 		}
 	}
 	s.Items = items
+}
+
+func copy(source interface{}, destin interface{}) {
+	x := reflect.ValueOf(source)
+	if x.Kind() == reflect.Ptr {
+		starX := x.Elem()
+		y := reflect.New(starX.Type())
+		starY := y.Elem()
+		starY.Set(starX)
+		reflect.ValueOf(destin).Elem().Set(y.Elem())
+	}
+}
+
+// Clone subtitles
+func (s *Subtitles) Clone() *Subtitles {
+	sub := &Subtitles{}
+	copy(s.Metadata, sub.Metadata)
+	for k, r := range s.Regions {
+		copy(r, sub.Regions[k])
+	}
+	for k, r := range s.Styles {
+		copy(r, sub.Styles[k])
+	}
+	for i := 0; i < len(s.Items); i++ {
+		n := &Item{}
+		copy(s.Items[i], n)
+		sub.Items = append(sub.Items, n)
+	}
+	return sub
 }
 
 // ClipFrom clip items until input time
