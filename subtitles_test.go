@@ -276,3 +276,29 @@ func TestSubtitles_RemoveStyling(t *testing.T) {
 		Styles:  map[string]*astisub.Style{},
 	}, s)
 }
+
+func TestSubtitles_FixIndex(t *testing.T) {
+	var s = mockSubtitles()
+	s.FixIndex()
+	for i := 0; i < len(s.Items); i++ {
+		assert.Equal(t, i+1, s.Items[i].Index)
+	}
+}
+
+func TestSubtitles_ClipTo(t *testing.T) {
+	var s = mockSubtitles()
+	s.ClipTo(2 * time.Second)
+	assert.Equal(t, 1, len(s.Items))
+	assert.Equal(t, 1*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 2*time.Second, s.Items[0].EndAt)
+}
+
+func TestSubtitles_ClipFrom(t *testing.T) {
+	var s = mockSubtitles()
+	s.ClipFrom(2 * time.Second)
+	assert.Equal(t, 2, len(s.Items))
+	assert.Equal(t, 0*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 1*time.Second, s.Items[0].EndAt)
+	assert.Equal(t, 1*time.Second, s.Items[1].StartAt)
+	assert.Equal(t, 5*time.Second, s.Items[1].EndAt)
+}
