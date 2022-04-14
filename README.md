@@ -13,11 +13,7 @@ Available operations are `parsing`, `writing`, `applying linear correction`, `sy
 
 To install the library:
 
-    go get github.com/asticode/go-astisub
-
-To install the CLI:
-
-    go install github.com/asticode/go-astisub/astisub        
+    go get github.com/molotovtv/go-astisub
 
 # Using the library in your code
 
@@ -51,38 +47,6 @@ s1.Write("/path/to/example.srt")
 var buf = &bytes.Buffer{}
 s2.WriteToTTML(buf)
 ```
-
-# Using the CLI
-
-If **astisub** has been installed properly you can:
-
-- convert any type of subtitle to any other type of subtitle:
-
-        astisub convert -i example.srt -o example.ttml
-
-- apply linear correction to any type of subtitle:
-
-        astisub apply-linear-correction -i example.srt -a1 1s -d1 2s -a2 5s -d2 7s -o example.out.srt
-
-- fragment any type of subtitle:
-
-        astisub fragment -i example.srt -f 2s -o example.out.srt
-
-- merge any type of subtitle into any other type of subtitle:
-
-        astisub merge -i example.srt -i example.ttml -o example.out.srt
-
-- optimize any type of subtitle:
-
-        astisub optimize -i example.srt -o example.out.srt
-
-- unfragment any type of subtitle:
-
-        astisub unfragment -i example.srt -o example.out.srt
-
-- sync any type of subtitle:
-
-        astisub sync -i example.srt -s "-2s" -o example.out.srt
 
 # Features and roadmap
 

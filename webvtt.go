@@ -20,7 +20,6 @@ import (
 // Constants
 const (
 	webvttBlockNameComment        = "comment"
-	webvttBlockNameRegion         = "region"
 	webvttBlockNameStyle          = "style"
 	webvttBlockNameText           = "text"
 	webvttTimeBoundariesSeparator = " --> "

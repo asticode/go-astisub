@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/bits"
 	"sort"
 	"strings"
@@ -316,9 +315,7 @@ func teletextPESDataType(dataIdentifier uint8) string {
 
 // Teletext PES data unit ids
 const (
-	teletextPESDataUnitIDEBUNonSubtitleData = 0x2
-	teletextPESDataUnitIDEBUSubtitleData    = 0x3
-	teletextPESDataUnitIDStuffing           = 0xff
+	teletextPESDataUnitIDEBUSubtitleData = 0x3
 )
 
 // TeletextOptions represents teletext options
@@ -458,7 +455,6 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 
 			// Set pid
 			pid = pids[0]
-			log.Printf("astisub: no teletext pid specified, using pid %d", pid)
 
 			// Rewind
 			if _, err = dmx.Rewind(); err != nil {
@@ -633,7 +629,6 @@ func (b *teletextPageBuffer) parsePacketHeader(i []byte, magazineNumber uint8, t
 		if subtitleFlag {
 			b.magazineNumber = magazineNumber
 			b.pageNumber = pageNumber
-			log.Printf("astisub: no teletext page specified, using page %d%.2d", b.magazineNumber, b.pageNumber)
 		}
 	}
 

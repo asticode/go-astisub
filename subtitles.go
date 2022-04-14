@@ -479,10 +479,10 @@ func (s *Subtitles) Fragment(f time.Duration) {
 			*newSub = *sub
 
 			// We compare the timings in milliseconds, because it is their output time format (VID-409)
-			subStartAtMs := sub.StartAt / time.Millisecond
-			fragmentStartAtMs := fragmentStartAt / time.Millisecond
-			subEndAtMs := sub.EndAt / time.Millisecond
-			fragmentEndAtMs := fragmentEndAt / time.Millisecond
+			subStartAtMs := sub.StartAt.Milliseconds()
+			fragmentStartAtMs := fragmentStartAt.Milliseconds()
+			subEndAtMs := sub.EndAt.Milliseconds()
+			fragmentEndAtMs := fragmentEndAt.Milliseconds()
 
 			// A switch is more readable here
 			switch {

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -18,36 +17,9 @@ import (
 // http://moodub.free.fr/video/ass-specs.doc
 // https://en.wikipedia.org/wiki/SubStation_Alpha
 
-// SSA alignment
-const (
-	ssaAlignmentCentered              = 2
-	ssaAlignmentLeft                  = 1
-	ssaAlignmentLeftJustifiedTopTitle = 5
-	ssaAlignmentMidTitle              = 8
-	ssaAlignmentRight                 = 3
-	ssaAlignmentTopTitle              = 4
-)
-
-// SSA border styles
-const (
-	ssaBorderStyleOpaqueBox            = 3
-	ssaBorderStyleOutlineAndDropShadow = 1
-)
-
-// SSA collisions
-const (
-	ssaCollisionsNormal  = "Normal"
-	ssaCollisionsReverse = "Reverse"
-)
-
 // SSA event categories
 const (
-	ssaEventCategoryCommand  = "Command"
-	ssaEventCategoryComment  = "Comment"
 	ssaEventCategoryDialogue = "Dialogue"
-	ssaEventCategoryMovie    = "Movie"
-	ssaEventCategoryPicture  = "Picture"
-	ssaEventCategorySound    = "Sound"
 )
 
 // SSA event format names
@@ -121,20 +93,12 @@ const (
 	ssaStyleFormatNameUnderline       = "Underline"
 )
 
-// SSA wrap style
-const (
-	ssaWrapStyleEndOfLineWordWrapping                   = "1"
-	ssaWrapStyleNoWordWrapping                          = "2"
-	ssaWrapStyleSmartWrapping                           = "0"
-	ssaWrapStyleSmartWrappingWithLowerLinesGettingWider = "3"
-)
-
 // SSA regexp
 var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 
 // ReadFromSSA parses an .ssa content
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
-	o, err = ReadFromSSAWithOptions(i, defaultSSAOptions())
+	o, err = ReadFromSSAWithOptions(i, SSAOptions{})
 	return o, err
 }
 
@@ -1285,15 +1249,4 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 type SSAOptions struct {
 	OnUnknownSectionName func(name string)
 	OnInvalidLine        func(line string)
-}
-
-func defaultSSAOptions() SSAOptions {
-	return SSAOptions{
-		OnUnknownSectionName: func(name string) {
-			log.Printf("astisub: unknown section: %s", name)
-		},
-		OnInvalidLine: func(line string) {
-			log.Printf("astisub: not understood: '%s', ignoring", line)
-		},
-	}
 }
