@@ -6,6 +6,7 @@ import (
 
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLine_Text(t *testing.T) {
@@ -275,4 +276,28 @@ func TestSubtitles_RemoveStyling(t *testing.T) {
 		Regions: map[string]*astisub.Region{},
 		Styles:  map[string]*astisub.Style{},
 	}, s)
+}
+
+func TestSubtitles_ApplyLinearCorrection(t *testing.T) {
+	s := &astisub.Subtitles{Items: []*astisub.Item{
+		{
+			EndAt:   2 * time.Second,
+			StartAt: 1 * time.Second,
+		},
+		{
+			EndAt:   5 * time.Second,
+			StartAt: 3 * time.Second,
+		},
+		{
+			EndAt:   10 * time.Second,
+			StartAt: 7 * time.Second,
+		},
+	}}
+	s.ApplyLinearCorrection(3*time.Second, 5*time.Second, 5*time.Second, 8*time.Second)
+	require.Equal(t, 2*time.Second, s.Items[0].StartAt)
+	require.Equal(t, 3500*time.Millisecond, s.Items[0].EndAt)
+	require.Equal(t, 5*time.Second, s.Items[1].StartAt)
+	require.Equal(t, 8*time.Second, s.Items[1].EndAt)
+	require.Equal(t, 11*time.Second, s.Items[2].StartAt)
+	require.Equal(t, 15500*time.Millisecond, s.Items[2].EndAt)
 }
