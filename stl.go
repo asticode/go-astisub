@@ -26,11 +26,7 @@ const (
 
 // STL character code table number
 const (
-	stlCharacterCodeTableNumberLatin         uint16 = 12336
-	stlCharacterCodeTableNumberLatinCyrillic uint16 = 12337
-	stlCharacterCodeTableNumberLatinArabic   uint16 = 12338
-	stlCharacterCodeTableNumberLatinGreek    uint16 = 12339
-	stlCharacterCodeTableNumberLatinHebrew   uint16 = 12340
+	stlCharacterCodeTableNumberLatin uint16 = 12336
 )
 
 // STL character code tables
@@ -93,33 +89,22 @@ var (
 
 // STL code page numbers
 const (
-	stlCodePageNumberCanadaFrench uint32 = 3683891
 	stlCodePageNumberMultilingual uint32 = 3683632
-	stlCodePageNumberNordic       uint32 = 3683893
-	stlCodePageNumberPortugal     uint32 = 3683888
-	stlCodePageNumberUnitedStates uint32 = 3420983
 )
 
 // STL comment flag
 const (
-	stlCommentFlagTextContainsSubtitleData                       = '\x00'
-	stlCommentFlagTextContainsCommentsNotIntendedForTransmission = '\x01'
+	stlCommentFlagTextContainsSubtitleData = '\x00'
 )
 
 // STL country codes
 const (
-	stlCountryCodeChinese = "CHN"
-	stlCountryCodeFrance  = "FRA"
-	stlCountryCodeJapan   = "JPN"
-	stlCountryCodeNorway  = "NOR"
+	stlCountryCodeFrance = "FRA"
 )
 
 // STL cumulative status
 const (
-	stlCumulativeStatusFirstSubtitleOfACumulativeSet        = '\x01'
-	stlCumulativeStatusIntermediateSubtitleOfACumulativeSet = '\x02'
-	stlCumulativeStatusLastSubtitleOfACumulativeSet         = '\x03'
-	stlCumulativeStatusSubtitleNotPartOfACumulativeSet      = '\x00'
+	stlCumulativeStatusSubtitleNotPartOfACumulativeSet = '\x00'
 )
 
 // STL display standard code
@@ -136,10 +121,7 @@ var stlFramerateMapping = astikit.NewBiMap().
 
 // STL justification code
 const (
-	stlJustificationCodeCentredText           = '\x02'
-	stlJustificationCodeLeftJustifiedText     = '\x01'
-	stlJustificationCodeRightJustifiedText    = '\x03'
-	stlJustificationCodeUnchangedPresentation = '\x00'
+	stlJustificationCodeLeftJustifiedText = '\x01'
 )
 
 // STL language codes
@@ -161,8 +143,7 @@ var stlLanguageMapping = astikit.NewBiMap().
 
 	// STL timecode status
 const (
-	stlTimecodeStatusNotIntendedForUse = "0"
-	stlTimecodeStatusIntendedForUse    = "1"
+	stlTimecodeStatusIntendedForUse = "1"
 )
 
 // TTI Special Extension Block Number
@@ -569,29 +550,33 @@ func (b gsiBlock) bytes() (o []byte) {
 // parseDurationSTL parses a STL duration
 func parseDurationSTL(i string, framerate int) (d time.Duration, err error) {
 	// Parse hours
-	var hours, hoursString = 0, i[0:2]
-	if hours, err = strconv.Atoi(hoursString); err != nil {
+	var hoursString = i[0:2]
+	hours, err := strconv.Atoi(hoursString)
+	if err != nil {
 		err = fmt.Errorf("astisub: atoi of %s failed: %w", hoursString, err)
 		return
 	}
 
 	// Parse minutes
-	var minutes, minutesString = 0, i[2:4]
-	if minutes, err = strconv.Atoi(minutesString); err != nil {
+	var minutesString = i[2:4]
+	minutes, err := strconv.Atoi(minutesString)
+	if err != nil {
 		err = fmt.Errorf("astisub: atoi of %s failed: %w", minutesString, err)
 		return
 	}
 
 	// Parse seconds
-	var seconds, secondsString = 0, i[4:6]
-	if seconds, err = strconv.Atoi(secondsString); err != nil {
+	var secondsString = i[4:6]
+	seconds, err := strconv.Atoi(secondsString)
+	if err != nil {
 		err = fmt.Errorf("astisub: atoi of %s failed: %w", secondsString, err)
 		return
 	}
 
 	// Parse frames
-	var frames, framesString = 0, i[6:8]
-	if frames, err = strconv.Atoi(framesString); err != nil {
+	var framesString = i[6:8]
+	frames, err := strconv.Atoi(framesString)
+	if err != nil {
 		err = fmt.Errorf("astisub: atoi of %s failed: %w", framesString, err)
 		return
 	}

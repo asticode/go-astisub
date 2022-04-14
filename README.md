@@ -1,8 +1,3 @@
-[![GoReportCard](http://goreportcard.com/badge/github.com/asticode/go-astisub)](http://goreportcard.com/report/github.com/asticode/go-astisub)
-[![GoDoc](https://godoc.org/github.com/asticode/go-astisub?status.svg)](https://godoc.org/github.com/asticode/go-astisub)
-[![Travis](https://travis-ci.com/asticode/go-astisub.svg?branch=master)](https://travis-ci.com/asticode/go-astisub#)
-[![Coveralls](https://coveralls.io/repos/github/asticode/go-astisub/badge.svg?branch=master)](https://coveralls.io/github/asticode/go-astisub)
-
 This is a Golang library to manipulate subtitles. 
 
 It allows you to manipulate `srt`, `stl`, `ttml`, `ssa/ass`, `webvtt` and `teletext` files for now.
@@ -13,11 +8,7 @@ Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfrag
 
 To install the library:
 
-    go get github.com/asticode/go-astisub
-
-To install the CLI:
-
-    go install github.com/asticode/go-astisub/astisub        
+    go get github.com/molotovtv/go-astisub
 
 # Using the library in your code
 
@@ -48,34 +39,6 @@ s1.Write("/path/to/example.srt")
 var buf = &bytes.Buffer{}
 s2.WriteToTTML(buf)
 ```
-
-# Using the CLI
-
-If **astisub** has been installed properly you can:
-
-- convert any type of subtitle to any other type of subtitle:
-
-        astisub convert -i example.srt -o example.ttml
-
-- fragment any type of subtitle:
-
-        astisub fragment -i example.srt -f 2s -o example.out.srt
-
-- merge any type of subtitle into any other type of subtitle:
-
-        astisub merge -i example.srt -i example.ttml -o example.out.srt
-
-- optimize any type of subtitle:
-
-        astisub optimize -i example.srt -o example.out.srt
-
-- unfragment any type of subtitle:
-
-        astisub unfragment -i example.srt -o example.out.srt
-
-- sync any type of subtitle:
-
-        astisub sync -i example.srt -s "-2s" -o example.out.srt
 
 # Features and roadmap
 
