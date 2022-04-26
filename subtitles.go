@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -581,18 +582,9 @@ func (s *Subtitles) Order() {
 	}
 
 	// Order
-	var swapped = true
-	for swapped {
-		swapped = false
-		for index := 1; index < len(s.Items); index++ {
-			if s.Items[index-1].StartAt > s.Items[index].StartAt {
-				var tmp = s.Items[index-1]
-				s.Items[index-1] = s.Items[index]
-				s.Items[index] = tmp
-				swapped = true
-			}
-		}
-	}
+	sort.Slice(s.Items, func(i, j int) bool {
+		return s.Items[i].StartAt < s.Items[j].StartAt
+	})
 }
 
 // RemoveStyling removes the styling from the subtitles
