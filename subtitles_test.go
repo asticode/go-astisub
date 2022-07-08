@@ -138,10 +138,10 @@ func TestSubtitles_Slice(t *testing.T) {
 	// Slice
 	s.Slice(6*time.Second, 11*time.Second)
 	assert.Len(t, s.Items, 2)
-	assert.Equal(t, 6*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 5*time.Second, s.Items[0].StartAt)
 	assert.Equal(t, 8*time.Second, s.Items[0].EndAt)
 	assert.Equal(t, 10*time.Second, s.Items[1].StartAt)
-	assert.Equal(t, 11*time.Second, s.Items[1].EndAt)
+	assert.Equal(t, 12*time.Second, s.Items[1].EndAt)
 
 
 	var empty = &astisub.Subtitles{Items: []*astisub.Item{}}

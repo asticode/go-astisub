@@ -457,7 +457,6 @@ func (s *Subtitles) Slice(start, end time.Duration) {
 		if s.Items[i].EndAt < start {
 			startIndex = i
 		} else if s.Items[i].StartAt < start {
-			s.Items[i].StartAt = start
 			startIndex = i
 		}
 		if s.Items[i].StartAt > end {
@@ -465,14 +464,12 @@ func (s *Subtitles) Slice(start, end time.Duration) {
 				endIndex = i
 			}
 			break
-		} else if s.Items[i].EndAt > end {
-			s.Items[i].EndAt = end
 		}
 	}
 
 	items := s.Items
 	if endIndex >= 0 {
-		items = items[:endIndex]
+		items = items[:endIndex+1]
 	}
 	if startIndex >= 0 {
 		items = items[startIndex:]
