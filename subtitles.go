@@ -6,9 +6,12 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/asticode/go-astikit"
 )
 
 // Bytes
@@ -53,6 +56,7 @@ var Now = func() time.Time {
 type Options struct {
 	Filename string
 	Teletext TeletextOptions
+	STL      STLOptions
 }
 
 // Open opens a subtitle reader based on options
@@ -72,7 +76,7 @@ func Open(o Options) (s *Subtitles, err error) {
 	case ".ssa", ".ass":
 		s, err = ReadFromSSA(f)
 	case ".stl":
-		s, err = ReadFromSTL(f)
+		s, err = ReadFromSTL(f, o.STL)
 	case ".ts":
 		s, err = ReadFromTeletext(f, o.Teletext)
 	case ".ttml":
@@ -207,30 +211,30 @@ type StyleAttributes struct {
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
 	// TODO Use pointers with real types below
-	TTMLBackgroundColor  string // https://htmlcolorcodes.com/fr/
-	TTMLColor            string
-	TTMLDirection        string
-	TTMLDisplay          string
-	TTMLDisplayAlign     string
-	TTMLExtent           string
-	TTMLFontFamily       string
-	TTMLFontSize         string
-	TTMLFontStyle        string
-	TTMLFontWeight       string
-	TTMLLineHeight       string
-	TTMLOpacity          string
-	TTMLOrigin           string
-	TTMLOverflow         string
-	TTMLPadding          string
-	TTMLShowBackground   string
-	TTMLTextAlign        string
-	TTMLTextDecoration   string
-	TTMLTextOutline      string
-	TTMLUnicodeBidi      string
-	TTMLVisibility       string
-	TTMLWrapOption       string
-	TTMLWritingMode      string
-	TTMLZIndex           int
+	TTMLBackgroundColor  *string // https://htmlcolorcodes.com/fr/
+	TTMLColor            *string
+	TTMLDirection        *string
+	TTMLDisplay          *string
+	TTMLDisplayAlign     *string
+	TTMLExtent           *string
+	TTMLFontFamily       *string
+	TTMLFontSize         *string
+	TTMLFontStyle        *string
+	TTMLFontWeight       *string
+	TTMLLineHeight       *string
+	TTMLOpacity          *string
+	TTMLOrigin           *string
+	TTMLOverflow         *string
+	TTMLPadding          *string
+	TTMLShowBackground   *string
+	TTMLTextAlign        *string
+	TTMLTextDecoration   *string
+	TTMLTextOutline      *string
+	TTMLUnicodeBidi      *string
+	TTMLVisibility       *string
+	TTMLWrapOption       *string
+	TTMLWritingMode      *string
+	TTMLZIndex           *int
 	WebVTTAlign          string
 	WebVTTItalics        bool
 	WebVTTLine           string
@@ -261,11 +265,49 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
-		sa.TTMLColor = "#" + sa.TeletextColor.TTMLString()
+		sa.TTMLColor = astikit.StrPtr("#" + sa.TeletextColor.TTMLString())
 	}
 }
 
-func (sa *StyleAttributes) propagateTTMLAttributes() {}
+//reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
+func (sa *StyleAttributes) propagateTTMLAttributes() {
+	if sa.TTMLTextAlign != nil {
+		sa.WebVTTAlign = *sa.TTMLTextAlign
+	}
+	if sa.TTMLExtent != nil {
+		//region settings
+		lineHeight := 5 //assuming height of line as 5.33vh
+		dimensions := strings.Split(*sa.TTMLExtent, " ")
+		if len(dimensions) > 1 {
+			sa.WebVTTWidth = dimensions[0]
+			if height, err := strconv.Atoi(strings.ReplaceAll(dimensions[1], "%", "")); err == nil {
+				sa.WebVTTLines = height / lineHeight
+			}
+			//cue settings
+			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
+			sa.WebVTTSize = dimensions[1]
+			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
+				sa.WebVTTSize = dimensions[0]
+			}
+		}
+	}
+	if sa.TTMLOrigin != nil {
+		//region settings
+		sa.WebVTTRegionAnchor = "0%,0%"
+		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+		sa.WebVTTScroll = "up"
+		//cue settings
+		coordinates := strings.Split(*sa.TTMLOrigin, " ")
+		if len(coordinates) > 1 {
+			sa.WebVTTLine = coordinates[0]
+			sa.WebVTTPosition = coordinates[1]
+			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
+				sa.WebVTTLine = coordinates[1]
+				sa.WebVTTPosition = coordinates[0]
+			}
+		}
+	}
+}
 
 func (sa *StyleAttributes) propagateWebVTTAttributes() {}
 
@@ -568,18 +610,9 @@ func (s *Subtitles) Order() {
 	}
 
 	// Order
-	var swapped = true
-	for swapped {
-		swapped = false
-		for index := 1; index < len(s.Items); index++ {
-			if s.Items[index-1].StartAt > s.Items[index].StartAt {
-				var tmp = s.Items[index-1]
-				s.Items[index-1] = s.Items[index]
-				s.Items[index] = tmp
-				swapped = true
-			}
-		}
-	}
+	sort.Slice(s.Items, func(i, j int) bool {
+		return s.Items[i].StartAt < s.Items[j].StartAt
+	})
 }
 
 // RemoveStyling removes the styling from the subtitles
@@ -606,20 +639,38 @@ func (s *Subtitles) Unfragment() {
 		return
 	}
 
+	// Order
+	s.Order()
+
 	// Loop through items
 	for i := 0; i < len(s.Items)-1; i++ {
 		for j := i + 1; j < len(s.Items); j++ {
 			// Items are the same
-			if s.Items[i].String() == s.Items[j].String() && s.Items[i].EndAt == s.Items[j].StartAt {
-				s.Items[i].EndAt = s.Items[j].EndAt
+			if s.Items[i].String() == s.Items[j].String() && s.Items[i].EndAt >= s.Items[j].StartAt {
+				// Only override end time if longer
+				if s.Items[i].EndAt < s.Items[j].EndAt {
+					s.Items[i].EndAt = s.Items[j].EndAt
+				}
 				s.Items = append(s.Items[:j], s.Items[j+1:]...)
 				j--
+			} else if s.Items[i].EndAt < s.Items[j].StartAt {
+				break
 			}
 		}
 	}
+}
 
-	// Order
-	s.Order()
+// ApplyLinearCorrection applies linear correction
+func (s *Subtitles) ApplyLinearCorrection(actual1, desired1, actual2, desired2 time.Duration) {
+	// Get parameters
+	a := float64(desired2-desired1) / float64(actual2-actual1)
+	b := time.Duration(float64(desired1) - a*float64(actual1))
+
+	// Loop through items
+	for idx := range s.Items {
+		s.Items[idx].EndAt = time.Duration(a*float64(s.Items[idx].EndAt)) + b
+		s.Items[idx].StartAt = time.Duration(a*float64(s.Items[idx].StartAt)) + b
+	}
 }
 
 // Write writes subtitles to a file

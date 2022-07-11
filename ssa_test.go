@@ -103,3 +103,16 @@ func TestSSA(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
 }
+
+func TestInBetweenSSAEffect(t *testing.T) {
+	s, err := astisub.ReadFromSSA(bytes.NewReader([]byte(`[Events]
+Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: Marked=0,0:01:39.00,0:01:41.04,,Cher,1234,2345,3456,test,First item{\pos(400,570)}Second item`)))
+	assert.NoError(t, err)
+	assert.Len(t, s.Items[0].Lines[0].Items, 2)
+	assert.Equal(t, astisub.LineItem{Text: "First item"}, s.Items[0].Lines[0].Items[0])
+	assert.Equal(t, astisub.LineItem{
+		InlineStyle: &astisub.StyleAttributes{SSAEffect: "{\\pos(400,570)}"},
+		Text:        "Second item",
+	}, s.Items[0].Lines[0].Items[1])
+}

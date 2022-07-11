@@ -7,11 +7,11 @@ This is a Golang library to manipulate subtitles.
 
 It allows you to manipulate `srt`, `stl`, `ttml`, `ssa/ass`, `webvtt` and `teletext` files for now.
 
-Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfragmenting`, `merging` and `optimizing`.
+Available operations are `parsing`, `writing`, `applying linear correction`, `syncing`, `fragmenting`, `unfragmenting`, `merging` and `optimizing`.
 
 # Installation
 
-To install the library and command line program, use the following:
+To install the library:
 
     go get -u github.com/publica-project/go-astisub/...
 
@@ -39,6 +39,9 @@ s1.Optimize()
 // Unfragment the subtitles
 s1.Unfragment()
 
+// Apply linear correction
+s1.ApplyLinearCorrection(1*time.Second, 2*time.Second, 5*time.Second, 7*time.Second)
+
 // Write subtitles
 s1.Write("/path/to/example.srt")
 var buf = &bytes.Buffer{}
@@ -52,6 +55,10 @@ If **astisub** has been installed properly you can:
 - convert any type of subtitle to any other type of subtitle:
 
         astisub convert -i example.srt -o example.ttml
+
+- apply linear correction to any type of subtitle:
+
+        astisub apply-linear-correction -i example.srt -a1 1s -d1 2s -a2 5s -d2 7s -o example.out.srt
 
 - fragment any type of subtitle:
 
@@ -82,6 +89,7 @@ If **astisub** has been installed properly you can:
 - [x] merging
 - [x] ordering
 - [x] optimizing
+- [x] linear correction
 - [x] .srt
 - [x] .ttml
 - [x] .vtt

@@ -19,15 +19,19 @@ import (
 
 // TTML languages
 const (
+	ttmlLanguageChinese   = "zh"
 	ttmlLanguageEnglish   = "en"
+	ttmlLanguageJapanese  = "ja"
 	ttmlLanguageFrench    = "fr"
 	ttmlLanguageNorwegian = "no"
 )
 
 // TTML language mapping
 var ttmlLanguageMapping = astikit.NewBiMap().
+	Set(ttmlLanguageChinese, LanguageChinese).
 	Set(ttmlLanguageEnglish, LanguageEnglish).
 	Set(ttmlLanguageFrench, LanguageFrench).
+	Set(ttmlLanguageJapanese, LanguageJapanese).
 	Set(ttmlLanguageNorwegian, LanguageNorwegian)
 
 // TTML Clock Time Frames and Offset Time
@@ -70,30 +74,30 @@ type TTMLInMetadata struct {
 
 // TTMLInStyleAttributes represents input TTML style attributes
 type TTMLInStyleAttributes struct {
-	BackgroundColor string `xml:"backgroundColor,attr,omitempty"`
-	Color           string `xml:"color,attr,omitempty"`
-	Direction       string `xml:"direction,attr,omitempty"`
-	Display         string `xml:"display,attr,omitempty"`
-	DisplayAlign    string `xml:"displayAlign,attr,omitempty"`
-	Extent          string `xml:"extent,attr,omitempty"`
-	FontFamily      string `xml:"fontFamily,attr,omitempty"`
-	FontSize        string `xml:"fontSize,attr,omitempty"`
-	FontStyle       string `xml:"fontStyle,attr,omitempty"`
-	FontWeight      string `xml:"fontWeight,attr,omitempty"`
-	LineHeight      string `xml:"lineHeight,attr,omitempty"`
-	Opacity         string `xml:"opacity,attr,omitempty"`
-	Origin          string `xml:"origin,attr,omitempty"`
-	Overflow        string `xml:"overflow,attr,omitempty"`
-	Padding         string `xml:"padding,attr,omitempty"`
-	ShowBackground  string `xml:"showBackground,attr,omitempty"`
-	TextAlign       string `xml:"textAlign,attr,omitempty"`
-	TextDecoration  string `xml:"textDecoration,attr,omitempty"`
-	TextOutline     string `xml:"textOutline,attr,omitempty"`
-	UnicodeBidi     string `xml:"unicodeBidi,attr,omitempty"`
-	Visibility      string `xml:"visibility,attr,omitempty"`
-	WrapOption      string `xml:"wrapOption,attr,omitempty"`
-	WritingMode     string `xml:"writingMode,attr,omitempty"`
-	ZIndex          int    `xml:"zIndex,attr,omitempty"`
+	BackgroundColor *string `xml:"backgroundColor,attr,omitempty"`
+	Color           *string `xml:"color,attr,omitempty"`
+	Direction       *string `xml:"direction,attr,omitempty"`
+	Display         *string `xml:"display,attr,omitempty"`
+	DisplayAlign    *string `xml:"displayAlign,attr,omitempty"`
+	Extent          *string `xml:"extent,attr,omitempty"`
+	FontFamily      *string `xml:"fontFamily,attr,omitempty"`
+	FontSize        *string `xml:"fontSize,attr,omitempty"`
+	FontStyle       *string `xml:"fontStyle,attr,omitempty"`
+	FontWeight      *string `xml:"fontWeight,attr,omitempty"`
+	LineHeight      *string `xml:"lineHeight,attr,omitempty"`
+	Opacity         *string `xml:"opacity,attr,omitempty"`
+	Origin          *string `xml:"origin,attr,omitempty"`
+	Overflow        *string `xml:"overflow,attr,omitempty"`
+	Padding         *string `xml:"padding,attr,omitempty"`
+	ShowBackground  *string `xml:"showBackground,attr,omitempty"`
+	TextAlign       *string `xml:"textAlign,attr,omitempty"`
+	TextDecoration  *string `xml:"textDecoration,attr,omitempty"`
+	TextOutline     *string `xml:"textOutline,attr,omitempty"`
+	UnicodeBidi     *string `xml:"unicodeBidi,attr,omitempty"`
+	Visibility      *string `xml:"visibility,attr,omitempty"`
+	WrapOption      *string `xml:"wrapOption,attr,omitempty"`
+	WritingMode     *string `xml:"writingMode,attr,omitempty"`
+	ZIndex          *int    `xml:"zIndex,attr,omitempty"`
 }
 
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
@@ -450,30 +454,30 @@ type TTMLOutMetadata struct {
 
 // TTMLOutStyleAttributes represents output TTML style attributes
 type TTMLOutStyleAttributes struct {
-	BackgroundColor string `xml:"tts:backgroundColor,attr,omitempty"`
-	Color           string `xml:"tts:color,attr,omitempty"`
-	Direction       string `xml:"tts:direction,attr,omitempty"`
-	Display         string `xml:"tts:display,attr,omitempty"`
-	DisplayAlign    string `xml:"tts:displayAlign,attr,omitempty"`
-	Extent          string `xml:"tts:extent,attr,omitempty"`
-	FontFamily      string `xml:"tts:fontFamily,attr,omitempty"`
-	FontSize        string `xml:"tts:fontSize,attr,omitempty"`
-	FontStyle       string `xml:"tts:fontStyle,attr,omitempty"`
-	FontWeight      string `xml:"tts:fontWeight,attr,omitempty"`
-	LineHeight      string `xml:"tts:lineHeight,attr,omitempty"`
-	Opacity         string `xml:"tts:opacity,attr,omitempty"`
-	Origin          string `xml:"tts:origin,attr,omitempty"`
-	Overflow        string `xml:"tts:overflow,attr,omitempty"`
-	Padding         string `xml:"tts:padding,attr,omitempty"`
-	ShowBackground  string `xml:"tts:showBackground,attr,omitempty"`
-	TextAlign       string `xml:"tts:textAlign,attr,omitempty"`
-	TextDecoration  string `xml:"tts:textDecoration,attr,omitempty"`
-	TextOutline     string `xml:"tts:textOutline,attr,omitempty"`
-	UnicodeBidi     string `xml:"tts:unicodeBidi,attr,omitempty"`
-	Visibility      string `xml:"tts:visibility,attr,omitempty"`
-	WrapOption      string `xml:"tts:wrapOption,attr,omitempty"`
-	WritingMode     string `xml:"tts:writingMode,attr,omitempty"`
-	ZIndex          int    `xml:"tts:zIndex,attr,omitempty"`
+	BackgroundColor *string `xml:"tts:backgroundColor,attr,omitempty"`
+	Color           *string `xml:"tts:color,attr,omitempty"`
+	Direction       *string `xml:"tts:direction,attr,omitempty"`
+	Display         *string `xml:"tts:display,attr,omitempty"`
+	DisplayAlign    *string `xml:"tts:displayAlign,attr,omitempty"`
+	Extent          *string `xml:"tts:extent,attr,omitempty"`
+	FontFamily      *string `xml:"tts:fontFamily,attr,omitempty"`
+	FontSize        *string `xml:"tts:fontSize,attr,omitempty"`
+	FontStyle       *string `xml:"tts:fontStyle,attr,omitempty"`
+	FontWeight      *string `xml:"tts:fontWeight,attr,omitempty"`
+	LineHeight      *string `xml:"tts:lineHeight,attr,omitempty"`
+	Opacity         *string `xml:"tts:opacity,attr,omitempty"`
+	Origin          *string `xml:"tts:origin,attr,omitempty"`
+	Overflow        *string `xml:"tts:overflow,attr,omitempty"`
+	Padding         *string `xml:"tts:padding,attr,omitempty"`
+	ShowBackground  *string `xml:"tts:showBackground,attr,omitempty"`
+	TextAlign       *string `xml:"tts:textAlign,attr,omitempty"`
+	TextDecoration  *string `xml:"tts:textDecoration,attr,omitempty"`
+	TextOutline     *string `xml:"tts:textOutline,attr,omitempty"`
+	UnicodeBidi     *string `xml:"tts:unicodeBidi,attr,omitempty"`
+	Visibility      *string `xml:"tts:visibility,attr,omitempty"`
+	WrapOption      *string `xml:"tts:wrapOption,attr,omitempty"`
+	WritingMode     *string `xml:"tts:writingMode,attr,omitempty"`
+	ZIndex          *int    `xml:"tts:zIndex,attr,omitempty"`
 }
 
 // ttmlOutStyleAttributesFromStyleAttributes converts StyleAttributes into a TTMLOutStyleAttributes
@@ -637,12 +641,16 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 		// Add lines
 		for _, line := range item.Lines {
 			// Loop through line items
-			for _, lineItem := range line.Items {
+			for idx, lineItem := range line.Items {
 				// Init ttml item
 				var ttmlItem = TTMLOutItem{
 					Text:                   lineItem.Text,
 					TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(lineItem.InlineStyle),
 					XMLName:                xml.Name{Local: "span"},
+				}
+				// condition to avoid adding space as the last character.
+				if idx < len(line.Items)-1 {
+					ttmlItem.Text = ttmlItem.Text + " "
 				}
 
 				// Add style

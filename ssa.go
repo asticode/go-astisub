@@ -134,6 +134,12 @@ var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 
 // ReadFromSSA parses an .ssa content
 func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
+	o, err = ReadFromSSAWithOptions(i, defaultSSAOptions())
+	return o, err
+}
+
+// ReadFromSSAWithOptions parses an .ssa content
+func ReadFromSSAWithOptions(i io.Reader, opts SSAOptions) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 	var scanner = bufio.NewScanner(i)
@@ -175,7 +181,9 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 				format = make(map[int]string)
 				continue
 			default:
-				log.Printf("astisub: unknown section: %s", line)
+				if opts.OnUnknownSectionName != nil {
+					opts.OnUnknownSectionName(line)
+				}
 				sectionName = ssaSectionNameUnknown
 				continue
 			}
@@ -195,7 +203,9 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 		// Split on ":"
 		var split = strings.Split(line, ":")
 		if len(split) < 2 || split[0] == "" {
-			log.Printf("astisub: not understood: '%s', ignoring", line)
+			if opts.OnInvalidLine != nil {
+				opts.OnInvalidLine(line)
+			}
 			continue
 		}
 		var header = strings.TrimSpace(split[0])
@@ -927,7 +937,7 @@ func newSSAEventFromItem(i Item) (e *ssaEvent) {
 		if len(l.VoiceName) > 0 {
 			e.name = l.VoiceName
 		}
-		lines = append(lines, strings.Join(items, ""))
+		lines = append(lines, strings.Join(items, " "))
 	}
 	e.text = strings.Join(lines, "\\n")
 	return
@@ -1014,7 +1024,7 @@ func newSSAEventFromString(header, content string, format map[int]string) (e *ss
 					e.style = item
 				}
 			case ssaEventFormatNameText:
-				e.text = item
+				e.text = strings.TrimSpace(item)
 			}
 		// Marked
 		case ssaEventFormatNameMarked:
@@ -1069,6 +1079,8 @@ func (e *ssaEvent) item(styles map[string]*Style) (i *Item, err error) {
 				if lineItem != nil {
 					lineItem.Text = s[previousEffectEndOffset:idxs[0]]
 					l.Items = append(l.Items, *lineItem)
+				} else if idxs[0] > 0 {
+					l.Items = append(l.Items, LineItem{Text: s[previousEffectEndOffset:idxs[0]]})
 				}
 				previousEffectEndOffset = idxs[1]
 				lineItem = &LineItem{InlineStyle: &StyleAttributes{SSAEffect: s[idxs[0]:idxs[1]]}}
@@ -1265,4 +1277,21 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		}
 	}
 	return
+}
+
+// SSAOptions
+type SSAOptions struct {
+	OnUnknownSectionName func(name string)
+	OnInvalidLine        func(line string)
+}
+
+func defaultSSAOptions() SSAOptions {
+	return SSAOptions{
+		OnUnknownSectionName: func(name string) {
+			log.Printf("astisub: unknown section: %s", name)
+		},
+		OnInvalidLine: func(line string) {
+			log.Printf("astisub: not understood: '%s', ignoring", line)
+		},
+	}
 }

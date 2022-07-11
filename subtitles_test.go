@@ -6,6 +6,7 @@ import (
 
 	"github.com/publica-project/go-astisub"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLine_Text(t *testing.T) {
@@ -126,26 +127,70 @@ func TestSubtitles_Fragment(t *testing.T) {
 	assert.Equal(t, 5*time.Second, s.Items[2].EndAt)
 }
 
-func TestSubtitles_Slice(t *testing.T) {
-	// Init
-	var s = &astisub.Subtitles{Items: []*astisub.Item{
-		{StartAt: time.Second, EndAt: 3 * time.Second},
-		{StartAt: 5 * time.Second, EndAt: 8 * time.Second},
-		{StartAt: 10 * time.Second, EndAt: 12 * time.Second},
-		{StartAt: 12 * time.Second, EndAt: 15 * time.Second},
+func TestSubtitles_Unfragment(t *testing.T) {
+	itemText := func(s string) []astisub.Line {
+		return []astisub.Line{{Items: []astisub.LineItem{{Text: s}}}}
+	}
+	items := []*astisub.Item{{
+		Lines:   itemText("subtitle-1"),
+		StartAt: 1 * time.Second,
+		EndAt:   2 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-2"),
+		StartAt: 2 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-3"),
+		StartAt: 3 * time.Second,
+		EndAt:   4 * time.Second,
+	}, {
+		// gap and nested within first subtitle-2; should not override end time
+		Lines:   itemText("subtitle-2"),
+		StartAt: 3 * time.Second,
+		EndAt:   4 * time.Second,
+	}, {
+		Lines: itemText("subtitle-3"),
+		// gap and start time equals previous end time
+		StartAt: 4 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		// should not be combined
+		Lines:   itemText("subtitle-3"),
+		StartAt: 6 * time.Second,
+		EndAt:   7 * time.Second,
+	}, {
+		// test correcting for out-of-orderness
+		Lines:   itemText("subtitle-1"),
+		StartAt: 0 * time.Second,
+		EndAt:   3 * time.Second,
 	}}
 
-	// Slice
-	s.Slice(6*time.Second, 11*time.Second)
-	assert.Len(t, s.Items, 2)
-	assert.Equal(t, 5*time.Second, s.Items[0].StartAt)
-	assert.Equal(t, 8*time.Second, s.Items[0].EndAt)
-	assert.Equal(t, 10*time.Second, s.Items[1].StartAt)
-	assert.Equal(t, 12*time.Second, s.Items[1].EndAt)
+	s := &astisub.Subtitles{Items: items}
 
+	s.Unfragment()
 
-	var empty = &astisub.Subtitles{Items: []*astisub.Item{}}
-	empty.Slice(0, 3 *time.Second)
+	expected := []astisub.Item{{
+		Lines:   itemText("subtitle-1"),
+		StartAt: 0 * time.Second,
+		EndAt:   3 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-2"),
+		StartAt: 2 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-3"),
+		StartAt: 3 * time.Second,
+		EndAt:   5 * time.Second,
+	}, {
+		Lines:   itemText("subtitle-3"),
+		StartAt: 6 * time.Second,
+		EndAt:   7 * time.Second,
+	}}
+
+	assert.Equal(t, len(expected), len(s.Items))
+	for i := range expected {
+		assert.Equal(t, expected[i], *s.Items[i])
+	}
 }
 
 func TestSubtitles_Merge(t *testing.T) {
@@ -231,4 +276,28 @@ func TestSubtitles_RemoveStyling(t *testing.T) {
 		Regions: map[string]*astisub.Region{},
 		Styles:  map[string]*astisub.Style{},
 	}, s)
+}
+
+func TestSubtitles_ApplyLinearCorrection(t *testing.T) {
+	s := &astisub.Subtitles{Items: []*astisub.Item{
+		{
+			EndAt:   2 * time.Second,
+			StartAt: 1 * time.Second,
+		},
+		{
+			EndAt:   5 * time.Second,
+			StartAt: 3 * time.Second,
+		},
+		{
+			EndAt:   10 * time.Second,
+			StartAt: 7 * time.Second,
+		},
+	}}
+	s.ApplyLinearCorrection(3*time.Second, 5*time.Second, 5*time.Second, 8*time.Second)
+	require.Equal(t, 2*time.Second, s.Items[0].StartAt)
+	require.Equal(t, 3500*time.Millisecond, s.Items[0].EndAt)
+	require.Equal(t, 5*time.Second, s.Items[1].StartAt)
+	require.Equal(t, 8*time.Second, s.Items[1].EndAt)
+	require.Equal(t, 11*time.Second, s.Items[2].StartAt)
+	require.Equal(t, 15500*time.Millisecond, s.Items[2].EndAt)
 }

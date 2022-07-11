@@ -3,6 +3,7 @@ package astisub
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -23,10 +24,13 @@ const (
 	webvttBlockNameStyle          = "style"
 	webvttBlockNameText           = "text"
 	webvttTimeBoundariesSeparator = " --> "
+	webvttTimestampMap            = "X-TIMESTAMP-MAP"
 )
 
 // Vars
 var (
+	bytesWebVTTItalicEndTag            = []byte("</i>")
+	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	// https://regex101.com/r/ZjiW36/1
 	webVTTRegexpStartTag               = regexp.MustCompile(`(<([a-zA-Z]+)([\.\w]*)([\s\w]+)*>)`)
@@ -37,6 +41,46 @@ var (
 // parseDurationWebVTT parses a .vtt duration
 func parseDurationWebVTT(i string) (time.Duration, error) {
 	return parseDuration(i, ".", 3)
+}
+
+// https://tools.ietf.org/html/rfc8216#section-3.5
+// Eg., `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:900000` => 10s
+//      `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000` => 2s
+func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) {
+	splits := strings.Split(line, "=")
+	if len(splits) <= 1 {
+		err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, no '=' found")
+		return
+	}
+	right := splits[1]
+
+	var local time.Duration
+	var mpegts int64
+	for _, split := range strings.Split(right, ",") {
+		splits := strings.SplitN(split, ":", 2)
+		if len(splits) <= 1 {
+			err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, part %q didn't contain ':'", right)
+			return
+		}
+
+		switch strings.ToLower(strings.TrimSpace(splits[0])) {
+		case "local":
+			local, err = parseDurationWebVTT(splits[1])
+			if err != nil {
+				err = fmt.Errorf("astisub: parsing webvtt duration failed: %w", err)
+				return
+			}
+		case "mpegts":
+			mpegts, err = strconv.ParseInt(splits[1], 10, 0)
+			if err != nil {
+				err = fmt.Errorf("astisub: parsing int %s failed: %w", splits[1], err)
+				return
+			}
+		}
+	}
+
+	timeOffset = time.Duration(mpegts)*time.Second/90000 - local
+	return
 }
 
 // ReadFromWebVTT parses a .vtt content
@@ -64,6 +108,8 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var blockName string
 	var comments []string
 	var index int
+	var timeOffset time.Duration
+
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
@@ -191,6 +237,19 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Append item
 			o.Items = append(o.Items, item)
+
+		case strings.HasPrefix(line, webvttTimestampMap):
+			if len(item.Lines) > 0 {
+				err = errors.New("astisub: found timestamp map after processing subtitle items")
+				return
+			}
+
+			timeOffset, err = parseTimestampMapWebVTT(line)
+			if err != nil {
+				err = fmt.Errorf("astisub: parsing webvtt timestamp map failed: %w", err)
+				return
+			}
+
 		// Text
 		default:
 			// Switch on block name
@@ -210,6 +269,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			}
 		}
 	}
+
+	if timeOffset > 0 {
+		o.Add(timeOffset)
+	}
 	return
 }
 
@@ -221,6 +284,7 @@ func parseTextWebVTT(i string) (o Line) {
 	var lineBuffer []byte
 	var startTag string
 	// Loop
+	italic := false
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -231,31 +295,46 @@ func parseTextWebVTT(i string) (o Line) {
 		}
 
 		switch t {
+		case html.EndTagToken:
+			// Parse italic
+			if bytes.Equal(tr.Raw(), bytesWebVTTItalicEndTag) {
+				italic = false
+				continue
+			}
 		case html.StartTagToken:
 			matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw()))
 			if len(matches) > 2 {
 				startTag = matches[2]
 			}
 			// Parse voice name
-			if startTag == "v" {
-				if len(matches) > 4 {
-					if s := strings.TrimSpace(matches[4]); s != "" {
-						o.VoiceName = s
-					}
+			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); len(matches) > 3 {
+				if s := strings.TrimSpace(matches[3]); s != "" {
+					o.VoiceName = s
 				}
-			} else {
-				lineBuffer = append(lineBuffer, bytes.TrimSpace(tr.Raw())...)
+				continue
+			}
+
+			// Parse italic
+			if bytes.Equal(tr.Raw(), bytesWebVTTItalicStartTag) {
+				italic = true
+				continue
 			}
 		case html.TextToken:
-			lineBuffer = append(lineBuffer, bytes.TrimSpace(tr.Raw())...)
-		case html.EndTagToken:
-			var tag string
-			matches := webVTTRegexpEndTag.FindStringSubmatch(string(tr.Raw()))
-			if len(matches) > 2 {
-				tag = matches[2]
-			}
-			if tag != "v" && tag == startTag {
-				lineBuffer = append(lineBuffer, bytes.TrimSpace(tr.Raw())...)
+			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
+				// Get style attribute
+				var sa *StyleAttributes
+				if italic {
+					sa = &StyleAttributes{
+						WebVTTItalics: italic,
+					}
+					sa.propagateWebVTTAttributes()
+				}
+
+				// Append item
+				o.Items = append(o.Items, LineItem{
+					InlineStyle: sa,
+					Text:        s,
+				})
 			}
 		}
 	}
@@ -293,22 +372,37 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("regionanchor="+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("scroll="+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("viewportanchor="+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
 		}
 		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
 			c = append(c, bytesSpace...)
 			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
+			c = append(c, bytesSpace...)
+			c = append(c, []byte("width="+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
 		}
 		c = append(c, bytesLineSeparator...)
 	}
@@ -340,14 +434,23 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			if item.InlineStyle.WebVTTAlign != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("align:"+item.InlineStyle.WebVTTAlign)...)
+			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTAlign != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("align:"+item.Style.InlineStyle.WebVTTAlign)...)
 			}
 			if item.InlineStyle.WebVTTLine != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("line:"+item.InlineStyle.WebVTTLine)...)
+			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTLine != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("line:"+item.Style.InlineStyle.WebVTTLine)...)
 			}
 			if item.InlineStyle.WebVTTPosition != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("position:"+item.InlineStyle.WebVTTPosition)...)
+			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTPosition != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("position:"+item.Style.InlineStyle.WebVTTPosition)...)
 			}
 			if item.Region != nil {
 				c = append(c, bytesSpace...)
@@ -356,10 +459,16 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 			if item.InlineStyle.WebVTTSize != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("size:"+item.InlineStyle.WebVTTSize)...)
+			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTSize != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("size:"+item.Style.InlineStyle.WebVTTSize)...)
 			}
 			if item.InlineStyle.WebVTTVertical != "" {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("vertical:"+item.InlineStyle.WebVTTVertical)...)
+			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTVertical != "" {
+				c = append(c, bytesSpace...)
+				c = append(c, []byte("vertical:"+item.Style.InlineStyle.WebVTTVertical)...)
 			}
 		}
 
@@ -368,10 +477,7 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range item.Lines {
-			for _, li := range l.Items {
-				c = append(c, li.webVTTBytes()...)
-			}
-			c = append(c, bytesLineSeparator...)
+			c = append(c, l.webVTTBytes()...)
 		}
 
 		// Add new line
@@ -389,25 +495,46 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	return
 }
 
-func (li LineItem) webVTTBytes() []byte {
-	var c []byte
-	var color string
-
-	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != "" {
-		color = cssColor(li.InlineStyle.TTMLColor)
+func (l Line) webVTTBytes() (c []byte) {
+	if l.VoiceName != "" {
+		c = append(c, []byte("<v "+l.VoiceName+">")...)
 	}
+	for idx, li := range l.Items {
+		c = append(c, li.webVTTBytes()...)
+		// condition to avoid adding space as the last character.
+		if idx < len(l.Items)-1 {
+			c = append(c, []byte(" ")...)
+		}
+	}
+	c = append(c, bytesLineSeparator...)
+	return
+}
+
+func (li LineItem) webVTTBytes() (c []byte) {
+	// Get color
+	var color string
+	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != nil {
+		color = cssColor(*li.InlineStyle.TTMLColor)
+	}
+
+	// Get italics
+	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
+
+	// Append
 	if color != "" {
 		c = append(c, []byte("<c."+color+">")...)
-		c = append(c, []byte(li.Text)...)
-		c = append(c, []byte("</c>")...)
-	} else if li.InlineStyle != nil && li.InlineStyle.WebVTTItalics {
-		c = append(c, []byte("<i>")...)
-		c = append(c, []byte(li.Text)...)
-		c = append(c, []byte("</i>")...)
-	} else {
-		c = append(c, []byte(li.Text)...)
 	}
-	return c
+	if i {
+		c = append(c, []byte("<i>")...)
+	}
+	c = append(c, []byte(li.Text)...)
+	if i {
+		c = append(c, []byte("</i>")...)
+	}
+	if color != "" {
+		c = append(c, []byte("</c>")...)
+	}
+	return
 }
 
 func cssColor(rgb string) string {

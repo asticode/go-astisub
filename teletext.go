@@ -335,7 +335,7 @@ type TeletextOptions struct {
 func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) {
 	// Init
 	s = &Subtitles{}
-	var dmx = astits.New(context.Background(), r)
+	var dmx = astits.NewDemuxer(context.Background(), r)
 
 	// Get the teletext PID
 	var pid uint16
@@ -354,7 +354,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 
 	// Loop in data
 	var firstTime, lastTime time.Time
-	var d *astits.Data
+	var d *astits.DemuxerData
 	var ps []*teletextPage
 	for {
 		// Fetch next data
@@ -406,7 +406,7 @@ func ReadFromTeletext(r io.Reader, o TeletextOptions) (s *Subtitles, err error) 
 }
 
 // TODO Add tests
-func teletextDataTime(d *astits.Data) time.Time {
+func teletextDataTime(d *astits.DemuxerData) time.Time {
 	if d.PES.Header != nil && d.PES.Header.OptionalHeader != nil && d.PES.Header.OptionalHeader.PTS != nil {
 		return d.PES.Header.OptionalHeader.PTS.Time()
 	} else if d.FirstPacket != nil && d.FirstPacket.AdaptationField != nil && d.FirstPacket.AdaptationField.PCR != nil {
@@ -426,7 +426,7 @@ func teletextPID(dmx *astits.Demuxer, o TeletextOptions) (pid uint16, err error)
 	}
 
 	// Loop in data
-	var d *astits.Data
+	var d *astits.DemuxerData
 	for {
 		// Fetch next data
 		if d, err = dmx.NextData(); err != nil {

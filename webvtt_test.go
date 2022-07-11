@@ -52,11 +52,11 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	NOTE this a example with voicename
 
 	1
-	00:02:34.00 --> 00:02:35.00
+	00:02:34.000 --> 00:02:35.000
 	<v.first.local Roger Bingham> I'm the fist speaker
 
 	2
-	00:02:34.00 --> 00:02:35.00
+	00:02:34.000 --> 00:02:35.000
 	<v Bingham> I'm the second speaker
 
 	3
@@ -75,4 +75,58 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	assert.Equal(t, "Bingham", s.Items[1].Lines[0].VoiceName)
 	assert.Equal(t, "Lee", s.Items[2].Lines[0].VoiceName)
 	assert.Equal(t, "Bob", s.Items[3].Lines[0].VoiceName)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+NOTE this a example with voicename
+
+1
+00:02:34.000 --> 00:02:35.000
+<v Roger Bingham>I'm the fist speaker
+
+2
+00:02:34.000 --> 00:02:35.000
+<v Bingham>I'm the second speaker
+
+3
+00:00:04.000 --> 00:00:08.000
+<v Lee>What are you doing here?
+
+4
+00:00:04.000 --> 00:00:08.000
+<v Bob>Incorrect tag?
+`, b.String())
+}
+
+func TestWebVTTWithTimestampMap(t *testing.T) {
+	testData := `WEBVTT
+	X-TIMESTAMP-MAP=MPEGTS:180000, LOCAL:00:00:00.000
+
+	00:00.933 --> 00:02.366
+	♪ ♪
+
+	00:02.400 --> 00:03.633
+	Evening.`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	assert.Len(t, s.Items, 2)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:00:02.933 --> 00:00:04.366
+♪ ♪
+
+2
+00:00:04.400 --> 00:00:05.633
+Evening.
+`, b.String())
 }

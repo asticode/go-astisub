@@ -108,8 +108,10 @@ const (
 
 // STL country codes
 const (
-	stlCountryCodeFrance = "FRA"
-	stlCountryCodeNorway = "NOR"
+	stlCountryCodeChinese = "CHN"
+	stlCountryCodeFrance  = "FRA"
+	stlCountryCodeJapan   = "JPN"
+	stlCountryCodeNorway  = "NOR"
 )
 
 // STL cumulative status
@@ -142,18 +144,22 @@ const (
 
 // STL language codes
 const (
+	stlLanguageCodeChinese   = "75"
 	stlLanguageCodeEnglish   = "09"
 	stlLanguageCodeFrench    = "0F"
+	stllanguageCodeJapanese  = "69"
 	stlLanguageCodeNorwegian = "1E"
 )
 
 // STL language mapping
 var stlLanguageMapping = astikit.NewBiMap().
+	Set(stlLanguageCodeChinese, LanguageChinese).
 	Set(stlLanguageCodeEnglish, LanguageEnglish).
 	Set(stlLanguageCodeFrench, LanguageFrench).
+	Set(stllanguageCodeJapanese, LanguageJapanese).
 	Set(stlLanguageCodeNorwegian, LanguageNorwegian)
 
-// STL timecode status
+	// STL timecode status
 const (
 	stlTimecodeStatusNotIntendedForUse = "0"
 	stlTimecodeStatusIntendedForUse    = "1"
@@ -170,8 +176,14 @@ type STLPosition struct {
 	Rows             int
 }
 
+// STLOptions represents STL parsing options
+type STLOptions struct {
+	// IgnoreTimecodeStartOfProgramme - set STLTimecodeStartOfProgramme to zero before parsing
+	IgnoreTimecodeStartOfProgramme bool
+}
+
 // ReadFromSTL parses an .stl content
-func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
+func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
 
@@ -207,8 +219,10 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 		STLPublisher:                                        g.publisher,
 		STLRevisionDate:                                     &g.revisionDate,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
-		STLTimecodeStartOfProgramme:                         g.timecodeStartOfProgramme,
 		Title:                                               g.originalProgramTitle,
+	}
+	if !opts.IgnoreTimecodeStartOfProgramme {
+		o.Metadata.STLTimecodeStartOfProgramme = g.timecodeStartOfProgramme
 	}
 	if v, ok := stlLanguageMapping.Get(g.languageCode); ok {
 		o.Metadata.Language = v.(string)
@@ -250,9 +264,9 @@ func ReadFromSTL(i io.Reader) (o *Subtitles, err error) {
 
 		// Create item
 		var i = &Item{
-			EndAt:       t.timecodeOut - g.timecodeStartOfProgramme,
+			EndAt:       t.timecodeOut - o.Metadata.STLTimecodeStartOfProgramme,
 			InlineStyle: &styleAttributes,
-			StartAt:     t.timecodeIn - g.timecodeStartOfProgramme,
+			StartAt:     t.timecodeIn - o.Metadata.STLTimecodeStartOfProgramme,
 		}
 
 		// Loop through rows
@@ -714,11 +728,33 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, t.cumulativeStatus)                                                                                // Cumulative status
 	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                                              // Timecode in
 	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                                             // Timecode out
-	o = append(o, byte(uint8(t.verticalPosition)))                                                                   // Vertical position
+	o = append(o, validateVerticalPosition(t.verticalPosition, g.displayStandardCode))                               // Vertical position
 	o = append(o, t.justificationCode)                                                                               // Justification code
 	o = append(o, t.commentFlag)                                                                                     // Comment flag
 	o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
 	return
+}
+
+// According to EBU 3264 (https://tech.ebu.ch/docs/tech/tech3264.pdf):
+// page 12:
+// for teletext subtitles, VP contains a value in the range 1-23 decimal (01h-17h)
+// corresponding to theteletext row number of the first subtitle row.
+// page 6:
+// Teletext ("closed") subtitles are indicated via the Display Standard Code
+// in the GSI block.
+func validateVerticalPosition(vp int, dsc string) byte {
+	closed := false
+	switch dsc {
+	case stlDisplayStandardCodeLevel1Teletext, stlDisplayStandardCodeLevel2Teletext:
+		closed = true
+	}
+	if vp < 1 && closed {
+		vp = 1
+	}
+	if vp > 23 && closed {
+		vp = 23
+	}
+	return byte(uint8(vp))
 }
 
 // formatDurationSTLBytes formats a STL duration in bytes
