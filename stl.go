@@ -404,6 +404,9 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Framerate
 	if v, ok := stlFramerateMapping.Get(string(b[3:11])); ok {
 		g.framerate = v.(int)
+	} else {
+		err = fmt.Errorf("astisub: no STL framerate")
+		return
 	}
 
 	// Creation date
