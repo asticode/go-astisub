@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/asticode/go-astikit"
 	"github.com/molotovtv/go-astisub"
@@ -49,4 +50,45 @@ func TestTTML(t *testing.T) {
 	err = s.WriteToTTML(w)
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestTTMLbr(t *testing.T) {
+	sub, err := astisub.ReadFromTTML(bytes.NewReader([]byte(`
+<tt>
+	<body>
+		<div>
+			<p begin="00:00:00.000" end="00:00:00.360">
+			<span>- Il y en a jusqu&apos;au fond.<br/>- Ils</span>
+			</p>
+		</div>
+	</body>
+</tt>`)))
+
+	expectedItems := []*astisub.Item{
+		{
+			EndAt: 360 * time.Millisecond,
+			Lines: []astisub.Line{
+				{
+					Items: []astisub.LineItem{
+						{
+							InlineStyle: &astisub.StyleAttributes{},
+							Text:        "- Il y en a jusqu'au fond.",
+						},
+					},
+				},
+				{
+					Items: []astisub.LineItem{
+						{
+							InlineStyle: &astisub.StyleAttributes{},
+							Text:        "- Ils",
+						},
+					},
+				},
+			},
+			InlineStyle: &astisub.StyleAttributes{},
+		},
+	}
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedItems, sub.Items)
 }

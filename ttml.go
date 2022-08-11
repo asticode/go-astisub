@@ -186,6 +186,12 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 				err = fmt.Errorf("astisub: decoding xml.StartElement failed: %w", err)
 				return
 			}
+			var text ttmlText
+			if err = xml.Unmarshal([]byte("<span>"+e.RawText+"</span>"), &text); err != nil {
+				err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
+				return
+			}
+			e.Text = string(text)
 			*i = append(*i, e)
 		} else if b, ok := t.(xml.CharData); ok {
 			var str = strings.TrimSpace(string(b))
@@ -199,10 +205,38 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 
 // TTMLInItem represents an input TTML item
 type TTMLInItem struct {
-	Style string `xml:"style,attr,omitempty"`
-	Text  string `xml:",chardata"`
+	Style   string `xml:"style,attr,omitempty"`
+	RawText string `xml:",innerxml"`
+	Text    string
 	TTMLInStyleAttributes
 	XMLName xml.Name
+}
+
+type ttmlText string
+
+// UnmarshalXML implements the encodeing.TextUnmarshaler interface
+func (t *ttmlText) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var text strings.Builder
+	for {
+		t, err := d.Token()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("astisub: getting next token failed: %w", err)
+		}
+
+		if b, ok := t.(xml.CharData); ok {
+			_, _ = text.Write(b) // Never returns error
+		} else if ee, ok := t.(xml.EndElement); ok {
+			if ee.Name.Local == "br" {
+				_, _ = text.WriteRune('\n') // Never returns error
+			}
+		}
+	}
+	*t = ttmlText(text.String())
+
+	return nil
 }
 
 // TTMLInDuration represents an input TTML duration
