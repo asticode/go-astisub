@@ -172,6 +172,9 @@ var (
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
+	SRTBold              bool
+	SRTItalic            bool
+	SRTUnderline         bool
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
 	SSAAngle             *float64 // degrees
@@ -235,6 +238,7 @@ type StyleAttributes struct {
 	TTMLWritingMode      *string
 	TTMLZIndex           *int
 	WebVTTAlign          string
+	WebVTTBold           bool
 	WebVTTItalics        bool
 	WebVTTLine           string
 	WebVTTLines          int
@@ -242,12 +246,51 @@ type StyleAttributes struct {
 	WebVTTRegionAnchor   string
 	WebVTTScroll         string
 	WebVTTSize           string
+	WebVTTUnderline      bool
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
 }
 
-func (sa *StyleAttributes) propagateSSAAttributes() {}
+func (sa *StyleAttributes) propagateSRTAttributes() {
+	if sa.SRTBold {
+		sa.SSABold = &sa.SRTBold
+		sa.TTMLFontWeight = ttmlFontWeightBold
+		sa.WebVTTBold = sa.SRTBold
+	}
+	if sa.SRTItalic {
+		sa.SSAItalic = &sa.SRTItalic
+		sa.STLItalics = &sa.SRTItalic
+		sa.TTMLFontStyle = ttmlFontStyleItalic
+		sa.WebVTTItalics = sa.SRTItalic
+	}
+	if sa.SRTUnderline {
+		sa.SSAUnderline = &sa.SRTUnderline
+		sa.STLUnderline = &sa.SRTUnderline
+		sa.TTMLTextDecoration = ttmlTextDecorationUnderline
+		sa.WebVTTUnderline = sa.SRTUnderline
+	}
+}
+
+func (sa *StyleAttributes) propagateSSAAttributes() {
+	if sa.SSABold != nil {
+		sa.SRTBold = *sa.SSABold
+		sa.TTMLFontWeight = ttmlFontWeightBold
+		sa.WebVTTBold = *sa.SSABold
+	}
+	if sa.SSAItalic != nil {
+		sa.SRTItalic = *sa.SSAItalic
+		sa.STLItalics = sa.SSAItalic
+		sa.TTMLFontStyle = ttmlFontStyleItalic
+		sa.WebVTTItalics = *sa.SSAItalic
+	}
+	if sa.SSAUnderline != nil {
+		sa.SRTUnderline = *sa.SSAUnderline
+		sa.STLUnderline = sa.SSAUnderline
+		sa.TTMLTextDecoration = ttmlTextDecorationUnderline
+		sa.WebVTTUnderline = *sa.SSAUnderline
+	}
+}
 
 func (sa *StyleAttributes) propagateSTLAttributes() {
 	if sa.STLJustification != nil {
@@ -260,6 +303,18 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 			sa.WebVTTAlign = "left"
 		}
 	}
+	if sa.STLItalics != nil {
+		sa.SRTItalic = *sa.STLItalics
+		sa.SSAItalic = sa.STLItalics
+		sa.TTMLFontStyle = ttmlFontStyleItalic
+		sa.WebVTTItalics = *sa.STLItalics
+	}
+	if sa.STLUnderline != nil {
+		sa.SRTUnderline = *sa.STLUnderline
+		sa.SSAUnderline = sa.STLUnderline
+		sa.TTMLTextDecoration = ttmlTextDecorationUnderline
+		sa.WebVTTUnderline = *sa.STLUnderline
+	}
 }
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
@@ -268,7 +323,7 @@ func (sa *StyleAttributes) propagateTeletextAttributes() {
 	}
 }
 
-//reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
+// reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
 func (sa *StyleAttributes) propagateTTMLAttributes() {
 	if sa.TTMLTextAlign != nil {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
@@ -306,9 +361,44 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 		}
 	}
+	if sa.TTMLFontWeight == ttmlFontWeightBold {
+		sa.SRTBold = true
+		sa.SSABold = astikit.BoolPtr(true)
+		sa.WebVTTBold = true
+	}
+	if sa.TTMLFontStyle == ttmlFontStyleItalic {
+		sa.SSAItalic = astikit.BoolPtr(true)
+		sa.SRTItalic = true
+		sa.STLItalics = astikit.BoolPtr(true)
+		sa.WebVTTItalics = true
+	}
+	if sa.TTMLTextDecoration == ttmlTextDecorationUnderline {
+		sa.SRTUnderline = true
+		sa.SSAUnderline = astikit.BoolPtr(true)
+		sa.STLUnderline = astikit.BoolPtr(true)
+		sa.WebVTTUnderline = true
+	}
 }
 
-func (sa *StyleAttributes) propagateWebVTTAttributes() {}
+func (sa *StyleAttributes) propagateWebVTTAttributes() {
+	if sa.WebVTTBold {
+		sa.SRTBold = sa.WebVTTBold
+		sa.SSABold = &sa.WebVTTBold
+		sa.TTMLFontWeight = ttmlFontWeightBold
+	}
+	if sa.WebVTTItalics {
+		sa.SSAItalic = &sa.WebVTTItalics
+		sa.SRTItalic = sa.WebVTTItalics
+		sa.STLItalics = &sa.WebVTTItalics
+		sa.TTMLFontStyle = ttmlFontStyleItalic
+	}
+	if sa.WebVTTUnderline {
+		sa.SRTUnderline = sa.WebVTTUnderline
+		sa.SSAUnderline = &sa.WebVTTUnderline
+		sa.STLUnderline = &sa.WebVTTUnderline
+		sa.TTMLTextDecoration = ttmlTextDecorationUnderline
+	}
+}
 
 // Metadata represents metadata
 // TODO Merge attributes

@@ -2,11 +2,14 @@ package astisub
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 // Constants
@@ -17,6 +20,12 @@ const (
 // Vars
 var (
 	bytesSRTTimeBoundariesSeparator = []byte(srtTimeBoundariesSeparator)
+	bytesSRTItalicEndTag            = []byte("</i>")
+	bytesSRTItalicStartTag          = []byte("<i>")
+	bytesSRTBoldEndTag              = []byte("</b>")
+	bytesSRTBoldStartTag            = []byte("<b>")
+	bytesSRTUnderlineEndTag         = []byte("</u>")
+	bytesSRTUnderlineStartTag       = []byte("<u>")
 )
 
 // parseDurationSRT parses an .srt duration
@@ -104,9 +113,71 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: strings.TrimSpace(line)}}})
+			if l := parseTextSRT(line); len(l.Items) > 0 {
+				s.Lines = append(s.Lines, l)
+			}
 		}
 	}
+	return
+}
+
+func parseTextSRT(i string) (o Line) {
+	// Create tokenizer
+	tr := html.NewTokenizer(strings.NewReader(i))
+
+	// Loop
+	italic := false
+	bold := false
+	underline := false
+	for {
+		// Get next tag
+		t := tr.Next()
+
+		// Process error
+		if err := tr.Err(); err != nil {
+			break
+		}
+
+		switch t {
+		case html.EndTagToken:
+			raw := tr.Raw()
+			if bytes.Equal(raw, bytesSRTItalicEndTag) {
+				italic = false
+			} else if bytes.Equal(raw, bytesSRTBoldEndTag) {
+				bold = false
+			} else if bytes.Equal(raw, bytesSRTUnderlineEndTag) {
+				underline = false
+			}
+		case html.StartTagToken:
+			raw := tr.Raw()
+			if bytes.Equal(raw, bytesSRTItalicStartTag) {
+				italic = true
+			} else if bytes.Equal(raw, bytesSRTBoldStartTag) {
+				bold = true
+			} else if bytes.Equal(raw, bytesSRTUnderlineStartTag) {
+				underline = true
+			}
+		case html.TextToken:
+			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
+				// Get style attribute
+				var sa *StyleAttributes
+				if italic || bold || underline {
+					sa = &StyleAttributes{
+						SRTItalic:    italic,
+						SRTBold:      bold,
+						SRTUnderline: underline,
+					}
+					sa.propagateSRTAttributes()
+				}
+				// Append item
+				o.Items = append(o.Items, LineItem{
+					InlineStyle: sa,
+					Text:        s,
+				})
+			}
+		}
+	}
+
 	return
 }
 
@@ -139,8 +210,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range v.Lines {
-			c = append(c, []byte(l.String())...)
-			c = append(c, bytesLineSeparator...)
+			c = append(c, l.srtBytes()...)
 		}
 
 		// Add new line
@@ -155,5 +225,47 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 		err = fmt.Errorf("astisub: writing failed: %w", err)
 		return
 	}
+	return
+}
+
+func (l Line) srtBytes() (c []byte) {
+	for idx, li := range l.Items {
+		c = append(c, li.srtBytes()...)
+		// condition to avoid adding space as the last character.
+		if idx < len(l.Items)-1 {
+			c = append(c, []byte(" ")...)
+		}
+	}
+	c = append(c, bytesLineSeparator...)
+	return
+}
+
+func (li LineItem) srtBytes() (c []byte) {
+	// Get styles
+	i := li.InlineStyle != nil && li.InlineStyle.SRTItalic
+	b := li.InlineStyle != nil && li.InlineStyle.SRTBold
+	u := li.InlineStyle != nil && li.InlineStyle.SRTUnderline
+
+	// Append
+	if i {
+		c = append(c, bytesSRTItalicStartTag...)
+	}
+	if b {
+		c = append(c, bytesSRTBoldStartTag...)
+	}
+	if u {
+		c = append(c, bytesSRTUnderlineStartTag...)
+	}
+	c = append(c, []byte(li.Text)...)
+	if u {
+		c = append(c, bytesSRTUnderlineEndTag...)
+	}
+	if b {
+		c = append(c, bytesSRTBoldEndTag...)
+	}
+	if i {
+		c = append(c, bytesSRTItalicEndTag...)
+	}
+
 	return
 }
