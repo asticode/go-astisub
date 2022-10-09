@@ -30,6 +30,10 @@ const (
 var (
 	bytesWebVTTItalicEndTag            = []byte("</i>")
 	bytesWebVTTItalicStartTag          = []byte("<i>")
+	bytesWebVTTBoldEndTag              = []byte("</b>")
+	bytesWebVTTBoldStartTag            = []byte("<b>")
+	bytesWebVTTUnderlineEndTag         = []byte("</u>")
+	bytesWebVTTUnderlineStartTag       = []byte("<u>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)(.+?)>)`)
 	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
@@ -290,6 +294,8 @@ func parseTextWebVTT(i string) (o Line) {
 
 	// Loop
 	italic := false
+	bold := false
+	underline := false
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -301,32 +307,37 @@ func parseTextWebVTT(i string) (o Line) {
 
 		switch t {
 		case html.EndTagToken:
-			// Parse italic
-			if bytes.Equal(tr.Raw(), bytesWebVTTItalicEndTag) {
+			raw := tr.Raw()
+			if bytes.Equal(raw, bytesWebVTTItalicEndTag) {
 				italic = false
-				continue
+			} else if bytes.Equal(raw, bytesWebVTTBoldEndTag) {
+				bold = false
+			} else if bytes.Equal(raw, bytesWebVTTUnderlineEndTag) {
+				underline = false
 			}
 		case html.StartTagToken:
+			raw := tr.Raw()
 			// Parse voice name
-			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); len(matches) > 3 {
+			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(raw)); len(matches) > 3 {
 				if s := strings.TrimSpace(matches[3]); s != "" {
 					o.VoiceName = s
 				}
-				continue
-			}
-
-			// Parse italic
-			if bytes.Equal(tr.Raw(), bytesWebVTTItalicStartTag) {
+			} else if bytes.Equal(raw, bytesWebVTTItalicStartTag) {
 				italic = true
-				continue
+			} else if bytes.Equal(raw, bytesWebVTTBoldStartTag) {
+				bold = true
+			} else if bytes.Equal(raw, bytesWebVTTUnderlineStartTag) {
+				underline = true
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
 				// Get style attribute
 				var sa *StyleAttributes
-				if italic {
+				if italic || bold || underline {
 					sa = &StyleAttributes{
-						WebVTTItalics: italic,
+						WebVTTBold:      bold,
+						WebVTTItalics:   italic,
+						WebVTTUnderline: underline,
 					}
 					sa.propagateWebVTTAttributes()
 				}
@@ -515,19 +526,33 @@ func (li LineItem) webVTTBytes() (c []byte) {
 		color = cssColor(*li.InlineStyle.TTMLColor)
 	}
 
-	// Get italics
+	// Get styles
 	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
+	b := li.InlineStyle != nil && li.InlineStyle.WebVTTBold
+	u := li.InlineStyle != nil && li.InlineStyle.WebVTTUnderline
 
 	// Append
 	if color != "" {
 		c = append(c, []byte("<c."+color+">")...)
 	}
 	if i {
-		c = append(c, []byte("<i>")...)
+		c = append(c, bytesWebVTTItalicStartTag...)
+	}
+	if b {
+		c = append(c, bytesWebVTTBoldStartTag...)
+	}
+	if u {
+		c = append(c, bytesWebVTTUnderlineStartTag...)
 	}
 	c = append(c, []byte(escapeWebVTT(li.Text))...)
+	if u {
+		c = append(c, bytesWebVTTUnderlineEndTag...)
+	}
+	if b {
+		c = append(c, bytesWebVTTBoldEndTag...)
+	}
 	if i {
-		c = append(c, []byte("</i>")...)
+		c = append(c, bytesWebVTTItalicEndTag...)
 	}
 	if color != "" {
 		c = append(c, []byte("</c>")...)

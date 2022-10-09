@@ -38,6 +38,10 @@ var ttmlLanguageMapping = astikit.NewBiMap().
 var (
 	ttmlRegexpClockTimeFrames = regexp.MustCompile(`\:[\d]+$`)
 	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+(\.\d+)?)(h|m|s|ms|f|t)$`)
+
+	ttmlFontWeightBold          = astikit.StrPtr("bold")
+	ttmlFontStyleItalic         = astikit.StrPtr("italic")
+	ttmlTextDecorationUnderline = astikit.StrPtr("underline")
 )
 
 // TTMLIn represents an input TTML that must be unmarshaled
