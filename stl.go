@@ -114,11 +114,6 @@ const (
 	stlDisplayStandardCodeLevel2Teletext = "2"
 )
 
-// STL framerate mapping
-var stlFramerateMapping = astikit.NewBiMap().
-	Set("STL25.01", 25).
-	Set("STL30.01", 30)
-
 // STL justification code
 const (
 	stlJustificationCodeCentredText           = '\x02'
@@ -421,8 +416,17 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	}
 
 	// Framerate
-	if v, ok := stlFramerateMapping.Get(string(b[3:11])); ok {
-		g.framerate = v.(int)
+	if v := string(b[3:11]); len(v) > 0 {
+		var (
+			n          int
+			secondPart string
+		)
+
+		n, err = fmt.Sscanf(v, "STL%d.%s", &g.framerate, &secondPart)
+		if n != 2 || secondPart != "01" || err != nil {
+			err = fmt.Errorf("astisub: parsing STL framerate %s failed: %w", v, err)
+			return
+		}
 	} else {
 		err = fmt.Errorf("astisub: no STL framerate")
 		return
@@ -532,11 +536,7 @@ func (b gsiBlock) bytes() (o []byte) {
 	binary.BigEndian.PutUint32(bs, b.codePageNumber)
 	o = append(o, astikit.BytesPad(bs[1:], ' ', 3, astikit.PadRight, astikit.PadCut)...) // Code page number
 	// Disk format code
-	var f string
-	if v, ok := stlFramerateMapping.GetInverse(b.framerate); ok {
-		f = v.(string)
-	}
-	o = append(o, astikit.BytesPad([]byte(f), ' ', 8, astikit.PadRight, astikit.PadCut)...)
+	o = append(o, astikit.BytesPad([]byte(fmt.Sprintf("STL%d.01", b.framerate)), ' ', 8, astikit.PadRight, astikit.PadCut)...)
 	o = append(o, astikit.BytesPad([]byte(b.displayStandardCode), ' ', 1, astikit.PadRight, astikit.PadCut)...) // Display standard code
 	binary.BigEndian.PutUint16(bs, b.characterCodeTableNumber)
 	o = append(o, astikit.BytesPad(bs[:2], ' ', 2, astikit.PadRight, astikit.PadCut)...)                                                             // Character code table number
