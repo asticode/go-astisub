@@ -297,11 +297,14 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 	if sa.STLJustification != nil {
 		switch *sa.STLJustification {
 		case JustificationCentered:
-			// default to middle anyway?
+			sa.WebVTTAlign = "center"
+			sa.TTMLTextAlign = astikit.StrPtr("center")
 		case JustificationRight:
-			sa.WebVTTAlign = "right"
+			sa.WebVTTAlign = "end"
+			sa.TTMLTextAlign = astikit.StrPtr("end")
 		case JustificationLeft:
-			sa.WebVTTAlign = "left"
+			sa.WebVTTAlign = "start"
+			sa.TTMLTextAlign = astikit.StrPtr("start")
 		}
 	}
 	// converts STL vertical position (row number) to WebVTT line percentage
