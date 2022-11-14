@@ -32,7 +32,7 @@ var (
 	bytesWebVTTItalicEndTag            = []byte("</i>")
 	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
-	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)(.{1,}?)>)`)
+	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)(.+?)>)`)
 )
 
 // parseDurationWebVTT parses a .vtt duration
