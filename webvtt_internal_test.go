@@ -88,3 +88,47 @@ func TestTimestampMap(t *testing.T) {
 		})
 	}
 }
+
+func TestCueVoiceSpanRegex(t *testing.T) {
+	tests := []struct {
+		give string
+		want string
+	}{
+		{
+			give: `<v 中文> this is the content</v>`,
+			want: ` 中文`,
+		},
+		{
+			give: `<v 中文> this is the content`,
+			want: ` 中文`,
+		},
+		{
+			give: `<v.abc 中文> this is the content</v>`,
+			want: ` 中文`,
+		},
+		{
+			give: `<v.jp 言語の> this is the content`,
+			want: ` 言語の`,
+		},
+		{
+			give: `<v.ko 언어> this is the content`,
+			want: ` 언어`,
+		},
+		{
+			give: `<v foo bar> this is the content`,
+			want: ` foo bar`,
+		},
+		{
+			give: `<v هذا عربي> this is the content`,
+			want: ` هذا عربي`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			results := webVTTRegexpStartTag.FindStringSubmatch(tt.give)
+			assert.True(t, len(results) == 4)
+			assert.Equal(t, tt.want, results[3])
+		})
+	}
+}
