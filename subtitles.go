@@ -645,6 +645,8 @@ func (s *Subtitles) Optimize() {
 
 	// Remove unused regions and style
 	s.removeUnusedRegionsAndStyles()
+	// Remove empty lines
+	s.removeEmptyLines()
 }
 
 // removeUnusedRegionsAndStyles removes unused regions and styles
@@ -691,6 +693,19 @@ func (s *Subtitles) removeUnusedRegionsAndStyles() {
 			delete(s.Styles, id)
 		}
 	}
+}
+
+// removeEmptyLines removes items without lines
+func (s *Subtitles) removeEmptyLines() {
+	var items []*Item
+
+	for _, item := range s.Items {
+		if len(item.Lines) != 0 {
+			items = append(items, item)
+		}
+	}
+
+	s.Items = items
 }
 
 // Order orders items
