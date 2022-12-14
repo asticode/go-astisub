@@ -1056,10 +1056,12 @@ func (e *ssaEvent) item(styles map[string]*Style) (i *Item, err error) {
 
 	// Set style
 	if len(e.style) > 0 {
-		var ok bool
-		if i.Style, ok = styles[e.style]; !ok {
-			err = fmt.Errorf("astisub: style %s not found", e.style)
-			return
+		// Sometimes there's an "*" before the style name (e.g. with ffmpeg)
+		for _, name := range []string{e.style, strings.TrimPrefix(e.style, "*")} {
+			if s, ok := styles[name]; ok {
+				i.Style = s
+				break
+			}
 		}
 	}
 
