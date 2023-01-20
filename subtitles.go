@@ -338,8 +338,13 @@ type Metadata struct {
 	STLOriginalEpisodeTitle                             string
 	STLPublisher                                        string
 	STLRevisionDate                                     *time.Time
+	STLRevisionNumber                                   int
 	STLSubtitleListReferenceCode                        string
 	STLTimecodeStartOfProgramme                         time.Duration
+	STLTranslatedEpisodeTitle                           string
+	STLTranslatedProgramTitle                           string
+	STLTranslatorContactDetails                         string
+	STLTranslatorName                                   string
 	Title                                               string
 	TTMLCopyright                                       string
 }

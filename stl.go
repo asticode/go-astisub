@@ -219,7 +219,12 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 		STLOriginalEpisodeTitle:                             g.originalEpisodeTitle,
 		STLPublisher:                                        g.publisher,
 		STLRevisionDate:                                     &g.revisionDate,
+		STLRevisionNumber:                                   g.revisionNumber,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
+		STLTranslatedEpisodeTitle:                           g.translatedEpisodeTitle,
+		STLTranslatedProgramTitle:                           g.translatedProgramTitle,
+		STLTranslatorContactDetails:                         g.translatorContactDetails,
+		STLTranslatorName:                                   g.translatorName,
 		Title:                                               g.originalProgramTitle,
 	}
 	if !opts.IgnoreTimecodeStartOfProgramme {
@@ -388,8 +393,13 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		if s.Metadata.STLRevisionDate != nil {
 			g.revisionDate = *s.Metadata.STLRevisionDate
 		}
+		g.revisionNumber = s.Metadata.STLRevisionNumber
 		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
 		g.timecodeStartOfProgramme = s.Metadata.STLTimecodeStartOfProgramme
+		g.translatedEpisodeTitle = s.Metadata.STLTranslatedEpisodeTitle
+		g.translatedProgramTitle = s.Metadata.STLTranslatedProgramTitle
+		g.translatorContactDetails = s.Metadata.STLTranslatorContactDetails
+		g.translatorName = s.Metadata.STLTranslatorName
 	}
 
 	// Timecode first in cue
@@ -415,8 +425,8 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 		publisher:                 string(bytes.TrimSpace(b[277:309])),
 		subtitleListReferenceCode: string(bytes.TrimSpace(b[208:224])),
 		timecodeStatus:            string(bytes.TrimSpace([]byte{b[255]})),
-		translatedEpisodeTitle:    string(bytes.TrimSpace(b[80:112])),
-		translatedProgramTitle:    string(bytes.TrimSpace(b[112:144])),
+		translatedProgramTitle:    string(bytes.TrimSpace(b[80:112])),
+		translatedEpisodeTitle:    string(bytes.TrimSpace(b[112:144])),
 		translatorContactDetails:  string(bytes.TrimSpace(b[176:208])),
 		translatorName:            string(bytes.TrimSpace(b[144:176])),
 		userDefinedArea:           string(bytes.TrimSpace(b[448:])),
