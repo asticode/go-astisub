@@ -68,6 +68,7 @@ func TestOPNSTL(t *testing.T) {
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(11),
 		STLPublisher:                                        "",
 		STLRevisionDate:                                     &revisionDate,
+		STLRevisionNumber:                                   1,
 		Title:                                               ""},
 		s.Metadata)
 
