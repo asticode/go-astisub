@@ -333,12 +333,12 @@ type Metadata struct {
 	STLCountryOfOrigin                                  string
 	STLCreationDate                                     *time.Time
 	STLDisplayStandardCode                              string
+	STLEditorContactDetails                             string
+	STLEditorName                                       string
 	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
 	STLMaximumNumberOfDisplayableRows                   *int
 	STLOriginalEpisodeTitle                             string
 	STLPublisher                                        string
-	STLEditorName                                       string
-	STLEditorContactDetails                             string
 	STLRevisionDate                                     *time.Time
 	STLRevisionNumber                                   int
 	STLSubtitleListReferenceCode                        string
