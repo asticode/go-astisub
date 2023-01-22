@@ -210,16 +210,16 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Framerate:              g.framerate,
-		STLCountryOfOrigin:     g.countryOfOrigin,
-		STLCreationDate:        &g.creationDate,
-		STLDisplayStandardCode: g.displayStandardCode,
+		Framerate:               g.framerate,
+		STLCountryOfOrigin:      g.countryOfOrigin,
+		STLCreationDate:         &g.creationDate,
+		STLDisplayStandardCode:  g.displayStandardCode,
+		STLEditorContactDetails: g.editorContactDetails,
+		STLEditorName:           g.editorName,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLOriginalEpisodeTitle:                             g.originalEpisodeTitle,
 		STLPublisher:                                        g.publisher,
-		STLEditorName:                                       g.editorName,
-		STLEditorContactDetails:                             g.editorContactDetails,
 		STLRevisionDate:                                     &g.revisionDate,
 		STLRevisionNumber:                                   g.revisionNumber,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
@@ -379,6 +379,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		}
 		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
 		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
+		g.editorContactDetails = s.Metadata.STLEditorContactDetails
+		g.editorName = s.Metadata.STLEditorName
 		g.framerate = s.Metadata.Framerate
 		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
 			g.languageCode = v.(string)
@@ -392,8 +394,6 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		}
 		g.originalEpisodeTitle = s.Metadata.STLOriginalEpisodeTitle
 		g.publisher = s.Metadata.STLPublisher
-		g.editorName = s.Metadata.STLEditorName
-		g.editorContactDetails = s.Metadata.STLEditorContactDetails
 		if s.Metadata.STLRevisionDate != nil {
 			g.revisionDate = *s.Metadata.STLRevisionDate
 		}
@@ -673,25 +673,12 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		commentFlag:          stlCommentFlagTextContainsSubtitleData,
 		cumulativeStatus:     stlCumulativeStatusSubtitleNotPartOfACumulativeSet,
 		extensionBlockNumber: 255,
-		justificationCode:    stlJustificationCodeLeftJustifiedText,
+		justificationCode:    stlJustificationCodeFromStyle(i.InlineStyle),
 		subtitleGroupNumber:  0,
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
 		timecodeOut:          i.EndAt,
 		verticalPosition:     stlVerticalPositionFromStyle(i.InlineStyle),
-	}
-
-	if i.InlineStyle != nil && i.InlineStyle.STLJustification != nil {
-		switch *i.InlineStyle.STLJustification {
-		case JustificationCentered:
-			t.justificationCode = stlJustificationCodeCentredText
-		case JustificationLeft:
-			t.justificationCode = stlJustificationCodeLeftJustifiedText
-		case JustificationRight:
-			t.justificationCode = stlJustificationCodeRightJustifiedText
-		case JustificationUnchanged:
-			t.justificationCode = stlJustificationCodeUnchangedPresentation
-		}
 	}
 
 	// Add text
@@ -705,6 +692,24 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	}
 	t.text = []byte(strings.Join(lines, string(rune(stlLineSeparator))))
 	return
+}
+
+func stlJustificationCodeFromStyle(sa *StyleAttributes) byte {
+	if sa == nil || sa.STLPosition == nil {
+		return stlJustificationCodeLeftJustifiedText
+	}
+	switch *sa.STLJustification {
+	case JustificationCentered:
+		return stlJustificationCodeCentredText
+	case JustificationLeft:
+		return stlJustificationCodeLeftJustifiedText
+	case JustificationRight:
+		return stlJustificationCodeRightJustifiedText
+	case JustificationUnchanged:
+		return stlJustificationCodeUnchangedPresentation
+	default:
+		return stlJustificationCodeLeftJustifiedText
+	}
 }
 
 func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
