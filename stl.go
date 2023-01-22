@@ -681,6 +681,19 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		verticalPosition:     stlVerticalPositionFromStyle(i.InlineStyle),
 	}
 
+	if i.InlineStyle != nil && i.InlineStyle.STLJustification != nil {
+		switch *i.InlineStyle.STLJustification {
+		case JustificationCentered:
+			t.justificationCode = stlJustificationCodeCentredText
+		case JustificationLeft:
+			t.justificationCode = stlJustificationCodeLeftJustifiedText
+		case JustificationRight:
+			t.justificationCode = stlJustificationCodeRightJustifiedText
+		case JustificationUnchanged:
+			t.justificationCode = stlJustificationCodeUnchangedPresentation
+		}
+	}
+
 	// Add text
 	var lines []string
 	for _, l := range i.Lines {
