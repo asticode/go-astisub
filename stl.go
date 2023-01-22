@@ -218,6 +218,8 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLOriginalEpisodeTitle:                             g.originalEpisodeTitle,
 		STLPublisher:                                        g.publisher,
+		STLEditorName:                                       g.editorName,
+		STLEditorContactDetails:                             g.editorContactDetails,
 		STLRevisionDate:                                     &g.revisionDate,
 		STLRevisionNumber:                                   g.revisionNumber,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
@@ -390,6 +392,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		}
 		g.originalEpisodeTitle = s.Metadata.STLOriginalEpisodeTitle
 		g.publisher = s.Metadata.STLPublisher
+		g.editorName = s.Metadata.STLEditorName
+		g.editorContactDetails = s.Metadata.STLEditorContactDetails
 		if s.Metadata.STLRevisionDate != nil {
 			g.revisionDate = *s.Metadata.STLRevisionDate
 		}
