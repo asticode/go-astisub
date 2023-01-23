@@ -210,10 +210,12 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Framerate:              g.framerate,
-		STLCountryOfOrigin:     g.countryOfOrigin,
-		STLCreationDate:        &g.creationDate,
-		STLDisplayStandardCode: g.displayStandardCode,
+		Framerate:               g.framerate,
+		STLCountryOfOrigin:      g.countryOfOrigin,
+		STLCreationDate:         &g.creationDate,
+		STLDisplayStandardCode:  g.displayStandardCode,
+		STLEditorContactDetails: g.editorContactDetails,
+		STLEditorName:           g.editorName,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
 		STLOriginalEpisodeTitle:                             g.originalEpisodeTitle,
@@ -377,6 +379,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		}
 		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
 		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
+		g.editorContactDetails = s.Metadata.STLEditorContactDetails
+		g.editorName = s.Metadata.STLEditorName
 		g.framerate = s.Metadata.Framerate
 		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
 			g.languageCode = v.(string)
@@ -669,7 +673,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		commentFlag:          stlCommentFlagTextContainsSubtitleData,
 		cumulativeStatus:     stlCumulativeStatusSubtitleNotPartOfACumulativeSet,
 		extensionBlockNumber: 255,
-		justificationCode:    stlJustificationCodeLeftJustifiedText,
+		justificationCode:    stlJustificationCodeFromStyle(i.InlineStyle),
 		subtitleGroupNumber:  0,
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
@@ -688,6 +692,24 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	}
 	t.text = []byte(strings.Join(lines, string(rune(stlLineSeparator))))
 	return
+}
+
+func stlJustificationCodeFromStyle(sa *StyleAttributes) byte {
+	if sa == nil || sa.STLJustification == nil {
+		return stlJustificationCodeLeftJustifiedText
+	}
+	switch *sa.STLJustification {
+	case JustificationCentered:
+		return stlJustificationCodeCentredText
+	case JustificationLeft:
+		return stlJustificationCodeLeftJustifiedText
+	case JustificationRight:
+		return stlJustificationCodeRightJustifiedText
+	case JustificationUnchanged:
+		return stlJustificationCodeUnchangedPresentation
+	default:
+		return stlJustificationCodeLeftJustifiedText
+	}
 }
 
 func stlVerticalPositionFromStyle(sa *StyleAttributes) int {

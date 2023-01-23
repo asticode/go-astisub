@@ -269,7 +269,7 @@ func (sa *StyleAttributes) propagateTeletextAttributes() {
 	}
 }
 
-//reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
+// reference for migration: https://w3c.github.io/ttml-webvtt-mapping/
 func (sa *StyleAttributes) propagateTTMLAttributes() {
 	if sa.TTMLTextAlign != nil {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
@@ -333,6 +333,8 @@ type Metadata struct {
 	STLCountryOfOrigin                                  string
 	STLCreationDate                                     *time.Time
 	STLDisplayStandardCode                              string
+	STLEditorContactDetails                             string
+	STLEditorName                                       string
 	STLMaximumNumberOfDisplayableCharactersInAnyTextRow *int
 	STLMaximumNumberOfDisplayableRows                   *int
 	STLOriginalEpisodeTitle                             string
