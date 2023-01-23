@@ -695,7 +695,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 }
 
 func stlJustificationCodeFromStyle(sa *StyleAttributes) byte {
-	if sa == nil || sa.STLPosition == nil {
+	if sa == nil || sa.STLJustification == nil {
 		return stlJustificationCodeLeftJustifiedText
 	}
 	switch *sa.STLJustification {
