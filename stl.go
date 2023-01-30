@@ -696,7 +696,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 
 func stlJustificationCodeFromStyle(sa *StyleAttributes) byte {
 	if sa == nil || sa.STLJustification == nil {
-		return stlJustificationCodeLeftJustifiedText
+		return stlJustificationCodeCentredText // Changed to be centered by default
 	}
 	switch *sa.STLJustification {
 	case JustificationCentered:
@@ -716,7 +716,7 @@ func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
 	if sa != nil && sa.STLPosition != nil {
 		return sa.STLPosition.VerticalPosition
 	} else {
-		return 20
+		return 23 // Changed from 20 to 23 for default position
 	}
 }
 
