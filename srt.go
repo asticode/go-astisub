@@ -20,8 +20,13 @@ var (
 )
 
 // parseDurationSRT parses an .srt duration
-func parseDurationSRT(i string) (time.Duration, error) {
-	return parseDuration(i, ",", 3)
+func parseDurationSRT(i string) (d time.Duration, err error) {
+	for _, s := range []string{",", "."} {
+		if d, err = parseDuration(i, s, 3); err == nil {
+			return
+		}
+	}
+	return
 }
 
 // ReadFromSRT parses an .srt content
