@@ -262,7 +262,7 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 		}
 	}
 	if sa.STLPosition != nil && sa.STLPosition.MaxRows > 0 {
-		sa.WebVTTLine = fmt.Sprintf("%d%%", int(sa.STLPosition.VerticalPosition*100/sa.STLPosition.MaxRows))
+		sa.WebVTTLine = fmt.Sprintf("%d%%", sa.STLPosition.VerticalPosition*100/sa.STLPosition.MaxRows)
 	}
 }
 
