@@ -261,8 +261,14 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 			sa.WebVTTAlign = "left"
 		}
 	}
+	// converts STL vertical position (row number) to WebVTT line percentage
 	if sa.STLPosition != nil && sa.STLPosition.MaxRows > 0 {
+		// in-vision vertical position ranges from 0 to maxrows (maxrows <= 99)
 		sa.WebVTTLine = fmt.Sprintf("%d%%", sa.STLPosition.VerticalPosition*100/sa.STLPosition.MaxRows)
+		// teletext vertical position ranges from 1 to 23
+		if sa.STLPosition.MaxRows == 23 && sa.STLPosition.VerticalPosition > 0 {
+			sa.WebVTTLine = fmt.Sprintf("%d%%", (sa.STLPosition.VerticalPosition-1)*100/sa.STLPosition.MaxRows)
+		}
 	}
 }
 
