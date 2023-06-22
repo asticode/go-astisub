@@ -265,7 +265,10 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 	if sa.STLPosition != nil && sa.STLPosition.MaxRows > 0 {
 		// in-vision vertical position ranges from 0 to maxrows (maxrows <= 99)
 		sa.WebVTTLine = fmt.Sprintf("%d%%", sa.STLPosition.VerticalPosition*100/sa.STLPosition.MaxRows)
-		// teletext vertical position ranges from 1 to 23
+		// teletext vertical position ranges from 1 to 23; as webvtt line percentage starts
+		// from the top at 0%, substract 1 to the stl position to get a better conversion.
+		// Especially apparent on Shaka player, where a single line at vp 22 would be half
+		// out of bounds at 95% (22*100/23), and fine at 91% (21*100/23)
 		if sa.STLPosition.MaxRows == 23 && sa.STLPosition.VerticalPosition > 0 {
 			sa.WebVTTLine = fmt.Sprintf("%d%%", (sa.STLPosition.VerticalPosition-1)*100/sa.STLPosition.MaxRows)
 		}
