@@ -8,6 +8,7 @@ import (
 
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebVTT(t *testing.T) {
@@ -128,5 +129,28 @@ func TestWebVTTWithTimestampMap(t *testing.T) {
 2
 00:00:04.400 --> 00:00:05.633
 Evening.
+`, b.String())
+}
+
+func TestWebVTTEscape(t *testing.T) {
+	testData := `WEBVTT
+
+	00:01:00.000 --> 00:02:00.000
+	Sentence with an &amp; in the middle`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	require.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Equal(t, "Sentence with an & in the middle", s.Items[0].String())
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	require.NoError(t, err)
+	require.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+Sentence with an &amp; in the middle
 `, b.String())
 }

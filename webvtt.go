@@ -42,7 +42,8 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 
 // https://tools.ietf.org/html/rfc8216#section-3.5
 // Eg., `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:900000` => 10s
-//      `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000` => 2s
+//
+//	`X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000` => 2s
 func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) {
 	splits := strings.Split(line, "=")
 	if len(splits) <= 1 {
@@ -111,6 +112,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
+
+		// Unescape line
+		line = unescapeWebVTT(line)
 
 		switch {
 		// Comment
@@ -271,6 +275,14 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		o.Add(timeOffset)
 	}
 	return
+}
+
+func escapeWebVTT(i string) string {
+	return strings.ReplaceAll(i, "&", "&amp;")
+}
+
+func unescapeWebVTT(i string) string {
+	return strings.ReplaceAll(i, "&amp;", "&")
 }
 
 // parseTextWebVTT parses the input line to fill the Line
@@ -474,6 +486,9 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	// Remove last new line
 	c = c[:len(c)-1]
+
+	// Escape content
+	c = []byte(escapeWebVTT(string(c)))
 
 	// Write
 	if _, err = o.Write(c); err != nil {
