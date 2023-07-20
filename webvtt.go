@@ -278,11 +278,13 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 func escapeWebVTT(i string) string {
-	return strings.ReplaceAll(i, "&", "&amp;")
+	r := strings.NewReplacer("&", "&amp;", "<", "&lt;")
+	return r.Replace(i)
 }
 
 func unescapeWebVTT(i string) string {
-	return strings.ReplaceAll(i, "&amp;", "&")
+	r := strings.NewReplacer("&amp;", "&", "&lt;", "<")
+	return r.Replace(i)
 }
 
 // parseTextWebVTT parses the input line to fill the Line
