@@ -33,6 +33,8 @@ var (
 	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)(.+?)>)`)
+	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
+	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -112,9 +114,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
-
-		// Unescape line
-		line = unescapeWebVTT(line)
 
 		switch {
 		// Comment
@@ -278,11 +277,11 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 func escapeWebVTT(i string) string {
-	return strings.ReplaceAll(i, "&", "&amp;")
+	return webVTTEscaper.Replace(i)
 }
 
 func unescapeWebVTT(i string) string {
-	return strings.ReplaceAll(i, "&amp;", "&")
+	return webVTTUnescaper.Replace(i)
 }
 
 // parseTextWebVTT parses the input line to fill the Line
@@ -336,7 +335,7 @@ func parseTextWebVTT(i string) (o Line) {
 				// Append item
 				o.Items = append(o.Items, LineItem{
 					InlineStyle: sa,
-					Text:        s,
+					Text:        unescapeWebVTT(s),
 				})
 			}
 		}
@@ -487,9 +486,6 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	// Remove last new line
 	c = c[:len(c)-1]
 
-	// Escape content
-	c = []byte(escapeWebVTT(string(c)))
-
 	// Write
 	if _, err = o.Write(c); err != nil {
 		err = fmt.Errorf("astisub: writing failed: %w", err)
@@ -530,7 +526,7 @@ func (li LineItem) webVTTBytes() (c []byte) {
 	if i {
 		c = append(c, []byte("<i>")...)
 	}
-	c = append(c, []byte(li.Text)...)
+	c = append(c, []byte(escapeWebVTT(li.Text))...)
 	if i {
 		c = append(c, []byte("</i>")...)
 	}
