@@ -1253,10 +1253,25 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		var b = []byte("\n[Events]\n")
 
 		// Format
-		var formatMap = make(map[string]bool)
+		var formatMap = map[string]bool{
+			ssaEventFormatNameLayer:   true,
+			ssaEventFormatNameStyle:   true,
+			ssaEventFormatNameName:    true,
+			ssaEventFormatNameMarginL: true,
+			ssaEventFormatNameMarginR: true,
+			ssaEventFormatNameMarginV: true,
+			ssaEventFormatNameEffect:  true,
+		}
 		var format = []string{
+			ssaEventFormatNameLayer,
 			ssaEventFormatNameStart,
 			ssaEventFormatNameEnd,
+			ssaEventFormatNameStyle,
+			ssaEventFormatNameName,
+			ssaEventFormatNameMarginL,
+			ssaEventFormatNameMarginR,
+			ssaEventFormatNameMarginV,
+			ssaEventFormatNameEffect,
 		}
 		var events []*ssaEvent
 		for _, i := range s.Items {
