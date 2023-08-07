@@ -1,4 +1,4 @@
-module github.com/molotovtv/go-astisub
+module github.com/fubotv/go-astisub
 
 go 1.18
 
