@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
-	"github.com/molotovtv/go-astisub"
+	"github.com/fubotv/go-astisub"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/molotovtv/go-astisub"
+	"github.com/fubotv/go-astisub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

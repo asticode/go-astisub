@@ -13,7 +13,7 @@ Available operations are `parsing`, `writing`, `applying linear correction`, `sy
 
 To install the library:
 
-    go get github.com/molotovtv/go-astisub
+    go get github.com/fubotv/go-astisub
 
 # Using the library in your code
 

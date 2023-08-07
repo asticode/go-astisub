@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/molotovtv/go-astisub"
+	"github.com/fubotv/go-astisub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
