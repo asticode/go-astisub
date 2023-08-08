@@ -41,7 +41,56 @@ func assertSubtitleItems(t *testing.T, i *astisub.Subtitles) {
 }
 
 func mockSubtitles() *astisub.Subtitles {
-	return &astisub.Subtitles{Items: []*astisub.Item{{EndAt: 3 * time.Second, StartAt: time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}}, {EndAt: 7 * time.Second, StartAt: 3 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-2"}}}}}}}
+	return &astisub.Subtitles{Items: []*astisub.Item{
+		{EndAt: 3 * time.Second, StartAt: time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-1"}}}}},
+		{EndAt: 7 * time.Second, StartAt: 3 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "subtitle-2"}}}}},
+	}}
+}
+
+func TestSubtitles_Trim(t *testing.T) {
+	var s = mockSubtitles()
+	from := time.Second * 0
+	to := time.Second * 7
+	s.Trim(from, to)
+	assert.Len(t, s.Items, 2)
+
+	s = mockSubtitles()
+	from = time.Second * 3
+	to = time.Second * 7
+	s.Trim(from, to)
+	assert.Len(t, s.Items, 1)
+	assert.Equal(t, 3*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 7*time.Second, s.Items[0].EndAt)
+
+	s = mockSubtitles()
+	from = time.Second * 1
+	to = time.Second * 3
+	s.Trim(from, to)
+	assert.Len(t, s.Items, 1)
+	assert.Equal(t, 1*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 3*time.Second, s.Items[0].EndAt)
+
+	s = mockSubtitles()
+	from = time.Second * 2
+	to = time.Second * 7
+	s.Trim(from, to)
+	assert.Len(t, s.Items, 1)
+	assert.Equal(t, 3*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 7*time.Second, s.Items[0].EndAt)
+
+	s = mockSubtitles()
+	from = time.Second * 1
+	to = time.Second * 4
+	s.Trim(from, to)
+	assert.Len(t, s.Items, 1)
+	assert.Equal(t, 1*time.Second, s.Items[0].StartAt)
+	assert.Equal(t, 3*time.Second, s.Items[0].EndAt)
+
+	s = mockSubtitles()
+	from = time.Second * 2
+	to = time.Second * 5
+	s.Trim(from, to)
+	assert.Len(t, s.Items, 0)
 }
 
 func TestSubtitles_Add(t *testing.T) {

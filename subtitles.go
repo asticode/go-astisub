@@ -492,6 +492,41 @@ type LineItem struct {
 	Text        string
 }
 
+func (s *Subtitles) removeItem(index int) {
+	s.Items = append(s.Items[:index], s.Items[index+1:]...)
+}
+
+// Trim trims subtitle items that are not within the specified time range
+func (s *Subtitles) Trim(from, to time.Duration) {
+	// from start to end
+	count := len(s.Items)
+	i := 0
+	for i < count {
+		item := s.Items[i]
+		if item.StartAt < from {
+			s.removeItem(i)
+			i--
+			count--
+		} else {
+			break
+		}
+		i++
+	}
+
+	// from end to start
+	j := len(s.Items) - 1
+	for j >= 0 {
+		fmt.Println(s.Items, j)
+		item := s.Items[j]
+		if item.EndAt > to {
+			s.removeItem(j)
+		} else {
+			break
+		}
+		j--
+	}
+}
+
 // Add adds a duration to each time boundaries. As in the time package, duration can be negative.
 func (s *Subtitles) Add(d time.Duration) {
 	for idx := 0; idx < len(s.Items); idx++ {
