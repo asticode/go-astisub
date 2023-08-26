@@ -1163,7 +1163,11 @@ func (e *ssaEvent) string(format []string) string {
 			var i *int
 			switch attr {
 			case ssaEventFormatNameLayer:
-				i = e.layer
+				if e.layer == nil {
+					i = astikit.IntPtr(0)
+				} else {
+					i = e.layer
+				}
 			case ssaEventFormatNameMarginL:
 				i = e.marginLeft
 			case ssaEventFormatNameMarginR:
@@ -1216,10 +1220,15 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		return
 	}
 
+	var v4plus = s.Metadata.SSAScriptType == "v4.00+"
+
 	// Write Styles block
 	if len(s.Styles) > 0 {
 		// Header
 		var b = []byte("\n[V4 Styles]\n")
+		if v4plus {
+			b = []byte("\n[V4+ Styles]\n")
+		}
 
 		// Format
 		var formatMap = make(map[string]bool)
@@ -1253,16 +1262,23 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		var b = []byte("\n[Events]\n")
 
 		// Format
-		var formatMap = make(map[string]bool)
 		var format = []string{
+			ssaEventFormatNameMarked,
 			ssaEventFormatNameStart,
 			ssaEventFormatNameEnd,
+			ssaEventFormatNameStyle,
+			ssaEventFormatNameName,
+			ssaEventFormatNameMarginL,
+			ssaEventFormatNameMarginR,
+			ssaEventFormatNameMarginV,
+			ssaEventFormatNameEffect,
+		}
+		if v4plus {
+			format[0] = ssaEventFormatNameLayer
 		}
 		var events []*ssaEvent
 		for _, i := range s.Items {
-			var e = newSSAEventFromItem(*i)
-			format = e.updateFormat(formatMap, format)
-			events = append(events, e)
+			events = append(events, newSSAEventFromItem(*i))
 		}
 		format = append(format, ssaEventFormatNameText)
 		b = append(b, []byte("Format: "+strings.Join(format, ", ")+"\n")...)
