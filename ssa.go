@@ -1150,12 +1150,10 @@ func (e *ssaEvent) string(format []string) string {
 			}
 		// Marked
 		case ssaEventFormatNameMarked:
-			if e.marked != nil {
-				if *e.marked {
-					v = "Marked=1"
-				} else {
-					v = "Marked=0"
-				}
+			if e.marked != nil && *e.marked {
+				v = "Marked=1"
+			} else {
+				v = "Marked=0"
 			}
 		// Int
 		case ssaEventFormatNameLayer, ssaEventFormatNameMarginL, ssaEventFormatNameMarginR,
@@ -1163,11 +1161,7 @@ func (e *ssaEvent) string(format []string) string {
 			var i *int
 			switch attr {
 			case ssaEventFormatNameLayer:
-				if e.layer == nil {
-					i = astikit.IntPtr(0)
-				} else {
-					i = e.layer
-				}
+				i = e.layer
 			case ssaEventFormatNameMarginL:
 				i = e.marginLeft
 			case ssaEventFormatNameMarginR:
@@ -1175,9 +1169,10 @@ func (e *ssaEvent) string(format []string) string {
 			case ssaEventFormatNameMarginV:
 				i = e.marginVertical
 			}
-			if i != nil {
-				v = strconv.Itoa(*i)
+			if i == nil {
+				i = astikit.IntPtr(0)
 			}
+			v = strconv.Itoa(*i)
 		// String
 		case ssaEventFormatNameEffect, ssaEventFormatNameName, ssaEventFormatNameStyle, ssaEventFormatNameText:
 			switch attr {
@@ -1262,6 +1257,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		var b = []byte("\n[Events]\n")
 
 		// Format
+		// We need to declare those 9 columns here otherwise VLC doesn't display subtitles properly column
 		var format = []string{
 			ssaEventFormatNameMarked,
 			ssaEventFormatNameStart,
