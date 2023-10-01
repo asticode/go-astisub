@@ -40,7 +40,7 @@ func TestSRTMissingSequence(t *testing.T) {
 	assert.EqualError(t, err, astisub.ErrNoSubtitlesToWrite.Error())
 
 	// Write
-	c, err := ioutil.ReadFile("./testdata/missing-sequence-out.srt")
+	c, err := ioutil.ReadFile("./testdata/example-out.srt")
 	assert.NoError(t, err)
 	err = s.WriteToSRT(w)
 	assert.NoError(t, err)
