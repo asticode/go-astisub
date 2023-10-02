@@ -51,15 +51,15 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
-			// Return the wrong number of rows
-			if len(s.Lines) == 0 {
-				err = fmt.Errorf("astisub: line %d: no lines", lineNum)
-				return
+			// Remove last item of previous subtitle since it should be the index.
+			// If the last line is empty then the item is missing an index.
+			var index string
+			if len(s.Lines) != 0 {
+				index := s.Lines[len(s.Lines)-1].String()
+				if index != "" {
+					s.Lines = s.Lines[:len(s.Lines)-1]
+				}
 			}
-
-			// Remove last item of previous subtitle since it's the index
-			index := s.Lines[len(s.Lines)-1]
-			s.Lines = s.Lines[:len(s.Lines)-1]
 
 			// Remove trailing empty lines
 			if len(s.Lines) > 0 {
@@ -84,7 +84,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			s = &Item{}
 
 			// Fetch Index
-			s.Index, _ = strconv.Atoi(index.String())
+			if index != "" {
+				s.Index, _ = strconv.Atoi(index)
+			}
 
 			// Extract time boundaries
 			s1 := strings.Split(line, srtTimeBoundariesSeparator)
