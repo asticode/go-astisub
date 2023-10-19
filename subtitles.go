@@ -173,6 +173,9 @@ var (
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
+	SRTBold              bool
+	SRTItalics           bool
+	SRTUnderline         bool
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
 	SSAAngle             *float64 // degrees
@@ -236,7 +239,9 @@ type StyleAttributes struct {
 	TTMLWritingMode      *string
 	TTMLZIndex           *int
 	WebVTTAlign          string
+	WebVTTBold           bool
 	WebVTTItalics        bool
+	WebVTTUnderline      bool
 	WebVTTLine           string
 	WebVTTLines          int
 	WebVTTPosition       string
@@ -247,6 +252,8 @@ type StyleAttributes struct {
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
 }
+
+func (sa *StyleAttributes) propagateSRTAttributes() {}
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
 

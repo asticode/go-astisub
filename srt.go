@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 // Constants
@@ -111,7 +113,86 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: strings.TrimSpace(line)}}})
+			if l := parseTextSrt(line); len(l.Items) > 0 {
+				s.Lines = append(s.Lines, l)
+			}
+			// s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: strings.TrimSpace(line)}}})
+		}
+	}
+	return
+}
+
+func parseTextSrt(i string) (o Line) {
+	// Create tokenizer
+	tr := html.NewTokenizer(strings.NewReader(i))
+
+	// Loop
+	type Styles struct {
+		bold      bool
+		italic    bool
+		underline bool
+		color     *string
+	}
+	styles := Styles{}
+	for {
+		// Get next tag
+		t := tr.Next()
+
+		// Process error
+		if err := tr.Err(); err != nil {
+			break
+		}
+
+		// Get current token
+		token := tr.Token()
+
+		switch t {
+		case html.EndTagToken:
+			// Parse italic/bold/underline
+			switch token.Data {
+			case "b":
+				styles.bold = false
+			case "i":
+				styles.italic = false
+			case "u":
+				styles.underline = false
+			}
+		case html.StartTagToken:
+			// Parse italic/bold/underline
+			switch token.Data {
+			case "b":
+				styles.bold = true
+			case "i":
+				styles.italic = true
+			case "u":
+				styles.underline = true
+			case "font":
+				color, _ := getAttribute(&token, "color")
+				if color != "" {
+					styles.color = &color
+				}
+			}
+		case html.TextToken:
+			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
+				// Get style attribute
+				var sa *StyleAttributes
+				if styles.bold || styles.italic ||
+					styles.underline || styles.color != nil {
+					sa = &StyleAttributes{
+						TTMLColor:       styles.color,
+						WebVTTBold:      styles.bold,
+						WebVTTItalics:   styles.italic,
+						WebVTTUnderline: styles.underline,
+					}
+					sa.propagateSRTAttributes()
+				}
+
+				// Append item
+				o.Items = append(o.Items, LineItem{
+					InlineStyle: sa,
+					Text:        s,
+				})
+			}
 		}
 	}
 	return
@@ -146,8 +227,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range v.Lines {
-			c = append(c, []byte(l.String())...)
-			c = append(c, bytesLineSeparator...)
+			c = append(c, l.srtBytes()...)
 		}
 
 		// Add new line
@@ -163,4 +243,68 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 		return
 	}
 	return
+}
+
+func (l Line) srtBytes() (c []byte) {
+	for idx, li := range l.Items {
+		c = append(c, li.srtBytes()...)
+		// condition to avoid adding space as the last character.
+		if idx < len(l.Items)-1 {
+			c = append(c, []byte(" ")...)
+		}
+	}
+	c = append(c, bytesLineSeparator...)
+	return
+}
+
+func (li LineItem) srtBytes() (c []byte) {
+	// Get color
+	var color string
+	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != nil {
+		color = *li.InlineStyle.TTMLColor
+	}
+
+	// Get bold/italics/underline
+	b := li.InlineStyle != nil && li.InlineStyle.WebVTTBold
+	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
+	u := li.InlineStyle != nil && li.InlineStyle.WebVTTUnderline
+
+	// Append
+	if color != "" {
+		c = append(c, []byte("<font color=\""+color+"\">")...)
+	}
+	if b {
+		c = append(c, []byte("<b>")...)
+	}
+	if i {
+		c = append(c, []byte("<i>")...)
+	}
+	if u {
+		c = append(c, []byte("<u>")...)
+	}
+	c = append(c, []byte(li.Text)...)
+	if u {
+		c = append(c, []byte("</u>")...)
+	}
+	if i {
+		c = append(c, []byte("</i>")...)
+	}
+	if b {
+		c = append(c, []byte("</b>")...)
+	}
+	if color != "" {
+		c = append(c, []byte("</font>")...)
+	}
+	return
+}
+
+func getAttribute(n *html.Token, key string) (string, bool) {
+
+	for _, attr := range n.Attr {
+		if attr.Key == key {
+			return attr.Val, true
+		}
+	}
+
+	return "", false
 }
