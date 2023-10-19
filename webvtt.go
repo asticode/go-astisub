@@ -3,6 +3,7 @@ package astisub
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -109,6 +110,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var comments []string
 	var index int
 	var timeOffset time.Duration
+	var styleLines []string
 
 	for scanner.Scan() {
 		// Fetch line
@@ -123,7 +125,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Empty line
 		case len(line) == 0:
 			// Reset block name
-			blockName = ""
+			if blockName != webvttBlockNameStyle || len(styleLines) == 0 {
+				blockName = ""
+			}
 		// Region
 		case strings.HasPrefix(line, "Region: "):
 			// Add region styles
@@ -162,6 +166,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Style
 		case strings.HasPrefix(line, "STYLE"):
 			blockName = webvttBlockNameStyle
+
 		// Time boundaries
 		case strings.Contains(line, webvttTimeBoundariesSeparator):
 			// Set block name
@@ -257,7 +262,27 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameComment:
 				comments = append(comments, line)
 			case webvttBlockNameStyle:
-				// TODO Do something with the style
+				styleLines = append(styleLines, line)
+				if strings.HasSuffix(line, "}") {
+					styleStr := strings.Join(styleLines, "\n")
+					tokens := strings.Split(styleStr, "{")
+					cssSelector := strings.TrimSpace(tokens[0])
+					if len(tokens) <= 1 || !strings.HasPrefix(cssSelector, "::cue") {
+						err = fmt.Errorf("invalid WebVTT style: %s", styleStr)
+						return
+					}
+
+					// Raw css selector might contain invalid characters for other formats,
+					// so using a heximal string alternatively
+					styleID := hex.EncodeToString([]byte(cssSelector))
+					o.Styles[styleID] = &Style{
+						InlineStyle: &StyleAttributes{
+							WebVTTCSS: styleStr,
+						},
+						ID: styleID,
+					}
+					styleLines = styleLines[:0]
+				}
 			case webvttBlockNameText:
 				// Parse line
 				if l := parseTextWebVTT(line); len(l.Items) > 0 {
@@ -360,11 +385,19 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	var c []byte
 	c = append(c, []byte("WEBVTT\n\n")...)
 
+	for _, style := range s.Styles {
+		cssSheet := style.InlineStyle.WebVTTCSS
+		if cssSheet != "" {
+			c = append(c, []byte(fmt.Sprintf("STYLE\n%s\n\n", cssSheet))...)
+		}
+	}
+
 	// Add regions
 	var k []string
 	for _, region := range s.Regions {
 		k = append(k, region.ID)
 	}
+
 	sort.Strings(k)
 	for _, id := range k {
 		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)

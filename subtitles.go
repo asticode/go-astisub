@@ -246,6 +246,7 @@ type StyleAttributes struct {
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
+	WebVTTCSS            string
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}

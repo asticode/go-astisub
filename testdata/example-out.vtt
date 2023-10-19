@@ -1,5 +1,10 @@
 WEBVTT
 
+STYLE
+::cue(b) {
+color: peachpuff;
+}
+
 Region: id=bill lines=3 regionanchor=100%,100% scroll=up viewportanchor=90%,90% width=40%
 Region: id=fred lines=3 regionanchor=0%,100% scroll=up viewportanchor=10%,90% width=40%
 
