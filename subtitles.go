@@ -173,9 +173,6 @@ var (
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
-	SRTBold              bool
-	SRTItalics           bool
-	SRTUnderline         bool
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
 	SSAAngle             *float64 // degrees

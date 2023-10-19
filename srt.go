@@ -156,6 +156,8 @@ func parseTextSrt(i string) (o Line) {
 				styles.italic = false
 			case "u":
 				styles.underline = false
+			case "font":
+				styles.color = nil
 			}
 		case html.StartTagToken:
 			// Parse italic/bold/underline
