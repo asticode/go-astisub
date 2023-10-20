@@ -116,7 +116,6 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			if l := parseTextSrt(line); len(l.Items) > 0 {
 				s.Lines = append(s.Lines, l)
 			}
-			// s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: strings.TrimSpace(line)}}})
 		}
 	}
 	return
@@ -127,13 +126,12 @@ func parseTextSrt(i string) (o Line) {
 	tr := html.NewTokenizer(strings.NewReader(i))
 
 	// Loop
-	type Styles struct {
+	var (
 		bold      bool
 		italic    bool
 		underline bool
 		color     *string
-	}
-	styles := Styles{}
+	)
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -151,40 +149,38 @@ func parseTextSrt(i string) (o Line) {
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				styles.bold = false
+				bold = false
 			case "i":
-				styles.italic = false
+				italic = false
 			case "u":
-				styles.underline = false
+				underline = false
 			case "font":
-				styles.color = nil
+				color = nil
 			}
 		case html.StartTagToken:
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				styles.bold = true
+				bold = true
 			case "i":
-				styles.italic = true
+				italic = true
 			case "u":
-				styles.underline = true
+				underline = true
 			case "font":
-				color, _ := getAttribute(&token, "color")
-				if color != "" {
-					styles.color = &color
+				if c := htmlTokenAttribute(&token, "color"); c != nil {
+					color = c
 				}
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
 				// Get style attribute
 				var sa *StyleAttributes
-				if styles.bold || styles.italic ||
-					styles.underline || styles.color != nil {
+				if bold || italic || underline || color != nil {
 					sa = &StyleAttributes{
-						TTMLColor:       styles.color,
-						WebVTTBold:      styles.bold,
-						WebVTTItalics:   styles.italic,
-						WebVTTUnderline: styles.underline,
+						SRTColor:     color,
+						SRTBold:      bold,
+						SRTItalics:   italic,
+						SRTUnderline: underline,
 					}
 					sa.propagateSRTAttributes()
 				}
@@ -262,14 +258,14 @@ func (l Line) srtBytes() (c []byte) {
 func (li LineItem) srtBytes() (c []byte) {
 	// Get color
 	var color string
-	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != nil {
-		color = *li.InlineStyle.TTMLColor
+	if li.InlineStyle != nil && li.InlineStyle.SRTColor != nil {
+		color = *li.InlineStyle.SRTColor
 	}
 
 	// Get bold/italics/underline
-	b := li.InlineStyle != nil && li.InlineStyle.WebVTTBold
-	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
-	u := li.InlineStyle != nil && li.InlineStyle.WebVTTUnderline
+	b := li.InlineStyle != nil && li.InlineStyle.SRTBold
+	i := li.InlineStyle != nil && li.InlineStyle.SRTItalics
+	u := li.InlineStyle != nil && li.InlineStyle.SRTUnderline
 
 	// Append
 	if color != "" {
@@ -298,15 +294,4 @@ func (li LineItem) srtBytes() (c []byte) {
 		c = append(c, []byte("</font>")...)
 	}
 	return
-}
-
-func getAttribute(n *html.Token, key string) (string, bool) {
-
-	for _, attr := range n.Attr {
-		if attr.Key == key {
-			return attr.Val, true
-		}
-	}
-
-	return "", false
 }

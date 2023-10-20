@@ -287,12 +287,11 @@ func parseTextWebVTT(i string) (o Line) {
 	tr := html.NewTokenizer(strings.NewReader(i))
 
 	// Loop
-	type Styles struct {
+	var (
 		bold      bool
 		italic    bool
 		underline bool
-	}
-	styles := Styles{}
+	)
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -310,11 +309,11 @@ func parseTextWebVTT(i string) (o Line) {
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				styles.bold = false
+				bold = false
 			case "i":
-				styles.italic = false
+				italic = false
 			case "u":
-				styles.underline = false
+				underline = false
 			}
 		case html.StartTagToken:
 			// Parse voice name
@@ -328,21 +327,21 @@ func parseTextWebVTT(i string) (o Line) {
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				styles.bold = true
+				bold = true
 			case "i":
-				styles.italic = true
+				italic = true
 			case "u":
-				styles.underline = true
+				underline = true
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
 				// Get style attribute
 				var sa *StyleAttributes
-				if styles.bold || styles.italic || styles.underline {
+				if bold || italic || underline {
 					sa = &StyleAttributes{
-						WebVTTBold:      styles.bold,
-						WebVTTItalics:   styles.italic,
-						WebVTTUnderline: styles.underline,
+						WebVTTBold:      bold,
+						WebVTTItalics:   italic,
+						WebVTTUnderline: underline,
 					}
 					sa.propagateWebVTTAttributes()
 				}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
+	"golang.org/x/net/html"
 )
 
 // Bytes
@@ -173,6 +174,10 @@ var (
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
+	SRTColor             *string
+	SRTBold              bool
+	SRTItalics           bool
+	SRTUnderline         bool
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
 	SSAAngle             *float64 // degrees
@@ -250,7 +255,16 @@ type StyleAttributes struct {
 	WebVTTWidth          string
 }
 
-func (sa *StyleAttributes) propagateSRTAttributes() {}
+func (sa *StyleAttributes) propagateSRTAttributes() {
+	// copy relevant attrs to WebVTT ones
+	if sa.SRTColor != nil {
+		// TODO: handle non-default colors that need custom styles
+		sa.TTMLColor = sa.SRTColor
+	}
+	sa.WebVTTBold = sa.SRTBold
+	sa.WebVTTItalics = sa.SRTItalics
+	sa.WebVTTUnderline = sa.SRTUnderline
+}
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
 
@@ -325,7 +339,15 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 	}
 }
 
-func (sa *StyleAttributes) propagateWebVTTAttributes() {}
+func (sa *StyleAttributes) propagateWebVTTAttributes() {
+	// copy relevant attrs to SRT ones
+	if sa.TTMLColor != nil {
+		sa.SRTColor = sa.TTMLColor
+	}
+	sa.SRTBold = sa.WebVTTBold
+	sa.SRTItalics = sa.WebVTTItalics
+	sa.SRTUnderline = sa.WebVTTUnderline
+}
 
 // Metadata represents metadata
 // TODO Merge attributes
@@ -805,4 +827,15 @@ func appendStringToBytesWithNewLine(i []byte, s string) (o []byte) {
 	o = append(i, []byte(s)...)
 	o = append(o, bytesLineSeparator...)
 	return
+}
+
+func htmlTokenAttribute(t *html.Token, key string) *string {
+
+	for _, attr := range t.Attr {
+		if attr.Key == key {
+			return &attr.Val
+		}
+	}
+
+	return nil
 }
