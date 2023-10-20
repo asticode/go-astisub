@@ -46,3 +46,22 @@ func TestSRTMissingSequence(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
 }
+
+func TestSRTStyled(t *testing.T) {
+	// Open
+	s, err := astisub.OpenFile("./testdata/example-styled-in.srt")
+	assert.NoError(t, err)
+	assertStyledSubtitleItems(t, s)
+
+	// No subtitles to write
+	w := &bytes.Buffer{}
+	err = astisub.Subtitles{}.WriteToSRT(w)
+	assert.EqualError(t, err, astisub.ErrNoSubtitlesToWrite.Error())
+
+	// Write
+	c, err := ioutil.ReadFile("./testdata/example-styled-out.srt")
+	assert.NoError(t, err)
+	err = s.WriteToSRT(w)
+	assert.NoError(t, err)
+	assert.Equal(t, string(c), w.String())
+}

@@ -1,0 +1,24 @@
+﻿1
+00:00:17,985 --> 00:00:20,521
+<font color="#00ff00"><b>[instrumental music]</b></font>
+
+2
+00:00:47,115 --> 00:00:48,282
+<font color="#ffffff">[ticks]</font>
+
+3
+00:00:58,192 --> 00:00:59,727
+<font color="#00ff00">[instrumental music]</font>
+
+4
+00:01:01,662 --> 00:01:03,063
+<b><u>[dog barking]</u></b>
+
+5
+00:01:26,787 --> 00:01:29,523
+[beeping]
+
+6
+00:01:29,590 --> 00:01:31,992
+[automated]
+<i>'The time is 7:35.'</i>
