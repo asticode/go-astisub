@@ -121,7 +121,14 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	return
 }
 
+// parseTextSrt parses the input line to fill the Line
 func parseTextSrt(i string) (o Line) {
+	// special handling needed for empty line
+	if strings.TrimSpace(i) == "" {
+		o.Items = []LineItem{{Text: ""}}
+		return
+	}
+
 	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
 
@@ -141,6 +148,8 @@ func parseTextSrt(i string) (o Line) {
 			break
 		}
 
+		// Get unmodified text
+		raw := string(tr.Raw())
 		// Get current token
 		token := tr.Token()
 
@@ -172,7 +181,7 @@ func parseTextSrt(i string) (o Line) {
 				}
 			}
 		case html.TextToken:
-			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
+			if s := strings.TrimSpace(raw); s != "" {
 				// Get style attribute
 				var sa *StyleAttributes
 				if bold || italic || underline || color != nil {
