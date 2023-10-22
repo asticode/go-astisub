@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ const (
 // Vars
 var (
 	bytesSRTTimeBoundariesSeparator = []byte(srtTimeBoundariesSeparator)
+	regexpSRTSSATags                = regexp.MustCompile(`{\\.*?}`)
 )
 
 // parseDurationSRT parses an .srt duration
@@ -182,6 +184,9 @@ func parseTextSrt(i string) (o Line) {
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(raw); s != "" {
+				// remove all ssa/ass tags from text
+				// TODO: maybe add support for {\an8}
+				s := regexpSRTSSATags.ReplaceAllLiteralString(s, "")
 				// Get style attribute
 				var sa *StyleAttributes
 				if bold || italic || underline || color != nil {
