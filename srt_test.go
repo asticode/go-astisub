@@ -52,6 +52,7 @@ func TestSRTStyled(t *testing.T) {
 	s, err := astisub.OpenFile("./testdata/example-styled-in.srt")
 	assert.NoError(t, err)
 	assertStyledSubtitleItems(t, s)
+	assertSRTSubtitleStyles(t, s)
 
 	// No subtitles to write
 	w := &bytes.Buffer{}

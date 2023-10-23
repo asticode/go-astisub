@@ -140,6 +140,7 @@ func parseTextSrt(i string) (o Line) {
 		italic    bool
 		underline bool
 		color     *string
+		pos       byte
 	)
 	for {
 		// Get next tag
@@ -184,16 +185,16 @@ func parseTextSrt(i string) (o Line) {
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(raw); s != "" {
-				// remove all ssa/ass tags from text
-				// TODO: maybe add support for {\an8}
-				s := regexpSRTSSATags.ReplaceAllLiteralString(s, "")
+				// Remove all SSA/ASS tags from text
+				s := regexpSRTSSATags.ReplaceAllStringFunc(s, removeSSATagsWithPos(&pos))
 				// Get style attribute
 				var sa *StyleAttributes
-				if bold || italic || underline || color != nil {
+				if bold || italic || underline || color != nil || pos != 0 {
 					sa = &StyleAttributes{
-						SRTColor:     color,
 						SRTBold:      bold,
+						SRTColor:     color,
 						SRTItalics:   italic,
+						SRTPosition:  pos,
 						SRTUnderline: underline,
 					}
 					sa.propagateSRTAttributes()
@@ -208,6 +209,38 @@ func parseTextSrt(i string) (o Line) {
 		}
 	}
 	return
+}
+
+// Removes SSA/ASS tags from subtitle text
+// and extracts position if detected
+func removeSSATagsWithPos(pos *byte) func(string) string {
+	return func(i string) string {
+		// Based on in the following information:
+		// https://superuser.com/a/1228528
+		switch i {
+		case `{\an7}`: // top-left
+			*pos = 7
+		case `{\an8}`: // top-center
+			*pos = 8
+		case `{\an9}`: // top-right
+			*pos = 9
+		case `{\an4}`: // middle-left
+			*pos = 4
+		case `{\an5}`: // middle-center
+			*pos = 5
+		case `{\an6}`: // middle-right
+			*pos = 6
+		case `{\an1}`: // bottom-left
+			*pos = 1
+		case `{\an2}`: // bottom-center
+			*pos = 2
+		case `{\an3}`: // bottom-right
+			*pos = 3
+		}
+
+		// Remove tag from subtitle text
+		return ""
+	}
 }
 
 // formatDurationSRT formats an .srt duration
@@ -281,6 +314,12 @@ func (li LineItem) srtBytes() (c []byte) {
 	i := li.InlineStyle != nil && li.InlineStyle.SRTItalics
 	u := li.InlineStyle != nil && li.InlineStyle.SRTUnderline
 
+	// Get position
+	var pos byte
+	if li.InlineStyle != nil {
+		pos = li.InlineStyle.SRTPosition
+	}
+
 	// Append
 	if color != "" {
 		c = append(c, []byte("<font color=\""+color+"\">")...)
@@ -293,6 +332,9 @@ func (li LineItem) srtBytes() (c []byte) {
 	}
 	if u {
 		c = append(c, []byte("<u>")...)
+	}
+	if pos != 0 {
+		c = append(c, []byte(fmt.Sprintf(`{\an%d}`, pos))...)
 	}
 	c = append(c, []byte(li.Text)...)
 	if u {

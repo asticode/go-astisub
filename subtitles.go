@@ -174,9 +174,10 @@ var (
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
-	SRTColor             *string
 	SRTBold              bool
+	SRTColor             *string
 	SRTItalics           bool
+	SRTPosition          byte // 1-9 numpad layout
 	SRTUnderline         bool
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
@@ -261,6 +262,34 @@ func (sa *StyleAttributes) propagateSRTAttributes() {
 		// TODO: handle non-default colors that need custom styles
 		sa.TTMLColor = sa.SRTColor
 	}
+
+	switch sa.SRTPosition {
+	case 7: // top-left
+		sa.WebVTTAlign = "left"
+		sa.WebVTTPosition = "10%"
+	case 8: // top-center
+		sa.WebVTTPosition = "10%"
+	case 9: // top-right
+		sa.WebVTTAlign = "right"
+		sa.WebVTTPosition = "10%"
+	case 4: // middle-left
+		sa.WebVTTAlign = "left"
+		sa.WebVTTPosition = "50%"
+	case 5: // middle-center
+		sa.WebVTTPosition = "50%"
+	case 6: // middle-right
+		sa.WebVTTAlign = "right"
+		sa.WebVTTPosition = "50%"
+	case 1: // bottom-left
+		sa.WebVTTAlign = "left"
+		sa.WebVTTPosition = "90%"
+	case 2: // bottom-center
+		sa.WebVTTPosition = "90%"
+	case 3: // bottom-right
+		sa.WebVTTAlign = "right"
+		sa.WebVTTPosition = "90%"
+	}
+
 	sa.WebVTTBold = sa.SRTBold
 	sa.WebVTTItalics = sa.SRTItalics
 	sa.WebVTTUnderline = sa.SRTUnderline
