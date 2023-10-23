@@ -121,14 +121,6 @@ const (
 	ssaStyleFormatNameUnderline       = "Underline"
 )
 
-// SSA wrap style
-const (
-	ssaWrapStyleEndOfLineWordWrapping                   = "1"
-	ssaWrapStyleNoWordWrapping                          = "2"
-	ssaWrapStyleSmartWrapping                           = "0"
-	ssaWrapStyleSmartWrappingWithLowerLinesGettingWider = "3"
-)
-
 // SSA regexp
 var ssaRegexpEffect = regexp.MustCompile(`\{[^\{]+\}`)
 
