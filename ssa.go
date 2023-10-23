@@ -1099,35 +1099,6 @@ func (e *ssaEvent) item(styles map[string]*Style) (i *Item, err error) {
 	return
 }
 
-// updateFormat updates the format based on the non empty fields
-func (e ssaEvent) updateFormat(formatMap map[string]bool, format []string) []string {
-	if len(e.effect) > 0 {
-		format = ssaUpdateFormat(ssaEventFormatNameEffect, formatMap, format)
-	}
-	if e.layer != nil {
-		format = ssaUpdateFormat(ssaEventFormatNameLayer, formatMap, format)
-	}
-	if e.marginLeft != nil {
-		format = ssaUpdateFormat(ssaEventFormatNameMarginL, formatMap, format)
-	}
-	if e.marginRight != nil {
-		format = ssaUpdateFormat(ssaEventFormatNameMarginR, formatMap, format)
-	}
-	if e.marginVertical != nil {
-		format = ssaUpdateFormat(ssaEventFormatNameMarginV, formatMap, format)
-	}
-	if e.marked != nil {
-		format = ssaUpdateFormat(ssaEventFormatNameMarked, formatMap, format)
-	}
-	if len(e.name) > 0 {
-		format = ssaUpdateFormat(ssaEventFormatNameName, formatMap, format)
-	}
-	if len(e.style) > 0 {
-		format = ssaUpdateFormat(ssaEventFormatNameStyle, formatMap, format)
-	}
-	return format
-}
-
 // formatDurationSSA formats an .ssa duration
 func formatDurationSSA(i time.Duration) string {
 	return formatDuration(i, ".", 2)
@@ -1257,7 +1228,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		var b = []byte("\n[Events]\n")
 
 		// Format
-		// We need to declare those 9 columns here otherwise VLC doesn't display subtitles properly column
+		// We need to declare those 9 columns here otherwise VLC doesn't display subtitles properly
 		var format = []string{
 			ssaEventFormatNameMarked,
 			ssaEventFormatNameStart,
