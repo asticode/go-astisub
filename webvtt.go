@@ -3,7 +3,6 @@ package astisub
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -20,10 +19,12 @@ import (
 
 // Constants
 const (
+	cssEndToken                   = "}"
 	webvttBlockNameComment        = "comment"
 	webvttBlockNameRegion         = "region"
 	webvttBlockNameStyle          = "style"
 	webvttBlockNameText           = "text"
+	webvttDefaultStyleID          = "astisub-webvtt-default-style-id"
 	webvttTimeBoundariesSeparator = " --> "
 	webvttTimestampMap            = "X-TIMESTAMP-MAP"
 )
@@ -37,6 +38,11 @@ var (
 	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
 	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
+
+// endOfCss returns true if the cssLines are empty or the last line is the end token
+func endOfCss(cssLines []string) bool {
+	return len(cssLines) == 0 || cssLines[len(cssLines)-1] == cssEndToken
+}
 
 // parseDurationWebVTT parses a .vtt duration
 func parseDurationWebVTT(i string) (time.Duration, error) {
@@ -110,7 +116,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var comments []string
 	var index int
 	var timeOffset time.Duration
-	var styleLines []string
+	var webVTTStyles *StyleAttributes
 
 	for scanner.Scan() {
 		// Fetch line
@@ -125,7 +131,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Empty line
 		case len(line) == 0:
 			// Reset block name
-			if blockName != webvttBlockNameStyle || len(styleLines) == 0 {
+			if blockName != webvttBlockNameStyle || webVTTStyles == nil || endOfCss(webVTTStyles.WebVTTStyles) {
 				blockName = ""
 			}
 		// Region
@@ -166,6 +172,14 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Style
 		case strings.HasPrefix(line, "STYLE"):
 			blockName = webvttBlockNameStyle
+
+			if _, ok := o.Styles[webvttDefaultStyleID]; !ok {
+				webVTTStyles = &StyleAttributes{}
+				o.Styles[webvttDefaultStyleID] = &Style{
+					InlineStyle: webVTTStyles,
+					ID:          webvttDefaultStyleID,
+				}
+			}
 
 		// Time boundaries
 		case strings.Contains(line, webvttTimeBoundariesSeparator):
@@ -262,27 +276,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameComment:
 				comments = append(comments, line)
 			case webvttBlockNameStyle:
-				styleLines = append(styleLines, line)
-				if strings.HasSuffix(line, "}") {
-					styleStr := strings.Join(styleLines, "\n")
-					tokens := strings.Split(styleStr, "{")
-					cssSelector := strings.TrimSpace(tokens[0])
-					if len(tokens) <= 1 || !strings.HasPrefix(cssSelector, "::cue") {
-						err = fmt.Errorf("invalid WebVTT style: %s", styleStr)
-						return
-					}
-
-					// Raw css selector might contain invalid characters for other formats,
-					// so using a heximal string alternatively
-					styleID := hex.EncodeToString([]byte(cssSelector))
-					o.Styles[styleID] = &Style{
-						InlineStyle: &StyleAttributes{
-							WebVTTCSS: styleStr,
-						},
-						ID: styleID,
-					}
-					styleLines = styleLines[:0]
-				}
+				webVTTStyles.WebVTTStyles = append(webVTTStyles.WebVTTStyles, line)
 			case webvttBlockNameText:
 				// Parse line
 				if l := parseTextWebVTT(line); len(l.Items) > 0 {
@@ -385,11 +379,15 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	var c []byte
 	c = append(c, []byte("WEBVTT\n\n")...)
 
-	for _, style := range s.Styles {
-		cssSheet := style.InlineStyle.WebVTTCSS
-		if cssSheet != "" {
-			c = append(c, []byte(fmt.Sprintf("STYLE\n%s\n\n", cssSheet))...)
+	var style []string
+	for _, s := range s.Styles {
+		if s.InlineStyle != nil {
+			style = append(style, s.InlineStyle.WebVTTStyles...)
 		}
+	}
+
+	if len(style) > 0 {
+		c = append(c, []byte(fmt.Sprintf("STYLE\n%s\n\n", strings.Join(style, "\n")))...)
 	}
 
 	// Add regions
