@@ -4,6 +4,16 @@ STYLE
 ::cue(b) {
 color: peachpuff;
 }
+::cue(c) {
+color: white;
+}
+::cue(a) {
+color: red;
+}
+::cue(d) {
+color: red;
+background-image: linear-gradient(to bottom, dimgray, lightgray);
+}
 
 Region: id=bill lines=3 regionanchor=100%,100% scroll=up viewportanchor=90%,90% width=40%
 Region: id=fred lines=3 regionanchor=0%,100% scroll=up viewportanchor=10%,90% width=40%
