@@ -19,7 +19,6 @@ import (
 
 // Constants
 const (
-	cssEndToken                   = "}"
 	webvttBlockNameComment        = "comment"
 	webvttBlockNameRegion         = "region"
 	webvttBlockNameStyle          = "style"
@@ -38,11 +37,6 @@ var (
 	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
 	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
-
-// endOfCss returns true if the cssLines are empty or the last line is the end token
-func endOfCss(cssLines []string) bool {
-	return len(cssLines) == 0 || cssLines[len(cssLines)-1] == cssEndToken
-}
 
 // parseDurationWebVTT parses a .vtt duration
 func parseDurationWebVTT(i string) (time.Duration, error) {
@@ -130,8 +124,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			comments = append(comments, strings.TrimPrefix(line, "NOTE "))
 		// Empty line
 		case len(line) == 0:
-			// Reset block name
-			if blockName != webvttBlockNameStyle || webVTTStyles == nil || endOfCss(webVTTStyles.WebVTTStyles) {
+			// Reset block name, if we are not in the middle of CSS.
+			// If we are in STYLE block and the CSS is empty or we meet the right brace at the end of last line,
+			// then we are not in CSS and can switch to parse next WebVTT block.
+			if blockName != webvttBlockNameStyle || webVTTStyles == nil ||
+				len(webVTTStyles.WebVTTStyles) == 0 ||
+				strings.HasSuffix(webVTTStyles.WebVTTStyles[len(webVTTStyles.WebVTTStyles)-1], "}") {
 				blockName = ""
 			}
 		// Region
