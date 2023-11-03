@@ -23,6 +23,7 @@ const (
 	webvttBlockNameRegion         = "region"
 	webvttBlockNameStyle          = "style"
 	webvttBlockNameText           = "text"
+	webvttDefaultStyleID          = "astisub-webvtt-default-style-id"
 	webvttTimeBoundariesSeparator = " --> "
 	webvttTimestampMap            = "X-TIMESTAMP-MAP"
 )
@@ -109,6 +110,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var comments []string
 	var index int
 	var timeOffset time.Duration
+	var webVTTStyles *StyleAttributes
 
 	for scanner.Scan() {
 		// Fetch line
@@ -122,8 +124,14 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			comments = append(comments, strings.TrimPrefix(line, "NOTE "))
 		// Empty line
 		case len(line) == 0:
-			// Reset block name
-			blockName = ""
+			// Reset block name, if we are not in the middle of CSS.
+			// If we are in STYLE block and the CSS is empty or we meet the right brace at the end of last line,
+			// then we are not in CSS and can switch to parse next WebVTT block.
+			if blockName != webvttBlockNameStyle || webVTTStyles == nil ||
+				len(webVTTStyles.WebVTTStyles) == 0 ||
+				strings.HasSuffix(webVTTStyles.WebVTTStyles[len(webVTTStyles.WebVTTStyles)-1], "}") {
+				blockName = ""
+			}
 		// Region
 		case strings.HasPrefix(line, "Region: "):
 			// Add region styles
@@ -162,6 +170,15 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Style
 		case strings.HasPrefix(line, "STYLE"):
 			blockName = webvttBlockNameStyle
+
+			if _, ok := o.Styles[webvttDefaultStyleID]; !ok {
+				webVTTStyles = &StyleAttributes{}
+				o.Styles[webvttDefaultStyleID] = &Style{
+					InlineStyle: webVTTStyles,
+					ID:          webvttDefaultStyleID,
+				}
+			}
+
 		// Time boundaries
 		case strings.Contains(line, webvttTimeBoundariesSeparator):
 			// Set block name
@@ -257,7 +274,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameComment:
 				comments = append(comments, line)
 			case webvttBlockNameStyle:
-				// TODO Do something with the style
+				webVTTStyles.WebVTTStyles = append(webVTTStyles.WebVTTStyles, line)
 			case webvttBlockNameText:
 				// Parse line
 				if l := parseTextWebVTT(line); len(l.Items) > 0 {
@@ -360,11 +377,23 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	var c []byte
 	c = append(c, []byte("WEBVTT\n\n")...)
 
+	var style []string
+	for _, s := range s.Styles {
+		if s.InlineStyle != nil {
+			style = append(style, s.InlineStyle.WebVTTStyles...)
+		}
+	}
+
+	if len(style) > 0 {
+		c = append(c, []byte(fmt.Sprintf("STYLE\n%s\n\n", strings.Join(style, "\n")))...)
+	}
+
 	// Add regions
 	var k []string
 	for _, region := range s.Regions {
 		k = append(k, region.ID)
 	}
+
 	sort.Strings(k)
 	for _, id := range k {
 		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)

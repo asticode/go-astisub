@@ -243,6 +243,7 @@ type StyleAttributes struct {
 	WebVTTRegionAnchor   string
 	WebVTTScroll         string
 	WebVTTSize           string
+	WebVTTStyles         []string
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
