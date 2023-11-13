@@ -2,10 +2,10 @@ package astisub
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -33,7 +33,7 @@ var (
 	bytesWebVTTItalicEndTag            = []byte("</i>")
 	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
-	webVTTRegexpStartTag               = regexp.MustCompile(`(<v([\.\w]*)(.+?)>)`)
+	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
 	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
 	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
@@ -306,12 +306,12 @@ func parseTextWebVTT(i string) (o Line) {
 	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
 
+	webVTTTagStack := make([]WebVTTTag, 0, 16)
+
 	// Loop
-	italic := false
 	for {
 		// Get next tag
 		t := tr.Next()
-
 		// Process error
 		if err := tr.Err(); err != nil {
 			break
@@ -319,32 +319,52 @@ func parseTextWebVTT(i string) (o Line) {
 
 		switch t {
 		case html.EndTagToken:
-			// Parse italic
-			if bytes.Equal(tr.Raw(), bytesWebVTTItalicEndTag) {
-				italic = false
-				continue
+			// Pop the top of stack if we meet end tag
+			if len(webVTTTagStack) > 0 {
+				webVTTTagStack = webVTTTagStack[:len(webVTTTagStack)-1]
 			}
 		case html.StartTagToken:
-			// Parse voice name
-			if matches := webVTTRegexpStartTag.FindStringSubmatch(string(tr.Raw())); len(matches) > 3 {
-				if s := strings.TrimSpace(matches[3]); s != "" {
-					o.VoiceName = s
+			if matches := webVTTRegexpTag.FindStringSubmatch(string(tr.Raw())); len(matches) > 4 {
+				tagName := matches[2]
+
+				var classes []string
+				if matches[3] != "" {
+					classes = strings.Split(strings.Trim(matches[3], "."), ".")
 				}
-				continue
+
+				annotation := ""
+				if matches[4] != "" {
+					annotation = strings.TrimSpace(matches[4])
+				}
+
+				if tagName == "v" {
+					if o.VoiceName == "" {
+						// Only get voicename of the first <v> appears in the line
+						o.VoiceName = annotation
+					} else {
+						// TODO: do something with other <v> instead of ignoring
+						log.Printf("astisub: found another voice name %q in %q. Ignore", annotation, i)
+					}
+					continue
+				}
+
+				// Push the tag to stack
+				webVTTTagStack = append(webVTTTagStack, WebVTTTag{
+					Name:       tagName,
+					Classes:    classes,
+					Annotation: annotation,
+				})
 			}
 
-			// Parse italic
-			if bytes.Equal(tr.Raw(), bytesWebVTTItalicStartTag) {
-				italic = true
-				continue
-			}
 		case html.TextToken:
 			if s := strings.TrimSpace(string(tr.Raw())); s != "" {
 				// Get style attribute
 				var sa *StyleAttributes
-				if italic {
+				if len(webVTTTagStack) > 0 {
+					tags := make([]WebVTTTag, len(webVTTTagStack))
+					copy(tags, webVTTTagStack)
 					sa = &StyleAttributes{
-						WebVTTItalics: italic,
+						WebVTTTags: tags,
 					}
 					sa.propagateWebVTTAttributes()
 				}
@@ -545,19 +565,21 @@ func (li LineItem) webVTTBytes() (c []byte) {
 		color = cssColor(*li.InlineStyle.TTMLColor)
 	}
 
-	// Get italics
-	i := li.InlineStyle != nil && li.InlineStyle.WebVTTItalics
-
 	// Append
 	if color != "" {
 		c = append(c, []byte("<c."+color+">")...)
 	}
-	if i {
-		c = append(c, []byte("<i>")...)
+	if li.InlineStyle != nil {
+		for _, tag := range li.InlineStyle.WebVTTTags {
+			c = append(c, []byte(tag.startTag())...)
+		}
 	}
 	c = append(c, []byte(escapeWebVTT(li.Text))...)
-	if i {
-		c = append(c, []byte("</i>")...)
+	if li.InlineStyle != nil {
+		noTags := len(li.InlineStyle.WebVTTTags)
+		for i := noTags - 1; i >= 0; i-- {
+			c = append(c, []byte(li.InlineStyle.WebVTTTags[i].endTag())...)
+		}
 	}
 	if color != "" {
 		c = append(c, []byte("</c>")...)
