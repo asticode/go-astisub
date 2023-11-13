@@ -162,3 +162,53 @@ Sentence with an &amp; in the middle
 Sentence with an &lt; in the middle
 `, b.String())
 }
+
+func TestWebVTTTags(t *testing.T) {
+	testData := `WEBVTT
+
+	00:01:00.000 --> 00:02:00.000
+	<u><i>Italic with underline text</i></u> some extra
+
+	00:02:00.000 --> 00:03:00.000
+	<lang en>English here</lang> <c.yellow.bg_blue>Yellow text on blue background</c>
+
+	00:03:00.000 --> 00:04:00.000
+	<v Joe><c.red><i>Joe's words are red in italic</i></c>
+
+	00:04:00.000 --> 00:05:00.000
+	<customed_tag.class1.class2>Text here</customed_tag>
+
+	00:05:00.000 --> 00:06:00.000
+	<v Joe>Joe says something</v> <v Bob>Bob says something</v>`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	require.NoError(t, err)
+
+	require.Len(t, s.Items, 5)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	require.NoError(t, err)
+	require.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+<u><i>Italic with underline text</i></u> some extra
+
+2
+00:02:00.000 --> 00:03:00.000
+<lang en>English here</lang> <c.yellow.bg_blue>Yellow text on blue background</c>
+
+3
+00:03:00.000 --> 00:04:00.000
+<v Joe><c.red><i>Joe's words are red in italic</i></c>
+
+4
+00:04:00.000 --> 00:05:00.000
+<customed_tag.class1.class2>Text here</customed_tag>
+
+5
+00:05:00.000 --> 00:06:00.000
+<v Joe>Joe says something Bob says something
+`, b.String())
+}
