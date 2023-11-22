@@ -236,7 +236,6 @@ type StyleAttributes struct {
 	TTMLWritingMode      *string
 	TTMLZIndex           *int
 	WebVTTAlign          string
-	WebVTTItalics        bool
 	WebVTTLine           string
 	WebVTTLines          int
 	WebVTTPosition       string
@@ -244,9 +243,40 @@ type StyleAttributes struct {
 	WebVTTScroll         string
 	WebVTTSize           string
 	WebVTTStyles         []string
+	WebVTTTags           []WebVTTTag
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
+}
+
+type WebVTTTag struct {
+	Name       string
+	Annotation string
+	Classes    []string
+}
+
+func (t WebVTTTag) startTag() string {
+	if t.Name == "" {
+		return ""
+	}
+
+	s := t.Name
+	if len(t.Classes) > 0 {
+		s += "." + strings.Join(t.Classes, ".")
+	}
+
+	if t.Annotation != "" {
+		s += " " + t.Annotation
+	}
+
+	return "<" + s + ">"
+}
+
+func (t WebVTTTag) endTag() string {
+	if t.Name == "" {
+		return ""
+	}
+	return "</" + t.Name + ">"
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
