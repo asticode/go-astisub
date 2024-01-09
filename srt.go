@@ -55,7 +55,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// If the last line is empty then the item is missing an index.
 			var index string
 			if len(s.Lines) != 0 {
-				index := s.Lines[len(s.Lines)-1].String()
+				index = s.Lines[len(s.Lines)-1].String()
 				if index != "" {
 					s.Lines = s.Lines[:len(s.Lines)-1]
 				}
