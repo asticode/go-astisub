@@ -822,8 +822,8 @@ func formatDuration(i time.Duration, millisecondSep string, numberOfMillisecondD
 	s += strconv.Itoa(seconds) + millisecondSep
 
 	// Parse milliseconds
-	var milliseconds = float64(n/time.Millisecond) / float64(1000)
-	s += fmt.Sprintf("%."+strconv.Itoa(numberOfMillisecondDigits)+"f", milliseconds)[2:]
+	var milliseconds = math.Floor(float64(n) / float64(time.Millisecond) / float64(math.Pow(10, 3-float64(numberOfMillisecondDigits))))
+	s += astikit.StrPad(strconv.FormatFloat(milliseconds, 'f', 0, 64), '0', numberOfMillisecondDigits, astikit.PadLeft)
 	return
 }
 
