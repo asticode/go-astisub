@@ -427,6 +427,7 @@ func (l Line) String() string {
 type LineItem struct {
 	InlineStyle *StyleAttributes
 	Style       *Style
+	StartAt     time.Duration
 	Text        string
 }
 
