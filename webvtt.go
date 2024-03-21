@@ -382,10 +382,10 @@ func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem)
 
 	if len(indexes) == 0 {
 		if s := strings.TrimSpace(line); s != "" {
-			ret = append(ret, LineItem{
+			return []LineItem{{
 				InlineStyle: sa,
 				Text:        unescapeWebVTT(s),
-			})
+			}}
 		}
 		return
 	}
