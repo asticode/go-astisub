@@ -426,8 +426,8 @@ func (l Line) String() string {
 // LineItem represents a formatted line item
 type LineItem struct {
 	InlineStyle *StyleAttributes
-	Style       *Style
 	StartAt     time.Duration
+	Style       *Style
 	Text        string
 }
 

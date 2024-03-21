@@ -33,8 +33,8 @@ var (
 	bytesWebVTTItalicEndTag            = []byte("</i>")
 	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
+	webVTTRegexpInlineTimestamp        = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
-	inlineTimestampRegexp              = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
 	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
@@ -358,7 +358,6 @@ func parseTextWebVTT(i string) (o Line) {
 			}
 
 		case html.TextToken:
-			s := string(tr.Raw())
 			// Get style attribute
 			var sa *StyleAttributes
 			if len(webVTTTagStack) > 0 {
@@ -370,66 +369,60 @@ func parseTextWebVTT(i string) (o Line) {
 				sa.propagateWebVTTAttributes()
 			}
 
-			// Append item
-			items := parseTextWebVTTText(sa, s)
-			o.Items = append(o.Items, items...)
+			// Append items
+			o.Items = append(o.Items, parseTextWebVTTTextToken(sa, string(tr.Raw()))...)
 		}
 	}
 	return
 }
 
-func parseTextWebVTTText(sa *StyleAttributes, line string) []LineItem {
-	var ret []LineItem
-
+func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem) {
 	// split the line by inline timestamps
-	indexes := inlineTimestampRegexp.FindAllStringSubmatchIndex(line, -1)
-	if len(indexes) > 0 {
-		// get the text before the first timestamp
-		s := strings.TrimSpace(line[:indexes[0][0]])
-		if s != "" {
+	indexes := webVTTRegexpInlineTimestamp.FindAllStringSubmatchIndex(line, -1)
+
+	if len(indexes) == 0 {
+		if s := strings.TrimSpace(line); s != "" {
 			ret = append(ret, LineItem{
 				InlineStyle: sa,
 				Text:        unescapeWebVTT(s),
 			})
 		}
-
-		for i, match := range indexes {
-			// get the text between the timestamps
-			endIndex := len(line)
-			if i+1 < len(indexes) {
-				endIndex = indexes[i+1][0]
-			}
-			s := strings.TrimSpace(line[match[1]:endIndex])
-			if s == "" {
-				continue
-			}
-
-			// get the timestamp
-			ts := line[match[2]:match[3]]
-
-			// Parse timestamp
-			t, err := parseDurationWebVTT(ts)
-			if err != nil {
-				log.Printf("astisub: parsing webvtt duration %s failed, ignoring: %v", ts, err)
-			}
-
-			ret = append(ret, LineItem{
-				InlineStyle: sa,
-				Text:        unescapeWebVTT(s),
-				StartAt:     t,
-			})
-		}
-	} else {
-		s := strings.TrimSpace(line)
-		if s != "" {
-			ret = append(ret, LineItem{
-				InlineStyle: sa,
-				Text:        unescapeWebVTT(s),
-			})
-		}
+		return
 	}
 
-	return ret
+	// get the text before the first timestamp
+	if s := strings.TrimSpace(line[:indexes[0][0]]); s != "" {
+		ret = append(ret, LineItem{
+			InlineStyle: sa,
+			Text:        unescapeWebVTT(s),
+		})
+	}
+
+	for i, match := range indexes {
+		// get the text between the timestamps
+		endIndex := len(line)
+		if i+1 < len(indexes) {
+			endIndex = indexes[i+1][0]
+		}
+		s := strings.TrimSpace(line[match[1]:endIndex])
+		if s == "" {
+			continue
+		}
+
+		// Parse timestamp
+		t, err := parseDurationWebVTT(line[match[2]:match[3]])
+		if err != nil {
+			log.Printf("astisub: parsing webvtt duration %s failed, ignoring: %v", line[match[2]:match[3]], err)
+		}
+
+		ret = append(ret, LineItem{
+			InlineStyle: sa,
+			StartAt:     t,
+			Text:        unescapeWebVTT(s),
+		})
+	}
+
+	return
 }
 
 // formatDurationWebVTT formats a .vtt duration
