@@ -179,12 +179,15 @@ func TestWebVTTTags(t *testing.T) {
 	<customed_tag.class1.class2>Text here</customed_tag>
 
 	00:05:00.000 --> 00:06:00.000
-	<v Joe>Joe says something</v> <v Bob>Bob says something</v>`
+	<v Joe>Joe says something</v> <v Bob>Bob says something</v>
+
+	00:06:00.000 --> 00:07:00.000
+	Text with a <00:06:30.000>timestamp in the middle`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
 	require.NoError(t, err)
 
-	require.Len(t, s.Items, 5)
+	require.Len(t, s.Items, 6)
 
 	b := &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)
@@ -210,5 +213,9 @@ func TestWebVTTTags(t *testing.T) {
 5
 00:05:00.000 --> 00:06:00.000
 <v Joe>Joe says something Bob says something
+
+6
+00:06:00.000 --> 00:07:00.000
+Text with a <00:06:30.000>timestamp in the middle
 `, b.String())
 }
