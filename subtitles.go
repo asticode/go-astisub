@@ -94,12 +94,18 @@ func OpenFile(filename string) (*Subtitles, error) {
 	return Open(Options{Filename: filename})
 }
 
+type Configuration struct {
+	UseTimestamp bool
+}
+
 // Subtitles represents an ordered list of items with formatting
 type Subtitles struct {
 	Items    []*Item
 	Metadata *Metadata
 	Regions  map[string]*Region
 	Styles   map[string]*Style
+	Offset   time.Duration
+	Config   Configuration
 }
 
 // NewSubtitles creates new subtitles
@@ -431,11 +437,15 @@ type LineItem struct {
 	Text        string
 }
 
-// Add adds a duration to each time boundaries. As in the time package, duration can be negative.
-func (s *Subtitles) Add(d time.Duration) {
+func (s *Subtitles) SetOffset(d time.Duration) {
+	s.Offset = d
+}
+
+// OffsetCaptions adds a duration to each time boundaries. As in the time package, duration can be negative.
+func (s *Subtitles) OffsetCaptions() {
 	for idx := 0; idx < len(s.Items); idx++ {
-		s.Items[idx].EndAt += d
-		s.Items[idx].StartAt += d
+		s.Items[idx].EndAt += s.Offset
+		s.Items[idx].StartAt += s.Offset
 		if s.Items[idx].EndAt <= 0 && s.Items[idx].StartAt <= 0 {
 			s.Items = append(s.Items[:idx], s.Items[idx+1:]...)
 			idx--
@@ -707,8 +717,18 @@ func (s Subtitles) Write(dst string) (err error) {
 	}
 	defer f.Close()
 
-	// Write the content
-	switch filepath.Ext(strings.ToLower(dst)) {
+	pathType := filepath.Ext(strings.ToLower(dst))
+
+	// vtt use case will use the offset to set the timestamp instead of changing the captions themselves
+	if pathType == ".vtt" {
+		err = s.WriteToWebVTT(f)
+		return
+	}
+
+	// Only non-vtt use cases need to offset the captions themselves
+	s.OffsetCaptions()
+	// Write the content (non-vtt use cases)
+	switch pathType {
 	case ".srt":
 		err = s.WriteToSRT(f)
 	case ".ssa", ".ass":
@@ -717,8 +737,6 @@ func (s Subtitles) Write(dst string) (err error) {
 		err = s.WriteToSTL(f)
 	case ".ttml":
 		err = s.WriteToTTML(f)
-	case ".vtt":
-		err = s.WriteToWebVTT(f)
 	default:
 		err = ErrInvalidExtension
 	}

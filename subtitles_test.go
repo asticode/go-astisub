@@ -46,17 +46,20 @@ func mockSubtitles() *astisub.Subtitles {
 
 func TestSubtitles_Add(t *testing.T) {
 	var s = mockSubtitles()
-	s.Add(time.Second)
+	s.SetOffset(time.Second)
+	s.OffsetCaptions()
 	assert.Len(t, s.Items, 2)
 	assert.Equal(t, 2*time.Second, s.Items[0].StartAt)
 	assert.Equal(t, 4*time.Second, s.Items[0].EndAt)
 	assert.Equal(t, 2*time.Second, s.Items[0].StartAt)
 	assert.Equal(t, 4*time.Second, s.Items[0].EndAt)
-	s.Add(-3 * time.Second)
+	s.SetOffset(-3 * time.Second)
+	s.OffsetCaptions()
 	assert.Len(t, s.Items, 2)
 	assert.Equal(t, time.Duration(0), s.Items[0].StartAt)
 	assert.Equal(t, time.Second, s.Items[0].EndAt)
-	s.Add(-2 * time.Second)
+	s.SetOffset(-2 * time.Second)
+	s.OffsetCaptions()
 	assert.Len(t, s.Items, 1)
 	assert.Equal(t, "subtitle-2", s.Items[0].Lines[0].Items[0].Text)
 }

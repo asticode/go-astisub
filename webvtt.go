@@ -85,6 +85,14 @@ func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) 
 	return
 }
 
+func createTimestampMapWebVTT(timeOffset time.Duration) string {
+	timestamp := "X-TIMESTAMP-MAP=LOCAL:00:00:00.000"
+	if timeOffset != 0 {
+		timestamp += fmt.Sprintf(",MPEGTS:%d", int64(timeOffset.Seconds()*90000))
+	}
+	return timestamp + "\n"
+}
+
 // ReadFromWebVTT parses a .vtt content
 // TODO Tags (u, i, b)
 // TODO Class
@@ -288,9 +296,8 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		}
 	}
 
-	if timeOffset > 0 {
-		o.Add(timeOffset)
-	}
+	o.SetOffset(timeOffset)
+
 	return
 }
 
@@ -440,7 +447,11 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	// Add header
 	var c []byte
-	c = append(c, []byte("WEBVTT\n\n")...)
+	c = append(c, []byte("WEBVTT\n")...)
+	if s.Config.UseTimestamp {
+		c = append(c, []byte(createTimestampMapWebVTT(s.Offset))...)
+	}
+	c = append(c, []byte("\n")...)
 
 	var style []string
 	for _, s := range s.Styles {
