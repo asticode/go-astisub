@@ -19,6 +19,7 @@ var (
 	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
+	writeTimestamp   = flag.String("t", "", "use timestamp instead of offsetting each caption start and end time")
 )
 
 func main() {
@@ -42,6 +43,10 @@ func main() {
 	var err error
 	if sub, err = astisub.Open(astisub.Options{Filename: (*inputPath.Slice)[0], Teletext: astisub.TeletextOptions{Page: *teletextPage}}); err != nil {
 		log.Fatalf("%s while opening %s", err, (*inputPath.Slice)[0])
+	}
+
+	if *writeTimestamp != "" {
+		sub.Config.UseTimestamp = true
 	}
 
 	// Switch on subcommand
@@ -120,7 +125,7 @@ func main() {
 		}
 
 		// Fragment
-		sub.Add(*syncDuration)
+		sub.SetOffset(*syncDuration)
 
 		// Write
 		if err = sub.Write(*outputPath); err != nil {

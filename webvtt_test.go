@@ -14,6 +14,7 @@ import (
 func TestWebVTT(t *testing.T) {
 	// Open
 	s, err := astisub.OpenFile("./testdata/example-in.vtt")
+	s.Config.UseTimestamp = true
 	assert.NoError(t, err)
 	assertSubtitleItems(t, s)
 	// Comments
@@ -69,6 +70,7 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	<v Bob>Incorrect tag?</vi>`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	s.Config.UseTimestamp = true
 	assert.NoError(t, err)
 
 	assert.Len(t, s.Items, 4)
@@ -81,6 +83,7 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 	err = s.WriteToWebVTT(b)
 	assert.NoError(t, err)
 	assert.Equal(t, `WEBVTT
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000
 
 NOTE this a example with voicename
 
@@ -113,6 +116,7 @@ func TestWebVTTWithTimestampMap(t *testing.T) {
 	Evening.`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	s.Config.UseTimestamp = true
 	assert.NoError(t, err)
 
 	assert.Len(t, s.Items, 2)
@@ -121,13 +125,14 @@ func TestWebVTTWithTimestampMap(t *testing.T) {
 	err = s.WriteToWebVTT(b)
 	assert.NoError(t, err)
 	assert.Equal(t, `WEBVTT
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000
 
 1
-00:00:02.933 --> 00:00:04.366
+00:00:00.933 --> 00:00:02.366
 ♪ ♪
 
 2
-00:00:04.400 --> 00:00:05.633
+00:00:02.400 --> 00:00:03.633
 Evening.
 `, b.String())
 }
@@ -142,6 +147,7 @@ func TestWebVTTEscape(t *testing.T) {
 	Sentence with an &lt; in the middle`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	s.Config.UseTimestamp = true
 	require.NoError(t, err)
 
 	require.Len(t, s.Items, 2)
@@ -152,6 +158,7 @@ func TestWebVTTEscape(t *testing.T) {
 	err = s.WriteToWebVTT(b)
 	require.NoError(t, err)
 	require.Equal(t, `WEBVTT
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000
 
 1
 00:01:00.000 --> 00:02:00.000
@@ -185,6 +192,7 @@ func TestWebVTTTags(t *testing.T) {
 	Text with a <00:06:30.000>timestamp in the middle`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	s.Config.UseTimestamp = true
 	require.NoError(t, err)
 
 	require.Len(t, s.Items, 6)
@@ -193,6 +201,7 @@ func TestWebVTTTags(t *testing.T) {
 	err = s.WriteToWebVTT(b)
 	require.NoError(t, err)
 	require.Equal(t, `WEBVTT
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000
 
 1
 00:01:00.000 --> 00:02:00.000
