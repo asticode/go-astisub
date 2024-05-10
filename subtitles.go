@@ -634,7 +634,7 @@ func (s *Subtitles) Order() {
 	}
 
 	// Order
-	sort.Slice(s.Items, func(i, j int) bool {
+	sort.SliceStable(s.Items, func(i, j int) bool {
 		return s.Items[i].StartAt < s.Items[j].StartAt
 	})
 }
