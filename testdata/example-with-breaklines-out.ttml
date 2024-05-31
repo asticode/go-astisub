@@ -1,0 +1,42 @@
+<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="fr" xmlns:ttm="http://www.w3.org/ns/ttml#metadata" xmlns:tts="http://www.w3.org/ns/ttml#styling">
+    <head>
+        <metadata>
+            <ttm:copyright>Copyright test</ttm:copyright>
+            <ttm:title>Title test</ttm:title>
+        </metadata>
+        <styling>
+            <style xml:id="style_0" tts:color="white" tts:extent="100% 10%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 90%" tts:textAlign="center"></style>
+        </styling>
+        <layout>
+            <region xml:id="region_0" style="style_0" tts:color="blue"></region>
+        </layout>
+    </head>
+    <body>
+        <div>
+            <p begin="00:00:00.000" end="00:00:01.000" region="region_0" style="style_0" tts:color="red">
+                <span style="style_0" tts:color="black">First line</span>
+                <br></br>
+                <span style="style_0" tts:color="black">Second line</span>
+            </p>
+            <p begin="00:00:01.000" end="00:00:02.000" region="region_0" style="style_0" tts:color="red">
+                <span style="style_0" tts:color="black">Third line</span>
+                <br></br>
+                <span style="style_0" tts:color="black">Fourth line</span>
+            </p>
+            <p begin="00:00:02.000" end="00:00:03.000" region="region_0">
+                <span>Fifth line</span>
+                <br></br>
+                <span>Sixth </span>
+                <span style="style_0" tts:color="green">middle </span>
+                <span>line</span>
+            </p>
+            <p begin="00:00:03.000" end="00:00:04.000" region="region_0">
+                <span>Seventh line</span>
+                <br></br>
+                <span>Eighth </span>
+                <span style="style_0" tts:color="green">middle </span>
+                <span>line</span>
+            </p>
+        </div>
+    </body>
+</tt>
