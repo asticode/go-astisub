@@ -53,9 +53,9 @@ func TestTTML(t *testing.T) {
 	assert.Equal(t, string(c), w.String())
 }
 
-func TestBreakLineHandling(t *testing.T) {
+func TestTTMLBreakLines(t *testing.T) {
 	// Open
-	s, err := astisub.OpenFile("./testdata/example-with-breaklines-in.ttml")
+	s, err := astisub.OpenFile("./testdata/example-in-breaklines.ttml")
 	assert.NoError(t, err)
 
 	// Write
@@ -63,7 +63,7 @@ func TestBreakLineHandling(t *testing.T) {
 	err = s.WriteToTTML(w)
 	assert.NoError(t, err)
 
-	c, err := ioutil.ReadFile("./testdata/example-with-breaklines-out.ttml")
+	c, err := ioutil.ReadFile("./testdata/example-out-breaklines.ttml")
 	assert.NoError(t, err)
 
 	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
