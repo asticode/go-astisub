@@ -1,0 +1,24 @@
+<tt>
+  <head>
+  </head>
+  <body>
+    <div>
+      <p xml:id="1" begin="00:00:00.000" end="00:00:01.000">
+        <span>First line<br/>
+Second line</span>
+      </p>
+      <p xml:id="2" begin="00:00:01.000" end="00:00:02.000">
+        <span>Third line<br></br>Fourth line</span>
+      </p>
+      <p xml:id="3" begin="00:00:02.000" end="00:00:03.000">
+                Fifth line
+        <br/>
+                Sixth <span>middle</span> line
+      </p>
+      <p xml:id="4" begin="00:00:03.000" end="00:00:04.000">
+        Seventh line 
+        <br></br>Eighth <span>middle</span> line
+      </p>
+    </div>
+  </body>
+</tt>

@@ -2,9 +2,11 @@ package astisub_test
 
 import (
 	"bytes"
-	"github.com/asticode/go-astikit"
 	"io/ioutil"
+	"strings"
 	"testing"
+
+	"github.com/asticode/go-astikit"
 
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
@@ -49,4 +51,20 @@ func TestTTML(t *testing.T) {
 	err = s.WriteToTTML(w)
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestTTMLBreakLines(t *testing.T) {
+	// Open
+	s, err := astisub.OpenFile("./testdata/example-in-breaklines.ttml")
+	assert.NoError(t, err)
+
+	// Write
+	w := &bytes.Buffer{}
+	err = s.WriteToTTML(w)
+	assert.NoError(t, err)
+
+	c, err := ioutil.ReadFile("./testdata/example-out-breaklines.ttml")
+	assert.NoError(t, err)
+
+	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
 }
