@@ -11,7 +11,9 @@
                 <span>Second line</span>
             </p>
             <p begin="00:00:01.000" end="00:00:02.000">
-                <span>Third lineFourth line</span>
+                <span>Third line</span>
+                <br></br>
+                <span>Fourth line</span>
             </p>
             <p begin="00:00:02.000" end="00:00:03.000">
                 <span>Fifth line</span>
