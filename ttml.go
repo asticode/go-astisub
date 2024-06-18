@@ -197,22 +197,22 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 	return nil
 }
 
-type ttmlXmlDecoder struct {
-	xml.Decoder
-	holdingToken xml.Token
+type ttmlXmlTokenReader struct {
+	xmlTokenReader xml.TokenReader
+	holdingToken   xml.Token
 }
 
 // Token implements the TokenReader interface, when it meets the "br" tag, it will hold the token and return a newline
 // instead. This is to work around the fact that the go xml unmarshaler will ignore the "br" tag if it's within a
 // character data field.
-func (r *ttmlXmlDecoder) Token() (xml.Token, error) {
+func (r *ttmlXmlTokenReader) Token() (xml.Token, error) {
 	if r.holdingToken != nil {
 		returnToken := r.holdingToken
 		r.holdingToken = nil
 		return returnToken, nil
 	}
 
-	t, err := r.Decoder.Token()
+	t, err := r.xmlTokenReader.Token()
 	if err != nil {
 		return nil, err
 	}
@@ -225,8 +225,13 @@ func (r *ttmlXmlDecoder) Token() (xml.Token, error) {
 	return t, nil
 }
 
-func newTTMLXmlDecoder(ts TTMLInSubtitle) *ttmlXmlDecoder {
-	return &ttmlXmlDecoder{Decoder: *xml.NewDecoder(strings.NewReader("<p>" + ts.Items + "</p>")), holdingToken: nil}
+func newTTMLXmlDecoder(ts TTMLInSubtitle) *xml.Decoder {
+	return xml.NewTokenDecoder(
+		&ttmlXmlTokenReader{
+			xmlTokenReader: xml.NewDecoder(strings.NewReader("<p>" + ts.Items + "</p>")),
+			holdingToken:   nil,
+		},
+	)
 }
 
 // TTMLInItem represents an input TTML item
