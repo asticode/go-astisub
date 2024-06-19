@@ -3,7 +3,6 @@ package astisub
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -1017,7 +1016,9 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) erro
 		}
 
 		if isTeletextControlCode(v) {
-			return errors.New("teletext control code in open text")
+			// Skip teletext control code bytes
+			// return errors.New("teletext control code in open text")
+			continue
 		}
 		if s != nil {
 			s.parseSpacingAttribute(v)
