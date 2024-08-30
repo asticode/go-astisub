@@ -48,7 +48,7 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 // Eg., `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:900000` => 10s
 //
 //	`X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000` => 2s
-func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) {
+func parseTimestampMapWebVTT(line string) (timestampMap *TimestampMap, err error) {
 	splits := strings.Split(line, "=")
 	if len(splits) <= 1 {
 		err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, no '=' found")
@@ -58,10 +58,12 @@ func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) 
 
 	var local time.Duration
 	var mpegts int64
+	timestampMap = new(TimestampMap)
 	for _, split := range strings.Split(right, ",") {
 		splits := strings.SplitN(split, ":", 2)
 		if len(splits) <= 1 {
 			err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, part %q didn't contain ':'", right)
+			timestampMap = nil
 			return
 		}
 
@@ -70,18 +72,21 @@ func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) 
 			local, err = parseDurationWebVTT(splits[1])
 			if err != nil {
 				err = fmt.Errorf("astisub: parsing webvtt duration failed: %w", err)
+				timestampMap = nil
 				return
 			}
+			timestampMap.LocalTimestamp = local
 		case "mpegts":
 			mpegts, err = strconv.ParseInt(splits[1], 10, 0)
 			if err != nil {
 				err = fmt.Errorf("astisub: parsing int %s failed: %w", splits[1], err)
+				timestampMap = nil
 				return
 			}
+			timestampMap.PresentationTimestamp = mpegts
 		}
 	}
 
-	timeOffset = time.Duration(mpegts)*time.Second/90000 - local
 	return
 }
 
@@ -110,7 +115,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var blockName string
 	var comments []string
 	var index int
-	var timeOffset time.Duration
 	var webVTTStyles *StyleAttributes
 
 	for scanner.Scan() {
@@ -262,11 +266,16 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				return
 			}
 
-			timeOffset, err = parseTimestampMapWebVTT(line)
+			var timestampMap *TimestampMap
+			timestampMap, err = parseTimestampMapWebVTT(line)
 			if err != nil {
 				err = fmt.Errorf("astisub: parsing webvtt timestamp map failed: %w", err)
 				return
 			}
+			if o.Metadata == nil {
+				o.Metadata = new(Metadata)
+			}
+			o.Metadata.WebVTTXTimestampMap = timestampMap
 
 		// Text
 		default:
@@ -286,10 +295,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				index, _ = strconv.Atoi(line)
 			}
 		}
-	}
-
-	if timeOffset > 0 {
-		o.Add(timeOffset)
 	}
 	return
 }
@@ -440,7 +445,19 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	// Add header
 	var c []byte
-	c = append(c, []byte("WEBVTT\n\n")...)
+	c = append(c, []byte("WEBVTT")...)
+
+	// Write X-TIMESTAMP-MAP if set
+	if s.Metadata != nil {
+		if s.Metadata.WebVTTXTimestampMap != nil {
+			c = append(c, []byte("\n")...)
+			mpegts := fmt.Sprintf("MPEGTS:%d", s.Metadata.WebVTTXTimestampMap.PresentationTimestamp)
+			local := fmt.Sprintf("LOCAL:%s", formatDurationWebVTT(s.Metadata.WebVTTXTimestampMap.LocalTimestamp))
+			timestampMapHeader := fmt.Sprintf("%s=%s,%s", webvttTimestampMap, mpegts, local)
+			c = append(c, []byte(timestampMapHeader)...)
+		}
+	}
+	c = append(c, []byte("\n\n")...)
 
 	var style []string
 	for _, s := range s.Styles {

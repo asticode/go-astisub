@@ -392,6 +392,24 @@ type Metadata struct {
 	STLTranslatorName                                   string
 	Title                                               string
 	TTMLCopyright                                       string
+	WebVTTXTimestampMap                                 *TimestampMap
+}
+
+// TimestampMap is a structure for storing timestamps for WEBVTT's
+// X-TIMESTAMP-MAP feature commonly used for syncing cue times with
+// MPEG-TS streams.
+type TimestampMap struct {
+	LocalTimestamp        time.Duration
+	PresentationTimestamp int64
+}
+
+// Offset calculates and returns the time offset described by the
+// timestamp map.
+func (t *TimestampMap) Offset() time.Duration {
+	if t == nil {
+		return 0
+	}
+	return time.Duration(t.PresentationTimestamp)*time.Second/90000 - t.LocalTimestamp
 }
 
 // Region represents a subtitle's region

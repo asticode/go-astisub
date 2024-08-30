@@ -121,6 +121,25 @@ func TestWebVTTWithTimestampMap(t *testing.T) {
 	err = s.WriteToWebVTT(b)
 	assert.NoError(t, err)
 	assert.Equal(t, `WEBVTT
+X-TIMESTAMP-MAP=MPEGTS:180000,LOCAL:00:00:00.000
+
+1
+00:00:00.933 --> 00:00:02.366
+♪ ♪
+
+2
+00:00:02.400 --> 00:00:03.633
+Evening.
+`, b.String())
+
+	// Apply MPEG-TS time correction
+	s.Add(s.Metadata.WebVTTXTimestampMap.Offset())
+	s.Metadata.WebVTTXTimestampMap = nil
+
+	b = &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
 
 1
 00:00:02.933 --> 00:00:04.366
