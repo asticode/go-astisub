@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
@@ -117,6 +118,12 @@ func TestWebVTTWithTimestampMap(t *testing.T) {
 
 	assert.Len(t, s.Items, 2)
 
+	assert.Equal(t, s.Items[0].StartAt.Milliseconds(), int64(933))
+	assert.Equal(t, s.Items[0].EndAt.Milliseconds(), int64(2366))
+	assert.Equal(t, s.Items[1].StartAt.Milliseconds(), int64(2400))
+	assert.Equal(t, s.Items[1].EndAt.Milliseconds(), int64(3633))
+	assert.Equal(t, s.Metadata.WebVTTTimestampMap.Offset(), time.Duration(time.Second*2))
+
 	b := &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)
 	assert.NoError(t, err)
@@ -129,24 +136,6 @@ X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000
 
 2
 00:00:02.400 --> 00:00:03.633
-Evening.
-`, b.String())
-
-	// Apply MPEG-TS time correction
-	s.Add(s.Metadata.WebVTTTimestampMap.Offset())
-	s.Metadata.WebVTTTimestampMap = nil
-
-	b = &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:00:02.933 --> 00:00:04.366
-♪ ♪
-
-2
-00:00:04.400 --> 00:00:05.633
 Evening.
 `, b.String())
 }
