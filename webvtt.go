@@ -66,7 +66,7 @@ func (t *WebVTTTimestampMap) Offset() time.Duration {
 func (t *WebVTTTimestampMap) String() string {
 	mpegts := fmt.Sprintf("MPEGTS:%d", t.MpegTS)
 	local := fmt.Sprintf("LOCAL:%s", formatDurationWebVTT(t.Local))
-	return fmt.Sprintf("%s=%s,%s", webvttTimestampMapHeader, mpegts, local)
+	return fmt.Sprintf("%s=%s,%s", webvttTimestampMapHeader, local, mpegts)
 }
 
 // https://tools.ietf.org/html/rfc8216#section-3.5

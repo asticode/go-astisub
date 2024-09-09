@@ -74,11 +74,11 @@ func TestTimestampMap(t *testing.T) {
 		expectError    bool
 	}{
 		{
-			line:           "X-TIMESTAMP-MAP=MPEGTS:180000, LOCAL:00:00:00.000",
+			line:           "X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000",
 			expectedOffset: 2 * time.Second,
 		},
 		{
-			line:           "X-TIMESTAMP-MAP=MPEGTS:180000, LOCAL:00:00:00.500",
+			line:           "X-TIMESTAMP-MAP=LOCAL:00:00:00.500,MPEGTS:180000",
 			expectedOffset: 1500 * time.Millisecond,
 		},
 		{
@@ -113,6 +113,7 @@ func TestTimestampMap(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, c.line, timestampMap.String())
 			}
 		})
 	}
