@@ -107,9 +107,8 @@ func TestTimestampMap(t *testing.T) {
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			timestampMap, err := parseTimestampMapWebVTT(c.line)
-			offset := timestampMap.Offset()
-			assert.Equal(t, c.expectedOffset, offset)
+			timestampMap, err := parseWebVTTTimestampMap(c.line)
+			assert.Equal(t, c.expectedOffset, timestampMap.Offset())
 			if c.expectError {
 				assert.Error(t, err)
 			} else {

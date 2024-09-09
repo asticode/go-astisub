@@ -133,8 +133,8 @@ Evening.
 `, b.String())
 
 	// Apply MPEG-TS time correction
-	s.Add(s.Metadata.WebVTTXTimestampMap.Offset())
-	s.Metadata.WebVTTXTimestampMap = nil
+	s.Add(s.Metadata.WebVTTTimestampMap.Offset())
+	s.Metadata.WebVTTTimestampMap = nil
 
 	b = &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)
