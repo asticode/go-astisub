@@ -392,6 +392,7 @@ type Metadata struct {
 	STLTranslatorName                                   string
 	Title                                               string
 	TTMLCopyright                                       string
+	WebVTTTimestampMap                                  *WebVTTTimestampMap
 }
 
 // Region represents a subtitle's region

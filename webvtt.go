@@ -25,7 +25,7 @@ const (
 	webvttBlockNameText           = "text"
 	webvttDefaultStyleID          = "astisub-webvtt-default-style-id"
 	webvttTimeBoundariesSeparator = " --> "
-	webvttTimestampMap            = "X-TIMESTAMP-MAP"
+	webvttTimestampMapHeader      = "X-TIMESTAMP-MAP"
 )
 
 // Vars
@@ -44,11 +44,36 @@ func parseDurationWebVTT(i string) (time.Duration, error) {
 	return parseDuration(i, ".", 3)
 }
 
+// WebVTTTimestampMap is a structure for storing timestamps for WEBVTT's
+// X-TIMESTAMP-MAP feature commonly used for syncing cue times with
+// MPEG-TS streams.
+type WebVTTTimestampMap struct {
+	Local  time.Duration
+	MpegTS int64
+}
+
+// Offset calculates and returns the time offset described by the
+// timestamp map.
+func (t *WebVTTTimestampMap) Offset() time.Duration {
+	if t == nil {
+		return 0
+	}
+	return time.Duration(t.MpegTS)*time.Second/90000 - t.Local
+}
+
+// String implements Stringer interface for TimestampMap, returning
+// the fully formatted header string for the instance.
+func (t *WebVTTTimestampMap) String() string {
+	mpegts := fmt.Sprintf("MPEGTS:%d", t.MpegTS)
+	local := fmt.Sprintf("LOCAL:%s", formatDurationWebVTT(t.Local))
+	return fmt.Sprintf("%s=%s,%s", webvttTimestampMapHeader, local, mpegts)
+}
+
 // https://tools.ietf.org/html/rfc8216#section-3.5
 // Eg., `X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:900000` => 10s
 //
 //	`X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:180000` => 2s
-func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) {
+func parseWebVTTTimestampMap(line string) (timestampMap *WebVTTTimestampMap, err error) {
 	splits := strings.Split(line, "=")
 	if len(splits) <= 1 {
 		err = fmt.Errorf("astisub: invalid X-TIMESTAMP-MAP, no '=' found")
@@ -81,7 +106,10 @@ func parseTimestampMapWebVTT(line string) (timeOffset time.Duration, err error) 
 		}
 	}
 
-	timeOffset = time.Duration(mpegts)*time.Second/90000 - local
+	timestampMap = &WebVTTTimestampMap{
+		Local:  local,
+		MpegTS: mpegts,
+	}
 	return
 }
 
@@ -110,7 +138,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var blockName string
 	var comments []string
 	var index int
-	var timeOffset time.Duration
 	var webVTTStyles *StyleAttributes
 
 	for scanner.Scan() {
@@ -256,17 +283,22 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Append item
 			o.Items = append(o.Items, item)
 
-		case strings.HasPrefix(line, webvttTimestampMap):
+		case strings.HasPrefix(line, webvttTimestampMapHeader):
 			if len(item.Lines) > 0 {
 				err = errors.New("astisub: found timestamp map after processing subtitle items")
 				return
 			}
 
-			timeOffset, err = parseTimestampMapWebVTT(line)
+			var timestampMap *WebVTTTimestampMap
+			timestampMap, err = parseWebVTTTimestampMap(line)
 			if err != nil {
 				err = fmt.Errorf("astisub: parsing webvtt timestamp map failed: %w", err)
 				return
 			}
+			if o.Metadata == nil {
+				o.Metadata = new(Metadata)
+			}
+			o.Metadata.WebVTTTimestampMap = timestampMap
 
 		// Text
 		default:
@@ -286,10 +318,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				index, _ = strconv.Atoi(line)
 			}
 		}
-	}
-
-	if timeOffset > 0 {
-		o.Add(timeOffset)
 	}
 	return
 }
@@ -440,7 +468,17 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	// Add header
 	var c []byte
-	c = append(c, []byte("WEBVTT\n\n")...)
+	c = append(c, []byte("WEBVTT")...)
+
+	// Write X-TIMESTAMP-MAP if set
+	if s.Metadata != nil {
+		webVTTTimestampMap := s.Metadata.WebVTTTimestampMap
+		if webVTTTimestampMap != nil {
+			c = append(c, []byte("\n")...)
+			c = append(c, []byte(webVTTTimestampMap.String())...)
+		}
+	}
+	c = append(c, []byte("\n\n")...)
 
 	var style []string
 	for _, s := range s.Styles {
