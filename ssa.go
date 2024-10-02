@@ -1057,8 +1057,11 @@ func (e *ssaEvent) item(styles map[string]*Style) (i *Item, err error) {
 		}
 	}
 
+	// \N and \n are both valid new line characters in SSA
+	text := strings.ReplaceAll(e.text, "\\N", "\\n")
+
 	// Loop through lines
-	for _, s := range strings.Split(e.text, "\\n") {
+	for _, s := range strings.Split(text, "\\n") {
 		// Init
 		s = strings.TrimSpace(s)
 		var l = Line{VoiceName: e.name}
