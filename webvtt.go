@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/net/html"
 )
@@ -127,6 +128,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	for scanner.Scan() {
 		lineNum++
 		line = scanner.Text()
+		if !utf8.ValidString(line) {
+			err = fmt.Errorf("astisub: bytes are not valid utf-8")
+			return
+		}
 		line = strings.TrimPrefix(line, string(BytesBOM))
 		if fs := strings.Fields(line); len(fs) > 0 && fs[0] == "WEBVTT" {
 			break

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Constants
@@ -42,6 +43,10 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
+		if !utf8.ValidString(line) {
+			err = fmt.Errorf("astisub: bytes are not valid utf-8")
+			return
+		}
 		lineNum++
 
 		// Remove BOM header
