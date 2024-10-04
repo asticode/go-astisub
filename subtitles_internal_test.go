@@ -1,6 +1,7 @@
 package astisub
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -65,4 +66,14 @@ func TestFormatDuration(t *testing.T) {
 	assert.Equal(t, "34:17:36,789", s)
 	s = formatDuration(12*time.Hour+34*time.Minute+56*time.Second+999*time.Millisecond, ",", 2)
 	assert.Equal(t, "12:34:56,99", s)
+}
+
+func TestIsValidUTF8Reader(t *testing.T) {
+	utf8Reader := bytes.NewBuffer([]byte("abc123"))
+	valid := isValidUTF8Reader(utf8Reader)
+	assert.True(t, valid)
+
+	utf16Reader := bytes.NewBuffer([]byte("\xff\xfea\x00b\x00c\x001\x002\x003\x00"))
+	valid = isValidUTF8Reader(utf16Reader)
+	assert.True(t, !valid)
 }

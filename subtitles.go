@@ -1,8 +1,10 @@
 package astisub
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -10,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/asticode/go-astikit"
 )
@@ -834,4 +837,11 @@ func appendStringToBytesWithNewLine(i []byte, s string) (o []byte) {
 	o = append(i, []byte(s)...)
 	o = append(o, bytesLineSeparator...)
 	return
+}
+
+// isValidUTF8Reader will peek the first 512 bytes to determine whether or not
+// they are valid UTF-8, returning true if valid.
+func isValidUTF8Reader(i io.Reader) bool {
+	testBytes, _ := bufio.NewReader(i).Peek(512)
+	return utf8.Valid(testBytes)
 }
