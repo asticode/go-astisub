@@ -596,8 +596,29 @@ func (t TTMLOutDuration) MarshalText() ([]byte, error) {
 	return []byte(formatDuration(time.Duration(t), ".", 3)), nil
 }
 
+// WriteToTTMLOptions represents TTML write options.
+type WriteToTTMLOptions struct {
+	Indent string // Default is 4 spaces.
+}
+
+// WriteToTTMLOption represents a WriteToTTML option.
+type WriteToTTMLOption func(o *WriteToTTMLOptions)
+
+// WriteToTTMLWithIndentOption sets the indent option.
+func WriteToTTMLWithIndentOption(indent string) WriteToTTMLOption {
+	return func(o *WriteToTTMLOptions) {
+		o.Indent = indent
+	}
+}
+
 // WriteToTTML writes subtitles in .ttml format
-func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
+func (s Subtitles) WriteToTTML(o io.Writer, opts ...WriteToTTMLOption) (err error) {
+	// Create write options
+	wo := &WriteToTTMLOptions{Indent: "    "}
+	for _, opt := range opts {
+		opt(wo)
+	}
+
 	// Do not write anything if no subtitles
 	if len(s.Items) == 0 {
 		return ErrNoSubtitlesToWrite
@@ -714,7 +735,10 @@ func (s Subtitles) WriteToTTML(o io.Writer) (err error) {
 
 	// Marshal XML
 	var e = xml.NewEncoder(o)
-	e.Indent("", "    ")
+
+	// Set indent
+	e.Indent("", wo.Indent)
+
 	if err = e.Encode(ttml); err != nil {
 		err = fmt.Errorf("astisub: xml encoding failed: %w", err)
 		return
