@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/net/html"
 )
@@ -119,10 +120,6 @@ func parseWebVTTTimestampMap(line string) (timestampMap *WebVTTTimestampMap, err
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	if !isValidUTF8Reader(i) {
-		err = fmt.Errorf("astisub: bytes are not valid utf-8")
-		return
-	}
 	var scanner = bufio.NewScanner(i)
 	var line string
 	var lineNum int
@@ -132,6 +129,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		lineNum++
 		line = scanner.Text()
 		line = strings.TrimPrefix(line, string(BytesBOM))
+		if !utf8.ValidString(line) {
+			err = fmt.Errorf("astisub: line %d is not valid utf-8", lineNum)
+			return
+		}
 		if fs := strings.Fields(line); len(fs) > 0 && fs[0] == "WEBVTT" {
 			break
 		}
@@ -148,6 +149,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
+		if !utf8.ValidString(line) {
+			err = fmt.Errorf("astisub: line %d is not valid utf-8", lineNum)
+			return
+		}
 
 		switch {
 		// Comment
