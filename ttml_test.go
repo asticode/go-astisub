@@ -68,3 +68,20 @@ func TestTTMLBreakLines(t *testing.T) {
 
 	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
 }
+
+func TestWriteToTTMLWithIndentOption(t *testing.T) {
+	// Open
+	s, err := astisub.OpenFile("./testdata/example-in.ttml")
+	assert.NoError(t, err)
+
+	// Write
+	w := &bytes.Buffer{}
+
+	err = s.WriteToTTML(w, astisub.WriteToTTMLWithIndentOption(""))
+	assert.NoError(t, err)
+
+	c, err := ioutil.ReadFile("./testdata/example-out-no-indent.ttml")
+	assert.NoError(t, err)
+
+	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
+}
