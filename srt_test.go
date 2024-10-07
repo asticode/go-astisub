@@ -48,6 +48,11 @@ func TestSRTMissingSequence(t *testing.T) {
 	assert.Equal(t, string(c), w.String())
 }
 
+func TestNonUTF8SRT(t *testing.T) {
+	_, err := astisub.OpenFile("./testdata/example-in-non-utf8.srt")
+	assert.Error(t, err)
+}
+
 func BenchmarkOpenSRT(b *testing.B) {
 	f, _ := os.Open("./testdata/example-in.srt")
 	defer f.Close()

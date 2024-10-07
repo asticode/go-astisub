@@ -49,6 +49,11 @@ func TestBroken1WebVTT(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestNonUTF8WebVTT(t *testing.T) {
+	_, err := astisub.OpenFile("./testdata/example-in-non-utf8.vtt")
+	assert.Error(t, err)
+}
+
 func TestWebVTTWithVoiceName(t *testing.T) {
 	testData := `WEBVTT
 
