@@ -46,3 +46,9 @@ func TestSRTMissingSequence(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
 }
+
+func BenchmarkOpenSRT(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		astisub.OpenFile("./testdata/example-in.srt")
+	}
+}

@@ -227,3 +227,9 @@ func TestWebVTTTags(t *testing.T) {
 Text with a <00:06:30.000>timestamp in the middle
 `, b.String())
 }
+
+func BenchmarkOpenWebVTT(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		astisub.OpenFile("./testdata/example-in.vtt")
+	}
+}
