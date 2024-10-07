@@ -69,7 +69,7 @@ func TestTTMLBreakLines(t *testing.T) {
 	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
 }
 
-func TestTTMLWithOptionsNoIndent(t *testing.T) {
+func TestWriteToTTMLWithIndentOption(t *testing.T) {
 	// Open
 	s, err := astisub.OpenFile("./testdata/example-in-no-indent.ttml")
 	assert.NoError(t, err)
