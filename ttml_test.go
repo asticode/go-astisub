@@ -71,7 +71,7 @@ func TestTTMLBreakLines(t *testing.T) {
 
 func TestWriteToTTMLWithIndentOption(t *testing.T) {
 	// Open
-	s, err := astisub.OpenFile("./testdata/example-in-no-indent.ttml")
+	s, err := astisub.OpenFile("./testdata/example-in.ttml")
 	assert.NoError(t, err)
 
 	// Write
