@@ -3,7 +3,6 @@ package astisub_test
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -232,12 +231,4 @@ func TestWebVTTTags(t *testing.T) {
 00:06:00.000 --> 00:07:00.000
 Text with a <00:06:30.000>timestamp in the middle
 `, b.String())
-}
-
-func BenchmarkOpenWebVTT(b *testing.B) {
-	f, _ := os.Open("./testdata/example-in.vtt")
-	defer f.Close()
-	for i := 0; i < b.N; i++ {
-		astisub.ReadFromWebVTT(f)
-	}
 }

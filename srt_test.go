@@ -3,7 +3,6 @@ package astisub_test
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/asticode/go-astisub"
@@ -51,12 +50,4 @@ func TestSRTMissingSequence(t *testing.T) {
 func TestNonUTF8SRT(t *testing.T) {
 	_, err := astisub.OpenFile("./testdata/example-in-non-utf8.srt")
 	assert.Error(t, err)
-}
-
-func BenchmarkOpenSRT(b *testing.B) {
-	f, _ := os.Open("./testdata/example-in.srt")
-	defer f.Close()
-	for i := 0; i < b.N; i++ {
-		astisub.ReadFromSRT(f)
-	}
 }
