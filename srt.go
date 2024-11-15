@@ -305,7 +305,7 @@ func (li LineItem) srtBytes() (c []byte) {
 	if pos != 0 {
 		c = append(c, []byte(fmt.Sprintf(`{\an%d}`, pos))...)
 	}
-	c = append(c, []byte(escapeWebVTT(li.Text))...)
+	c = append(c, []byte(li.Text)...)
 	if u {
 		c = append(c, []byte("</u>")...)
 	}

@@ -31,11 +31,13 @@ const (
 
 // Vars
 var (
+	bytesWebVTTItalicEndTag            = []byte("</i>")
+	bytesWebVTTItalicStartTag          = []byte("<i>")
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpInlineTimestamp        = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
 	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
-	webVTTUnescaper                    = strings.NewReplacer("&nbsp;", " ", "&amp;", "&", "&lt;", "<")
+	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
 
 // parseDurationWebVTT parses a .vtt duration
