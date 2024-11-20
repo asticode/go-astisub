@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astikit"
+	"golang.org/x/net/html"
 )
 
 // Bytes
@@ -173,6 +174,11 @@ var (
 
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
+	SRTBold              bool
+	SRTColor             *string
+	SRTItalics           bool
+	SRTPosition          byte // 1-9 numpad layout
+	SRTUnderline         bool
 	SSAAlignment         *int
 	SSAAlphaLevel        *float64
 	SSAAngle             *float64 // degrees
@@ -236,6 +242,8 @@ type StyleAttributes struct {
 	TTMLWritingMode      *string
 	TTMLZIndex           *int
 	WebVTTAlign          string
+	WebVTTBold           bool
+	WebVTTItalics        bool
 	WebVTTLine           string
 	WebVTTLines          int
 	WebVTTPosition       string
@@ -244,6 +252,7 @@ type StyleAttributes struct {
 	WebVTTSize           string
 	WebVTTStyles         []string
 	WebVTTTags           []WebVTTTag
+	WebVTTUnderline      bool
 	WebVTTVertical       string
 	WebVTTViewportAnchor string
 	WebVTTWidth          string
@@ -277,6 +286,56 @@ func (t WebVTTTag) endTag() string {
 		return ""
 	}
 	return "</" + t.Name + ">"
+}
+
+func (sa *StyleAttributes) propagateSRTAttributes() {
+	// copy relevant attrs to WebVTT ones
+	if sa.SRTColor != nil {
+		// TODO: handle non-default colors that need custom styles
+		sa.TTMLColor = sa.SRTColor
+	}
+
+	switch sa.SRTPosition {
+	case 7: // top-left
+		sa.WebVTTAlign = "left"
+		sa.WebVTTPosition = "10%"
+	case 8: // top-center
+		sa.WebVTTPosition = "10%"
+	case 9: // top-right
+		sa.WebVTTAlign = "right"
+		sa.WebVTTPosition = "10%"
+	case 4: // middle-left
+		sa.WebVTTAlign = "left"
+		sa.WebVTTPosition = "50%"
+	case 5: // middle-center
+		sa.WebVTTPosition = "50%"
+	case 6: // middle-right
+		sa.WebVTTAlign = "right"
+		sa.WebVTTPosition = "50%"
+	case 1: // bottom-left
+		sa.WebVTTAlign = "left"
+		sa.WebVTTPosition = "90%"
+	case 2: // bottom-center
+		sa.WebVTTPosition = "90%"
+	case 3: // bottom-right
+		sa.WebVTTAlign = "right"
+		sa.WebVTTPosition = "90%"
+	}
+
+	sa.WebVTTBold = sa.SRTBold
+	sa.WebVTTItalics = sa.SRTItalics
+	sa.WebVTTUnderline = sa.SRTUnderline
+
+	sa.WebVTTTags = make([]WebVTTTag, 0)
+	if sa.WebVTTBold {
+		sa.WebVTTTags = append(sa.WebVTTTags, WebVTTTag{Name: "b"})
+	}
+	if sa.WebVTTItalics {
+		sa.WebVTTTags = append(sa.WebVTTTags, WebVTTTag{Name: "i"})
+	}
+	if sa.WebVTTUnderline {
+		sa.WebVTTTags = append(sa.WebVTTTags, WebVTTTag{Name: "u"})
+	}
 }
 
 func (sa *StyleAttributes) propagateSSAAttributes() {}
@@ -352,7 +411,15 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 	}
 }
 
-func (sa *StyleAttributes) propagateWebVTTAttributes() {}
+func (sa *StyleAttributes) propagateWebVTTAttributes() {
+	// copy relevant attrs to SRT ones
+	if sa.TTMLColor != nil {
+		sa.SRTColor = sa.TTMLColor
+	}
+	sa.SRTBold = sa.WebVTTBold
+	sa.SRTItalics = sa.WebVTTItalics
+	sa.SRTUnderline = sa.WebVTTUnderline
+}
 
 // Metadata represents metadata
 // TODO Merge attributes
@@ -834,4 +901,15 @@ func appendStringToBytesWithNewLine(i []byte, s string) (o []byte) {
 	o = append(i, []byte(s)...)
 	o = append(o, bytesLineSeparator...)
 	return
+}
+
+func htmlTokenAttribute(t *html.Token, key string) *string {
+
+	for _, attr := range t.Attr {
+		if attr.Key == key {
+			return &attr.Val
+		}
+	}
+
+	return nil
 }
