@@ -158,8 +158,8 @@ func TestWebVTTEscape(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, s.Items, 2)
-	require.Equal(t, "Sentence with an & in the middle", s.Items[0].String())
-	require.Equal(t, "Sentence with an < in the middle", s.Items[1].String())
+	require.Equal(t, "Sentence with an astisub.ampamp; in the middle", s.Items[0].String())
+	require.Equal(t, "Sentence with an astisub.amplt; in the middle", s.Items[1].String())
 
 	b := &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)

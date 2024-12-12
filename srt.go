@@ -202,6 +202,7 @@ func parseTextSrt(i string) (o Line) {
 				}
 
 				// Append item
+				s = unescapeWebVTT(s)
 				o.Items = append(o.Items, LineItem{
 					InlineStyle: sa,
 					Text:        s,
@@ -305,7 +306,7 @@ func (li LineItem) srtBytes() (c []byte) {
 	if pos != 0 {
 		c = append(c, []byte(fmt.Sprintf(`{\an%d}`, pos))...)
 	}
-	c = append(c, []byte(li.Text)...)
+	c = append(c, []byte(escapeWebVTT(li.Text))...)
 	if u {
 		c = append(c, []byte("</u>")...)
 	}
