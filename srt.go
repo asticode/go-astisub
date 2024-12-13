@@ -38,6 +38,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	o = NewSubtitles()
 	var scanner = bufio.NewScanner(i)
 
+	styles := StyleAttributes{}
 	// Scan
 	var line string
 	var lineNum int
@@ -58,6 +59,10 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
+
+			// reset styles
+			styles = StyleAttributes{}
+
 			// Remove last item of previous subtitle since it should be the index.
 			// If the last line is empty then the item is missing an index.
 			var index string
@@ -118,7 +123,8 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			if l := parseTextSrt(strings.TrimSpace(line)); len(l.Items) > 0 {
+			var l Line
+			if l, styles = parseTextSrt(line, styles); len(l.Items) > 0 {
 				s.Lines = append(s.Lines, l)
 			}
 		}
@@ -127,24 +133,18 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 }
 
 // parseTextSrt parses the input line to fill the Line
-func parseTextSrt(i string) (o Line) {
+func parseTextSrt(i string, styles StyleAttributes) (Line, StyleAttributes) {
 	// special handling needed for empty line
-	if strings.TrimSpace(i) == "" {
+	o := Line{}
+	if i == "" {
 		o.Items = []LineItem{{Text: ""}}
-		return
+		return o, styles
 	}
 
 	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
 
 	// Loop
-	var (
-		bold      bool
-		italic    bool
-		underline bool
-		color     *string
-		pos       byte
-	)
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -164,39 +164,38 @@ func parseTextSrt(i string) (o Line) {
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				bold = false
+				styles.SRTBold = false
 			case "i":
-				italic = false
+				styles.SRTItalics = false
 			case "u":
-				underline = false
+				styles.SRTUnderline = false
 			case "font":
-				color = nil
+				styles.SRTColor = nil
 			}
 		case html.StartTagToken:
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				bold = true
+				styles.SRTBold = true
 			case "i":
-				italic = true
+				styles.SRTItalics = true
 			case "u":
-				underline = true
+				styles.SRTUnderline = true
 			case "font":
 				if c := htmlTokenAttribute(&token, "color"); c != nil {
-					color = c
+					styles.SRTColor = c
 				}
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(raw); s != "" {
 				// Get style attribute
 				var sa *StyleAttributes
-				if bold || italic || underline || color != nil || pos != 0 {
+				if styles.SRTBold || styles.SRTColor != nil || styles.SRTItalics || styles.SRTUnderline {
 					sa = &StyleAttributes{
-						SRTBold:      bold,
-						SRTColor:     color,
-						SRTItalics:   italic,
-						SRTPosition:  pos,
-						SRTUnderline: underline,
+						SRTBold:      styles.SRTBold,
+						SRTColor:     styles.SRTColor,
+						SRTItalics:   styles.SRTItalics,
+						SRTUnderline: styles.SRTUnderline,
 					}
 					sa.propagateSRTAttributes()
 				}
@@ -209,7 +208,7 @@ func parseTextSrt(i string) (o Line) {
 			}
 		}
 	}
-	return
+	return o, styles
 }
 
 // formatDurationSRT formats an .srt duration

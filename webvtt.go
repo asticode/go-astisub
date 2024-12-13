@@ -121,6 +121,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var scanner = bufio.NewScanner(i)
 	var line string
 	var lineNum int
+	webVTTTagStack := make([]WebVTTTag, 0, 16)
 
 	// Skip the header
 	for scanner.Scan() {
@@ -167,6 +168,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				strings.HasSuffix(webVTTStyles.WebVTTStyles[len(webVTTStyles.WebVTTStyles)-1], "}") {
 				blockName = ""
 			}
+			// Reset tag stack
+			webVTTTagStack = make([]WebVTTTag, 0, 16)
+
 		// Region
 		case strings.HasPrefix(line, "Region: "):
 			// Add region styles
@@ -317,8 +321,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 				webVTTStyles.WebVTTStyles = append(webVTTStyles.WebVTTStyles, line)
 			case webvttBlockNameText:
 				// Parse line
-				if l := parseTextWebVTT(line); len(l.Items) > 0 {
+				if l, stack := parseTextWebVTT(line, webVTTTagStack); len(l.Items) > 0 {
 					item.Lines = append(item.Lines, l)
+					webVTTTagStack = stack
 				}
 			default:
 				// This is the ID
@@ -330,11 +335,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 // parseTextWebVTT parses the input line to fill the Line
-func parseTextWebVTT(i string) (o Line) {
+func parseTextWebVTT(i string, webVTTTagStack []WebVTTTag) (Line, []WebVTTTag) {
 	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
-
-	webVTTTagStack := make([]WebVTTTag, 0, 16)
+	o := Line{}
 
 	// Loop
 	for {
@@ -400,7 +404,7 @@ func parseTextWebVTT(i string) (o Line) {
 			o.Items = append(o.Items, parseTextWebVTTTextToken(sa, string(tr.Raw()))...)
 		}
 	}
-	return
+	return o, webVTTTagStack
 }
 
 func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem) {
