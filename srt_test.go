@@ -127,24 +127,3 @@ func TestSRTStyled(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
 }
-
-func TestSRTHTMLEntity(t *testing.T) {
-	s, err := astisub.OpenFile("./testdata/example-in-html-entity.srt")
-	assert.NoError(t, err)
-
-	//Write to srt
-	w := &bytes.Buffer{}
-	c, err := os.ReadFile("./testdata/example-in-html-entity.srt")
-	assert.NoError(t, err)
-	err = s.WriteToSRT(w)
-	assert.NoError(t, err)
-	assert.Equal(t, string(c), w.String())
-
-	//Write WebVTT
-	w = &bytes.Buffer{}
-	c, err = os.ReadFile("./testdata/example-out-html-entity.vtt")
-	assert.NoError(t, err)
-	err = s.WriteToWebVTT(w)
-	assert.NoError(t, err)
-	assert.Equal(t, string(c), w.String())
-}

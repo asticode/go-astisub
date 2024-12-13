@@ -48,6 +48,12 @@ var (
 	ErrNoSubtitlesToWrite = errors.New("astisub: no subtitles to write")
 )
 
+// HTML Escape
+var (
+	htmlEscaper   = strings.NewReplacer("astisub.amp", "&")
+	htmlUnescaper = strings.NewReplacer("&", "astisub.amp")
+)
+
 // Now allows testing functions using it
 var Now = func() time.Time {
 	return time.Now()
@@ -912,4 +918,12 @@ func htmlTokenAttribute(t *html.Token, key string) *string {
 	}
 
 	return nil
+}
+
+func escapeHTML(i string) string {
+	return htmlEscaper.Replace(i)
+}
+
+func unescapeHTML(i string) string {
+	return htmlUnescaper.Replace(i)
 }
