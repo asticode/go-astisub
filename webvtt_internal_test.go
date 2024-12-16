@@ -13,7 +13,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	t.Run("When both voice tags are available", func(t *testing.T) {
 		testData := `<v Bob>Correct tag</v>`
 
-		s, _ := parseTextWebVTT(testData, make([]WebVTTTag, 0, 16))
+		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, "Bob", s.VoiceName)
 		assert.Equal(t, 1, len(s.Items))
 		assert.Equal(t, "Correct tag", s.Items[0].Text)
@@ -22,7 +22,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	t.Run("When there is no end tag", func(t *testing.T) {
 		testData := `<v Bob> Text without end tag`
 
-		s, _ := parseTextWebVTT(testData, make([]WebVTTTag, 0, 16))
+		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, "Bob", s.VoiceName)
 		assert.Equal(t, 1, len(s.Items))
 		assert.Equal(t, "Text without end tag", s.Items[0].Text)
@@ -31,7 +31,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	t.Run("When the end tag is correct", func(t *testing.T) {
 		testData := `<v Bob>Incorrect end tag</vi>`
 
-		s, _ := parseTextWebVTT(testData, make([]WebVTTTag, 0, 16))
+		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, "Bob", s.VoiceName)
 		assert.Equal(t, 1, len(s.Items))
 		assert.Equal(t, "Incorrect end tag", s.Items[0].Text)
@@ -40,7 +40,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	t.Run("When inline timestamps are included", func(t *testing.T) {
 		testData := `<00:01:01.000>With inline <00:01:02.000>timestamps`
 
-		s, _ := parseTextWebVTT(testData, make([]WebVTTTag, 0, 16))
+		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, 2, len(s.Items))
 		assert.Equal(t, "With inline", s.Items[0].Text)
 		assert.Equal(t, time.Minute+time.Second, s.Items[0].StartAt)
@@ -51,7 +51,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	t.Run("When inline timestamps together", func(t *testing.T) {
 		testData := `<00:01:01.000><00:01:02.000>With timestamp tags together`
 
-		s, _ := parseTextWebVTT(testData, make([]WebVTTTag, 0, 16))
+		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, 1, len(s.Items))
 		assert.Equal(t, "With timestamp tags together", s.Items[0].Text)
 		assert.Equal(t, time.Minute+2*time.Second, s.Items[0].StartAt)
@@ -60,7 +60,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	t.Run("When inline timestamps is at end", func(t *testing.T) {
 		testData := `With end timestamp<00:01:02.000>`
 
-		s, _ := parseTextWebVTT(testData, make([]WebVTTTag, 0, 16))
+		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, 1, len(s.Items))
 		assert.Equal(t, "With end timestamp", s.Items[0].Text)
 		assert.Equal(t, time.Duration(0), s.Items[0].StartAt)

@@ -121,7 +121,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var scanner = bufio.NewScanner(i)
 	var line string
 	var lineNum int
-	webVTTTagStack := make([]WebVTTTag, 0, 16)
 
 	// Skip the header
 	for scanner.Scan() {
@@ -142,7 +141,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var blockName string
 	var comments []string
 	var index int
-	var webVTTStyles *StyleAttributes
+	var sa = &StyleAttributes{}
 
 	for scanner.Scan() {
 		// Fetch line
@@ -163,13 +162,14 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Reset block name, if we are not in the middle of CSS.
 			// If we are in STYLE block and the CSS is empty or we meet the right brace at the end of last line,
 			// then we are not in CSS and can switch to parse next WebVTT block.
-			if blockName != webvttBlockNameStyle || webVTTStyles == nil ||
-				len(webVTTStyles.WebVTTStyles) == 0 ||
-				strings.HasSuffix(webVTTStyles.WebVTTStyles[len(webVTTStyles.WebVTTStyles)-1], "}") {
+			if blockName != webvttBlockNameStyle || sa == nil ||
+				len(sa.WebVTTStyles) == 0 ||
+				strings.HasSuffix(sa.WebVTTStyles[len(sa.WebVTTStyles)-1], "}") {
 				blockName = ""
 			}
-			// Reset tag stack
-			webVTTTagStack = make([]WebVTTTag, 0, 16)
+
+			// Reset WebVTTTags
+			sa.WebVTTTags = []WebVTTTag{}
 
 		// Region
 		case strings.HasPrefix(line, "Region: "):
@@ -211,9 +211,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			blockName = webvttBlockNameStyle
 
 			if _, ok := o.Styles[webvttDefaultStyleID]; !ok {
-				webVTTStyles = &StyleAttributes{}
+				sa = &StyleAttributes{}
 				o.Styles[webvttDefaultStyleID] = &Style{
-					InlineStyle: webVTTStyles,
+					InlineStyle: sa,
 					ID:          webvttDefaultStyleID,
 				}
 			}
@@ -318,12 +318,11 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			case webvttBlockNameComment:
 				comments = append(comments, line)
 			case webvttBlockNameStyle:
-				webVTTStyles.WebVTTStyles = append(webVTTStyles.WebVTTStyles, line)
+				sa.WebVTTStyles = append(sa.WebVTTStyles, line)
 			case webvttBlockNameText:
 				// Parse line
-				if l, stack := parseTextWebVTT(line, webVTTTagStack); len(l.Items) > 0 {
+				if l := parseTextWebVTT(line, sa); len(l.Items) > 0 {
 					item.Lines = append(item.Lines, l)
-					webVTTTagStack = stack
 				}
 			default:
 				// This is the ID
@@ -335,10 +334,9 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 }
 
 // parseTextWebVTT parses the input line to fill the Line
-func parseTextWebVTT(i string, webVTTTagStack []WebVTTTag) (Line, []WebVTTTag) {
+func parseTextWebVTT(i string, sa *StyleAttributes) (o Line) {
 	// Create tokenizer
 	tr := html.NewTokenizer(strings.NewReader(i))
-	o := Line{}
 
 	// Loop
 	for {
@@ -352,8 +350,8 @@ func parseTextWebVTT(i string, webVTTTagStack []WebVTTTag) (Line, []WebVTTTag) {
 		switch t {
 		case html.EndTagToken:
 			// Pop the top of stack if we meet end tag
-			if len(webVTTTagStack) > 0 {
-				webVTTTagStack = webVTTTagStack[:len(webVTTTagStack)-1]
+			if len(sa.WebVTTTags) > 0 {
+				sa.WebVTTTags = sa.WebVTTTags[:len(sa.WebVTTTags)-1]
 			}
 		case html.StartTagToken:
 			if matches := webVTTRegexpTag.FindStringSubmatch(string(tr.Raw())); len(matches) > 4 {
@@ -381,7 +379,7 @@ func parseTextWebVTT(i string, webVTTTagStack []WebVTTTag) (Line, []WebVTTTag) {
 				}
 
 				// Push the tag to stack
-				webVTTTagStack = append(webVTTTagStack, WebVTTTag{
+				sa.WebVTTTags = append(sa.WebVTTTags, WebVTTTag{
 					Name:       tagName,
 					Classes:    classes,
 					Annotation: annotation,
@@ -390,21 +388,21 @@ func parseTextWebVTT(i string, webVTTTagStack []WebVTTTag) (Line, []WebVTTTag) {
 
 		case html.TextToken:
 			// Get style attribute
-			var sa *StyleAttributes
-			if len(webVTTTagStack) > 0 {
-				tags := make([]WebVTTTag, len(webVTTTagStack))
-				copy(tags, webVTTTagStack)
-				sa = &StyleAttributes{
+			var styleAttributes *StyleAttributes
+			if len(sa.WebVTTTags) > 0 {
+				tags := make([]WebVTTTag, len(sa.WebVTTTags))
+				copy(tags, sa.WebVTTTags)
+				styleAttributes = &StyleAttributes{
 					WebVTTTags: tags,
 				}
-				sa.propagateWebVTTAttributes()
+				styleAttributes.propagateWebVTTAttributes()
 			}
 
 			// Append items
-			o.Items = append(o.Items, parseTextWebVTTTextToken(sa, string(tr.Raw()))...)
+			o.Items = append(o.Items, parseTextWebVTTTextToken(styleAttributes, string(tr.Raw()))...)
 		}
 	}
-	return o, webVTTTagStack
+	return
 }
 
 func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem) {
