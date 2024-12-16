@@ -50,8 +50,8 @@ var (
 
 // HTML Escape
 var (
-	htmlEscaper   = strings.NewReplacer("astisub.amp", "&")
-	htmlUnescaper = strings.NewReplacer("&", "astisub.amp")
+	htmlEscaper   = strings.NewReplacer("&", "&amp;", "<", "&lt;", "\u00A0", "&nbsp;")
+	htmlUnescaper = strings.NewReplacer("&amp;", "&", "&lt;", "<", "&nbsp;", "\u00A0")
 )
 
 // Now allows testing functions using it

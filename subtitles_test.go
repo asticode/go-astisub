@@ -314,14 +314,14 @@ func TestHTMLEntity(t *testing.T) {
 		assert.Len(t, s.Items, 3)
 		assert.Equal(t, 331*time.Millisecond, s.Items[0].StartAt)
 		assert.Equal(t, 3*time.Second+750*time.Millisecond, s.Items[0].EndAt)
-		assert.Equal(t, "The man in black fled across the desert, astisub.ampnbsp;", s.Items[0].Lines[0].String())
-		assert.Equal(t, "astisub.ampamp; the gunslinger followed.", s.Items[0].Lines[1].String())
+		assert.Equal(t, "The man in black fled across the desert, \u00A0", s.Items[0].Lines[0].String())
+		assert.Equal(t, "& the gunslinger followed.", s.Items[0].Lines[1].String())
 		assert.Equal(t, 4*time.Second+101*time.Millisecond, s.Items[1].StartAt)
 		assert.Equal(t, 5*time.Second+430*time.Millisecond, s.Items[1].EndAt)
-		assert.Equal(t, "Go,astisub.ampnbsp;then,", s.Items[1].Lines[0].String())
+		assert.Equal(t, "Go,\u00A0then,", s.Items[1].Lines[0].String())
 		assert.Equal(t, 6*time.Second+331*time.Millisecond, s.Items[2].StartAt)
 		assert.Equal(t, 9*time.Second+675*time.Millisecond, s.Items[2].EndAt)
-		assert.Equal(t, "there are other astisub.amplt; worlds than these.", s.Items[2].Lines[0].String())
+		assert.Equal(t, "there are other < worlds than these.", s.Items[2].Lines[0].String())
 
 		//Write to srt
 		w := &bytes.Buffer{}
