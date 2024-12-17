@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -118,7 +117,8 @@ func parseWebVTTTimestampMap(line string) (timestampMap *WebVTTTimestampMap, err
 func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
+	var scanner = newScanner(i)
+
 	var line string
 	var lineNum int
 

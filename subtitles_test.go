@@ -340,3 +340,26 @@ func TestHTMLEntity(t *testing.T) {
 		assert.Equal(t, string(c), w.String())
 	}
 }
+
+func TestNewScanner(t *testing.T) {
+	exts := []string{"vtt", "srt", "ssa"}
+	for _, ext := range exts {
+		s, err := astisub.OpenFile("./testdata/example-in-carriage-return." + ext)
+		assert.NoError(t, err)
+		assert.Len(t, s.Items, 3)
+		assert.Equal(t, time.Duration(0), s.Items[0].StartAt)
+		assert.Equal(t, 3*time.Second+766*time.Millisecond, s.Items[0].EndAt)
+		assert.Equal(t, "Did one of the last stories strike you as", s.Items[0].Lines[0].String())
+		assert.Equal(t, "more interesting than the other?", s.Items[0].Lines[1].String())
+
+		assert.Equal(t, 3*time.Second+767*time.Millisecond, s.Items[1].StartAt)
+		assert.Equal(t, 10*time.Second+732*time.Millisecond, s.Items[1].EndAt)
+		assert.Equal(t, "That's true. You don’t often find 632", s.Items[1].Lines[0].String())
+		assert.Equal(t, "pieces of gum stuck on a sidewalk", s.Items[1].Lines[1].String())
+
+		assert.Equal(t, 10*time.Second+733*time.Millisecond, s.Items[2].StartAt)
+		assert.Equal(t, 14*time.Second+66*time.Millisecond, s.Items[2].EndAt)
+		assert.Equal(t, "at a busy bus stop or anywhere", s.Items[2].Lines[0].String())
+		assert.Equal(t, "else for that matter.", s.Items[2].Lines[1].String())
+	}
+}

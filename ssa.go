@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -134,7 +133,7 @@ func ReadFromSSA(i io.Reader) (o *Subtitles, err error) {
 func ReadFromSSAWithOptions(i io.Reader, opts SSAOptions) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
+	var scanner = newScanner(i)
 	var si = &ssaScriptInfo{}
 	var ss = []*ssaStyle{}
 	var es = []*ssaEvent{}
