@@ -145,37 +145,6 @@ Evening.
 `, b.String())
 }
 
-func TestWebVTTEscape(t *testing.T) {
-	testData := `WEBVTT
-
-	00:01:00.000 --> 00:02:00.000
-	Sentence with an &amp; in the middle
-
-	00:02:00.000 --> 00:03:00.000
-	Sentence with an &lt; in the middle`
-
-	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
-	require.NoError(t, err)
-
-	require.Len(t, s.Items, 2)
-	require.Equal(t, "Sentence with an & in the middle", s.Items[0].String())
-	require.Equal(t, "Sentence with an < in the middle", s.Items[1].String())
-
-	b := &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	require.NoError(t, err)
-	require.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-Sentence with an &amp; in the middle
-
-2
-00:02:00.000 --> 00:03:00.000
-Sentence with an &lt; in the middle
-`, b.String())
-}
-
 func TestWebVTTTags(t *testing.T) {
 	testData := `WEBVTT
 

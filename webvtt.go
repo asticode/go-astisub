@@ -36,8 +36,6 @@ var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpInlineTimestamp        = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
-	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
-	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
 )
 
 // parseDurationWebVTT parses a .vtt duration
@@ -331,14 +329,6 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	return
 }
 
-func escapeWebVTT(i string) string {
-	return webVTTEscaper.Replace(i)
-}
-
-func unescapeWebVTT(i string) string {
-	return webVTTUnescaper.Replace(i)
-}
-
 // parseTextWebVTT parses the input line to fill the Line
 func parseTextWebVTT(i string) (o Line) {
 	// Create tokenizer
@@ -421,7 +411,7 @@ func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem)
 		if s := strings.TrimSpace(line); s != "" {
 			return []LineItem{{
 				InlineStyle: sa,
-				Text:        unescapeWebVTT(s),
+				Text:        unescapeHTML(s),
 			}}
 		}
 		return
@@ -431,7 +421,7 @@ func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem)
 	if s := strings.TrimSpace(line[:indexes[0][0]]); s != "" {
 		ret = append(ret, LineItem{
 			InlineStyle: sa,
-			Text:        unescapeWebVTT(s),
+			Text:        unescapeHTML(s),
 		})
 	}
 
@@ -455,7 +445,7 @@ func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem)
 		ret = append(ret, LineItem{
 			InlineStyle: sa,
 			StartAt:     t,
-			Text:        unescapeWebVTT(s),
+			Text:        unescapeHTML(s),
 		})
 	}
 
@@ -671,7 +661,7 @@ func (li LineItem) webVTTBytes() (c []byte) {
 			c = append(c, []byte(tag.startTag())...)
 		}
 	}
-	c = append(c, []byte(escapeWebVTT(li.Text))...)
+	c = append(c, []byte(escapeHTML(li.Text))...)
 	if li.InlineStyle != nil {
 		noTags := len(li.InlineStyle.WebVTTTags)
 		for i := noTags - 1; i >= 0; i-- {
