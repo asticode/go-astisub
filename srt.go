@@ -42,6 +42,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	var line string
 	var lineNum int
 	var s = &Item{}
+	var sa = &StyleAttributes{}
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
@@ -58,6 +59,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
+			// Reset style attributes
+			sa = &StyleAttributes{}
+
 			// Remove last item of previous subtitle since it should be the index.
 			// If the last line is empty then the item is missing an index.
 			var index string
@@ -118,7 +122,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			if l := parseTextSrt(strings.TrimSpace(line)); len(l.Items) > 0 {
+			if l := parseTextSrt(line, sa); len(l.Items) > 0 {
 				s.Lines = append(s.Lines, l)
 			}
 		}
@@ -127,7 +131,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 }
 
 // parseTextSrt parses the input line to fill the Line
-func parseTextSrt(i string) (o Line) {
+func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 	// special handling needed for empty line
 	if strings.TrimSpace(i) == "" {
 		o.Items = []LineItem{{Text: ""}}
@@ -138,13 +142,6 @@ func parseTextSrt(i string) (o Line) {
 	tr := html.NewTokenizer(strings.NewReader(i))
 
 	// Loop
-	var (
-		bold      bool
-		italic    bool
-		underline bool
-		color     *string
-		pos       byte
-	)
 	for {
 		// Get next tag
 		t := tr.Next()
@@ -164,46 +161,45 @@ func parseTextSrt(i string) (o Line) {
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				bold = false
+				sa.SRTBold = false
 			case "i":
-				italic = false
+				sa.SRTItalics = false
 			case "u":
-				underline = false
+				sa.SRTUnderline = false
 			case "font":
-				color = nil
+				sa.SRTColor = nil
 			}
 		case html.StartTagToken:
 			// Parse italic/bold/underline
 			switch token.Data {
 			case "b":
-				bold = true
+				sa.SRTBold = true
 			case "i":
-				italic = true
+				sa.SRTItalics = true
 			case "u":
-				underline = true
+				sa.SRTUnderline = true
 			case "font":
 				if c := htmlTokenAttribute(&token, "color"); c != nil {
-					color = c
+					sa.SRTColor = c
 				}
 			}
 		case html.TextToken:
 			if s := strings.TrimSpace(raw); s != "" {
 				// Get style attribute
-				var sa *StyleAttributes
-				if bold || italic || underline || color != nil || pos != 0 {
-					sa = &StyleAttributes{
-						SRTBold:      bold,
-						SRTColor:     color,
-						SRTItalics:   italic,
-						SRTPosition:  pos,
-						SRTUnderline: underline,
+				var styleAttributes *StyleAttributes
+				if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
+					styleAttributes = &StyleAttributes{
+						SRTBold:      sa.SRTBold,
+						SRTColor:     sa.SRTColor,
+						SRTItalics:   sa.SRTItalics,
+						SRTUnderline: sa.SRTUnderline,
 					}
-					sa.propagateSRTAttributes()
+					styleAttributes.propagateSRTAttributes()
 				}
 
 				// Append item
 				o.Items = append(o.Items, LineItem{
-					InlineStyle: sa,
+					InlineStyle: styleAttributes,
 					Text:        unescapeHTML(s),
 				})
 			}
