@@ -14,12 +14,12 @@ import (
 
 // Constants
 const (
-	srtTimeBoundariesSeparator = " --> "
+	srtTimeBoundariesSeparator = "-->"
 )
 
 // Vars
 var (
-	bytesSRTTimeBoundariesSeparator = []byte(srtTimeBoundariesSeparator)
+	bytesSRTTimeBoundariesSeparator = []byte(" "+srtTimeBoundariesSeparator+" ")
 )
 
 // parseDurationSRT parses an .srt duration
@@ -106,7 +106,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 				return
 			}
 			// We do this to eliminate extra stuff like positions which are not documented anywhere
-			s2 := strings.Split(s1[1], " ")
+			s2 := strings.Fields(s1[1])
 
 			// Parse time boundaries
 			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {

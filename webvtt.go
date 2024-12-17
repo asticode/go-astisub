@@ -25,7 +25,7 @@ const (
 	webvttBlockNameStyle          = "style"
 	webvttBlockNameText           = "text"
 	webvttDefaultStyleID          = "astisub-webvtt-default-style-id"
-	webvttTimeBoundariesSeparator = " --> "
+	webvttTimeBoundariesSeparator = "-->"
 	webvttTimestampMapHeader      = "X-TIMESTAMP-MAP"
 )
 
@@ -33,7 +33,7 @@ const (
 var (
 	bytesWebVTTItalicEndTag            = []byte("</i>")
 	bytesWebVTTItalicStartTag          = []byte("<i>")
-	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
+	bytesWebVTTTimeBoundariesSeparator = []byte(" "+webvttTimeBoundariesSeparator+" ")
 	webVTTRegexpInlineTimestamp        = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
 )
@@ -237,7 +237,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			var left = strings.Split(line, webvttTimeBoundariesSeparator)
 
 			// Split line on space to get remaining of time data
-			var right = strings.Split(left[1], " ")
+			var right = strings.Fields(left[1])
 
 			// Parse time boundaries
 			if item.StartAt, err = parseDurationWebVTT(left[0]); err != nil {

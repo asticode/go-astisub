@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSRT(t *testing.T) {
@@ -137,4 +139,19 @@ func TestSRTStyled(t *testing.T) {
 	err = s.WriteToWebVTT(w)
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestSRTParseDuration(t *testing.T) {
+	testData := `
+	1
+	00:00:01.876-->00:0:03.390
+	Duration without enclosing space`
+
+	s, err := astisub.ReadFromSRT(strings.NewReader(testData))
+	require.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	assert.Equal(t, 1*time.Second+876*time.Millisecond, s.Items[0].StartAt)
+	assert.Equal(t, 3*time.Second+390*time.Millisecond, s.Items[0].EndAt)
+	assert.Equal(t, "Duration without enclosing space", s.Items[0].Lines[0].String())
 }
