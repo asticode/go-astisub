@@ -224,3 +224,27 @@ Text with a <00:06:30.000>timestamp in the middle
 Do no fall to the next item
 `, b.String())
 }
+
+func TestWebVTTParseDuration(t *testing.T) {
+	testData := `WEBVTT
+	1
+	00:00:01.876-->00:0:03.390
+	Duration without enclosing space
+
+	2
+	00:00:03.391-->00:00:06.567	align:middle
+	Duration with tab spaced styles`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	require.NoError(t, err)
+
+	require.Len(t, s.Items, 2)
+	assert.Equal(t, 1*time.Second+876*time.Millisecond, s.Items[0].StartAt)
+	assert.Equal(t, 3*time.Second+390*time.Millisecond, s.Items[0].EndAt)
+	assert.Equal(t, "Duration without enclosing space", s.Items[0].Lines[0].String())
+	assert.Equal(t, 3*time.Second+391*time.Millisecond, s.Items[1].StartAt)
+	assert.Equal(t, 6*time.Second+567*time.Millisecond, s.Items[1].EndAt)
+	assert.Equal(t, "Duration with tab spaced styles", s.Items[1].Lines[0].String())
+	assert.NotNil(t, s.Items[1].InlineStyle)
+	assert.Equal(t, s.Items[1].InlineStyle.WebVTTAlign, "middle")
+}
