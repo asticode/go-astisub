@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -36,7 +35,7 @@ func parseDurationSRT(i string) (d time.Duration, err error) {
 func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
+	var scanner = newScanner(i)
 
 	// Scan
 	var line string
