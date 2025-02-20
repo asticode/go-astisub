@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseTextWebVTT(t *testing.T) {
@@ -161,4 +162,28 @@ func TestCueVoiceSpanRegex(t *testing.T) {
 			assert.Equal(t, tt.want, results[4])
 		})
 	}
+}
+
+func TestLineWebVTTBytes(t *testing.T) {
+	require.Equal(t, "<t1>1 <t2>2</t2> 3</t1>\n", string(Line{Items: []LineItem{
+		{
+			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
+				{Name: "t1"},
+			}},
+			Text: "1",
+		},
+		{
+			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
+				{Name: "t1"},
+				{Name: "t2"},
+			}},
+			Text: "2",
+		},
+		{
+			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
+				{Name: "t1"},
+			}},
+			Text: "3",
+		},
+	}}.webVTTBytes()))
 }

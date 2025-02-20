@@ -32,7 +32,7 @@ const (
 var (
 	bytesWebVTTItalicEndTag            = []byte("</i>")
 	bytesWebVTTItalicStartTag          = []byte("<i>")
-	bytesWebVTTTimeBoundariesSeparator = []byte(" "+webvttTimeBoundariesSeparator+" ")
+	bytesWebVTTTimeBoundariesSeparator = []byte(" " + webvttTimeBoundariesSeparator + " ")
 	webVTTRegexpInlineTimestamp        = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
 )
@@ -631,8 +631,15 @@ func (l Line) webVTTBytes() (c []byte) {
 	if l.VoiceName != "" {
 		c = append(c, []byte("<v "+l.VoiceName+">")...)
 	}
-	for idx, li := range l.Items {
-		c = append(c, li.webVTTBytes()...)
+	for idx := 0; idx < len(l.Items); idx++ {
+		var previous, next *LineItem
+		if idx > 0 {
+			previous = &l.Items[idx-1]
+		}
+		if idx < len(l.Items)-1 {
+			next = &l.Items[idx+1]
+		}
+		c = append(c, l.Items[idx].webVTTBytes(previous, next)...)
 		// condition to avoid adding space as the last character.
 		if idx < len(l.Items)-1 {
 			c = append(c, []byte(" ")...)
@@ -642,7 +649,7 @@ func (l Line) webVTTBytes() (c []byte) {
 	return
 }
 
-func (li LineItem) webVTTBytes() (c []byte) {
+func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 	// Add timestamp
 	if li.StartAt > 0 {
 		c = append(c, []byte("<"+formatDurationWebVTT(li.StartAt)+">")...)
@@ -659,15 +666,21 @@ func (li LineItem) webVTTBytes() (c []byte) {
 		c = append(c, []byte("<c."+color+">")...)
 	}
 	if li.InlineStyle != nil {
-		for _, tag := range li.InlineStyle.WebVTTTags {
+		for idx, tag := range li.InlineStyle.WebVTTTags {
+			if previous != nil && previous.InlineStyle != nil && len(previous.InlineStyle.WebVTTTags) > idx && tag.Name == previous.InlineStyle.WebVTTTags[idx].Name {
+				continue
+			}
 			c = append(c, []byte(tag.startTag())...)
 		}
 	}
 	c = append(c, []byte(escapeHTML(li.Text))...)
 	if li.InlineStyle != nil {
-		noTags := len(li.InlineStyle.WebVTTTags)
-		for i := noTags - 1; i >= 0; i-- {
-			c = append(c, []byte(li.InlineStyle.WebVTTTags[i].endTag())...)
+		for i := len(li.InlineStyle.WebVTTTags) - 1; i >= 0; i-- {
+			tag := li.InlineStyle.WebVTTTags[i]
+			if next != nil && next.InlineStyle != nil && len(next.InlineStyle.WebVTTTags) > i && tag.Name == next.InlineStyle.WebVTTTags[i].Name {
+				continue
+			}
+			c = append(c, []byte(tag.endTag())...)
 		}
 	}
 	if color != "" {
