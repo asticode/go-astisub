@@ -62,7 +62,7 @@ func TestSRTStyled(t *testing.T) {
 	assert.NoError(t, err)
 
 	// assert the items are properly parsed
-	assert.Len(t, s.Items, 9)
+	assert.Len(t, s.Items, 10)
 	assert.Equal(t, 17*time.Second+985*time.Millisecond, s.Items[0].StartAt)
 	assert.Equal(t, 20*time.Second+521*time.Millisecond, s.Items[0].EndAt)
 	assert.Equal(t, "[instrumental music]", s.Items[0].Lines[0].String())
@@ -86,6 +86,10 @@ func TestSRTStyled(t *testing.T) {
 	assert.Equal(t, "Terminated on the next line", s.Items[6].Lines[1].String())
 	assert.Equal(t, "Unterminated styles", s.Items[7].Lines[0].String())
 	assert.Equal(t, "Do no fall to the next item", s.Items[8].Lines[0].String())
+	assert.Equal(t, "x", s.Items[9].Lines[0].Items[0].Text)
+	assert.Equal(t, "^3 * ", s.Items[9].Lines[0].Items[1].Text)
+	assert.Equal(t, "x", s.Items[9].Lines[0].Items[2].Text)
+	assert.Equal(t, " = 100", s.Items[9].Lines[0].Items[3].Text)
 
 	// assert the styles of the items
 	assert.Equal(t, "#00ff00", *s.Items[0].Lines[0].Items[0].InlineStyle.SRTColor)
@@ -123,6 +127,10 @@ func TestSRTStyled(t *testing.T) {
 	assert.False(t, s.Items[7].Lines[0].Items[0].InlineStyle.SRTBold)
 	assert.Nil(t, s.Items[7].Lines[0].Items[0].InlineStyle.SRTColor)
 	assert.Nil(t, s.Items[8].Lines[0].Items[0].InlineStyle)
+	assert.True(t, s.Items[9].Lines[0].Items[0].InlineStyle.SRTItalics)
+	assert.Nil(t, s.Items[9].Lines[0].Items[1].InlineStyle)
+	assert.True(t, s.Items[9].Lines[0].Items[2].InlineStyle.SRTItalics)
+	assert.Nil(t, s.Items[9].Lines[0].Items[3].InlineStyle)
 
 	// Write to srt
 	w := &bytes.Buffer{}

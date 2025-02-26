@@ -410,17 +410,14 @@ func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem)
 	indexes := webVTTRegexpInlineTimestamp.FindAllStringSubmatchIndex(line, -1)
 
 	if len(indexes) == 0 {
-		if s := strings.TrimSpace(line); s != "" {
-			return []LineItem{{
-				InlineStyle: sa,
-				Text:        unescapeHTML(s),
-			}}
-		}
-		return
+		return []LineItem{{
+			InlineStyle: sa,
+			Text:        unescapeHTML(line),
+		}}
 	}
 
 	// get the text before the first timestamp
-	if s := strings.TrimSpace(line[:indexes[0][0]]); s != "" {
+	if s := line[:indexes[0][0]]; strings.TrimSpace(s) != "" {
 		ret = append(ret, LineItem{
 			InlineStyle: sa,
 			Text:        unescapeHTML(s),
@@ -433,8 +430,8 @@ func parseTextWebVTTTextToken(sa *StyleAttributes, line string) (ret []LineItem)
 		if i+1 < len(indexes) {
 			endIndex = indexes[i+1][0]
 		}
-		s := strings.TrimSpace(line[match[1]:endIndex])
-		if s == "" {
+		s := line[match[1]:endIndex]
+		if strings.TrimSpace(s) == "" {
 			continue
 		}
 
@@ -640,10 +637,6 @@ func (l Line) webVTTBytes() (c []byte) {
 			next = &l.Items[idx+1]
 		}
 		c = append(c, l.Items[idx].webVTTBytes(previous, next)...)
-		// condition to avoid adding space as the last character.
-		if idx < len(l.Items)-1 {
-			c = append(c, []byte(" ")...)
-		}
 	}
 	c = append(c, bytesLineSeparator...)
 	return

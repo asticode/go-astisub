@@ -60,11 +60,11 @@ func TestWebVTTWithVoiceName(t *testing.T) {
 
 	1
 	00:02:34.000 --> 00:02:35.000
-	<v.first.local Roger Bingham> I'm the fist speaker
+	<v.first.local Roger Bingham>I'm the fist speaker
 
 	2
 	00:02:34.000 --> 00:02:35.000
-	<v Bingham> I'm the second speaker
+	<v Bingham>I'm the second speaker
 
 	3
 	00:00:04.000 --> 00:00:08.000
@@ -174,12 +174,15 @@ func TestWebVTTTags(t *testing.T) {
 	<i>Unterminated styles
 	
 	00:10:00.000 --> 00:11:00.000
-	Do no fall to the next item`
+	Do no fall to the next item
+	
+	00:12:00.000 --> 00:13:00.000
+	<i>x</i>^3 * <i>x</i> = 100`
 
 	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
 	require.NoError(t, err)
 
-	require.Len(t, s.Items, 9)
+	require.Len(t, s.Items, 10)
 
 	b := &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)
@@ -222,6 +225,10 @@ Text with a <00:06:30.000>timestamp in the middle
 9
 00:10:00.000 --> 00:11:00.000
 Do no fall to the next item
+
+10
+00:12:00.000 --> 00:13:00.000
+<i>x</i>^3 * <i>x</i> = 100
 `, b.String())
 }
 

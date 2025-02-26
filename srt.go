@@ -18,7 +18,7 @@ const (
 
 // Vars
 var (
-	bytesSRTTimeBoundariesSeparator = []byte(" "+srtTimeBoundariesSeparator+" ")
+	bytesSRTTimeBoundariesSeparator = []byte(" " + srtTimeBoundariesSeparator + " ")
 )
 
 // parseDurationSRT parses an .srt duration
@@ -199,7 +199,7 @@ func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 				// Append item
 				o.Items = append(o.Items, LineItem{
 					InlineStyle: styleAttributes,
-					Text:        unescapeHTML(s),
+					Text:        unescapeHTML(raw),
 				})
 			}
 		}
@@ -255,12 +255,8 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 }
 
 func (l Line) srtBytes() (c []byte) {
-	for idx, li := range l.Items {
+	for _, li := range l.Items {
 		c = append(c, li.srtBytes()...)
-		// condition to avoid adding space as the last character.
-		if idx < len(l.Items)-1 {
-			c = append(c, []byte(" ")...)
-		}
 	}
 	c = append(c, bytesLineSeparator...)
 	return
