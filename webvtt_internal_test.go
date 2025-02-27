@@ -21,7 +21,7 @@ func TestParseTextWebVTT(t *testing.T) {
 	})
 
 	t.Run("When there is no end tag", func(t *testing.T) {
-		testData := `<v Bob> Text without end tag`
+		testData := `<v Bob>Text without end tag`
 
 		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, "Bob", s.VoiceName)
@@ -43,7 +43,7 @@ func TestParseTextWebVTT(t *testing.T) {
 
 		s := parseTextWebVTT(testData, &StyleAttributes{})
 		assert.Equal(t, 2, len(s.Items))
-		assert.Equal(t, "With inline", s.Items[0].Text)
+		assert.Equal(t, "With inline ", s.Items[0].Text)
 		assert.Equal(t, time.Minute+time.Second, s.Items[0].StartAt)
 		assert.Equal(t, "timestamps", s.Items[1].Text)
 		assert.Equal(t, time.Minute+2*time.Second, s.Items[1].StartAt)
@@ -170,7 +170,7 @@ func TestLineWebVTTBytes(t *testing.T) {
 			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
 				{Name: "t1"},
 			}},
-			Text: "1",
+			Text: "1 ",
 		},
 		{
 			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
@@ -183,7 +183,7 @@ func TestLineWebVTTBytes(t *testing.T) {
 			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
 				{Name: "t1"},
 			}},
-			Text: "3",
+			Text: " 3",
 		},
 	}}.webVTTBytes()))
 }
