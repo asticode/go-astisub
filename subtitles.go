@@ -497,7 +497,8 @@ func (l Line) String() string {
 	for _, i := range l.Items {
 		texts = append(texts, i.Text)
 	}
-	return strings.Join(texts, " ")
+	// Don't add spaces here since items must contain their own space
+	return strings.Join(texts, "")
 }
 
 // LineItem represents a formatted line item

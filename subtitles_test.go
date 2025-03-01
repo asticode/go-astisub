@@ -13,7 +13,7 @@ import (
 
 func TestLine_Text(t *testing.T) {
 	var l = astisub.Line{Items: []astisub.LineItem{{Text: "1"}, {Text: "2"}, {Text: "3"}}}
-	assert.Equal(t, "1 2 3", l.String())
+	assert.Equal(t, "123", l.String())
 }
 
 func assertSubtitleItems(t *testing.T, i *astisub.Subtitles) {

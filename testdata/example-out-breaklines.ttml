@@ -19,15 +19,15 @@
                 <span>Fifth line</span>
                 <br></br>
                 <span>Sixth </span>
-                <span>middle </span>
-                <span>line</span>
+                <span>middle</span>
+                <span> line</span>
             </p>
             <p begin="00:00:03.000" end="00:00:04.000">
-                <span>Seventh line</span>
+                <span>Seventh line </span>
                 <br></br>
                 <span>Eighth </span>
-                <span>middle </span>
-                <span>line</span>
+                <span>middle</span>
+                <span> line</span>
             </p>
         </div>
     </body>

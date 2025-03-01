@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/asticode/go-astikit"
 )
@@ -153,12 +154,14 @@ type TTMLInStyle struct {
 
 // TTMLInSubtitle represents an input TTML subtitle
 type TTMLInSubtitle struct {
-	Begin  *TTMLInDuration `xml:"begin,attr,omitempty"`
-	End    *TTMLInDuration `xml:"end,attr,omitempty"`
-	ID     string          `xml:"id,attr,omitempty"`
-	Items  string          `xml:",innerxml"` // We must store inner XML here since there's no tag to describe both any tag and chardata
-	Region string          `xml:"region,attr,omitempty"`
-	Style  string          `xml:"style,attr,omitempty"`
+	Begin *TTMLInDuration `xml:"begin,attr,omitempty"`
+	End   *TTMLInDuration `xml:"end,attr,omitempty"`
+	ID    string          `xml:"id,attr,omitempty"`
+	// We must store inner XML temporarily here since there's no tag to describe both any tag and chardata
+	// Real unmarshal will be done manually afterwards
+	Items  string `xml:",innerxml"`
+	Region string `xml:"region,attr,omitempty"`
+	Style  string `xml:"style,attr,omitempty"`
 	TTMLInStyleAttributes
 }
 
@@ -188,8 +191,7 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 			}
 			*i = append(*i, e)
 		} else if b, ok := t.(xml.CharData); ok {
-			var str = strings.TrimSpace(string(b))
-			if len(str) > 0 {
+			if str := string(b); len(strings.TrimSpace(str)) > 0 {
 				*i = append(*i, TTMLInItem{Text: str})
 			}
 		}
@@ -225,10 +227,10 @@ func (r *ttmlXmlTokenReader) Token() (xml.Token, error) {
 	return t, nil
 }
 
-func newTTMLXmlDecoder(ts TTMLInSubtitle) *xml.Decoder {
+func newTTMLXmlDecoder(s string) *xml.Decoder {
 	return xml.NewTokenDecoder(
 		&ttmlXmlTokenReader{
-			xmlTokenReader: xml.NewDecoder(strings.NewReader("<p>" + ts.Items + "</p>")),
+			xmlTokenReader: xml.NewDecoder(strings.NewReader("<p>" + s + "</p>")),
 			holdingToken:   nil,
 		},
 	)
@@ -415,9 +417,15 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			s.Style = o.Styles[ts.Style]
 		}
 
+		// Remove items identation
+		lines := strings.Split(ts.Items, "\n")
+		for i := 0; i < len(lines); i++ {
+			lines[i] = strings.TrimLeftFunc(lines[i], unicode.IsSpace)
+		}
+
 		// Unmarshal items
 		var items = TTMLInItems{}
-		if err = newTTMLXmlDecoder(ts).Decode(&items); err != nil {
+		if err = newTTMLXmlDecoder(strings.Join(lines, "")).Decode(&items); err != nil {
 			err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
 			return
 		}
@@ -445,7 +453,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 				// Init line item
 				var t = LineItem{
 					InlineStyle: tt.TTMLInStyleAttributes.styleAttributes(),
-					Text:        strings.TrimSpace(li),
+					Text:        li,
 				}
 
 				// Add style
@@ -699,16 +707,12 @@ func (s Subtitles) WriteToTTML(o io.Writer, opts ...WriteToTTMLOption) (err erro
 		// Add lines
 		for _, line := range item.Lines {
 			// Loop through line items
-			for idx, lineItem := range line.Items {
+			for _, lineItem := range line.Items {
 				// Init ttml item
 				var ttmlItem = TTMLOutItem{
 					Text:                   lineItem.Text,
 					TTMLOutStyleAttributes: ttmlOutStyleAttributesFromStyleAttributes(lineItem.InlineStyle),
 					XMLName:                xml.Name{Local: "span"},
-				}
-				// condition to avoid adding space as the last character.
-				if idx < len(line.Items)-1 {
-					ttmlItem.Text = ttmlItem.Text + " "
 				}
 
 				// Add style
