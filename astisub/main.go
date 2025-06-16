@@ -10,6 +10,10 @@ import (
 
 // Flags
 var (
+	actual1          = flag.Duration("a1", 0, "the first actual duration")
+	actual2          = flag.Duration("a2", 0, "the second actual duration")
+	desired1         = flag.Duration("d1", 0, "the first desired duration")
+	desired2         = flag.Duration("d2", 0, "the second desired duration")
 	fragmentDuration = flag.Duration("f", 0, "the fragment duration")
 	inputPath        = astikit.NewFlagStrings()
 	teletextPage     = flag.Int("p", 0, "the teletext page")
@@ -42,6 +46,28 @@ func main() {
 
 	// Switch on subcommand
 	switch cmd {
+	case "apply-linear-correction":
+		// Validate actual and desired durations
+		if *actual1 <= 0 {
+			log.Fatal("Use -a1 to provide the first actual duration")
+		}
+		if *desired1 <= 0 {
+			log.Fatal("Use -d1 to provide the first desired duration")
+		}
+		if *actual2 <= 0 {
+			log.Fatal("Use -a2 to provide the second actual duration")
+		}
+		if *desired2 <= 0 {
+			log.Fatal("Use -d2 to provide the second desired duration")
+		}
+
+		// Apply linear correction
+		sub.ApplyLinearCorrection(*actual1, *desired1, *actual2, *desired2)
+
+		// Write
+		if err = sub.Write(*outputPath); err != nil {
+			log.Fatalf("%s while writing to %s", err, *outputPath)
+		}
 	case "convert":
 		// Write
 		if err = sub.Write(*outputPath); err != nil {

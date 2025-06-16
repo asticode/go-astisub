@@ -1,19 +1,23 @@
 [![GoReportCard](http://goreportcard.com/badge/github.com/asticode/go-astisub)](http://goreportcard.com/report/github.com/asticode/go-astisub)
 [![GoDoc](https://godoc.org/github.com/asticode/go-astisub?status.svg)](https://godoc.org/github.com/asticode/go-astisub)
-[![Travis](https://travis-ci.com/asticode/go-astisub.svg?branch=master)](https://travis-ci.com/asticode/go-astisub#)
+[![Test](https://github.com/asticode/go-astisub/actions/workflows/test.yml/badge.svg)](https://github.com/asticode/go-astisub/actions/workflows/test.yml)
 [![Coveralls](https://coveralls.io/repos/github/asticode/go-astisub/badge.svg?branch=master)](https://coveralls.io/github/asticode/go-astisub)
 
 This is a Golang library to manipulate subtitles. 
 
 It allows you to manipulate `srt`, `stl`, `ttml`, `ssa/ass`, `webvtt` and `teletext` files for now.
 
-Available operations are `parsing`, `writing`, `syncing`, `fragmenting`, `unfragmenting`, `merging` and `optimizing`.
+Available operations are `parsing`, `writing`, `applying linear correction`, `syncing`, `fragmenting`, `unfragmenting`, `merging` and `optimizing`.
 
 # Installation
 
-To install the library and command line program, use the following:
+To install the library:
 
-    go get -u github.com/asticode/go-astisub/...
+    go get github.com/asticode/go-astisub
+
+To install the CLI:
+
+    go install github.com/asticode/go-astisub/astisub        
 
 # Using the library in your code
 
@@ -22,7 +26,7 @@ WARNING: the code below doesn't handle errors for readibility purposes. However 
 ```go
 // Open subtitles
 s1, _ := astisub.OpenFile("/path/to/example.ttml")
-s2, _ := astisub.ReadFromSRT(bytes.NewReader([]byte("00:01:00.000 --> 00:02:00.000\nCredits")))
+s2, _ := astisub.ReadFromSRT(bytes.NewReader([]byte("1\n00:01:00.000 --> 00:02:00.000\nCredits")))
 
 // Add a duration to every subtitles (syncing)
 s1.Add(-2*time.Second)
@@ -39,6 +43,9 @@ s1.Optimize()
 // Unfragment the subtitles
 s1.Unfragment()
 
+// Apply linear correction
+s1.ApplyLinearCorrection(1*time.Second, 2*time.Second, 5*time.Second, 7*time.Second)
+
 // Write subtitles
 s1.Write("/path/to/example.srt")
 var buf = &bytes.Buffer{}
@@ -52,6 +59,10 @@ If **astisub** has been installed properly you can:
 - convert any type of subtitle to any other type of subtitle:
 
         astisub convert -i example.srt -o example.ttml
+
+- apply linear correction to any type of subtitle:
+
+        astisub apply-linear-correction -i example.srt -a1 1s -d1 2s -a2 5s -d2 7s -o example.out.srt
 
 - fragment any type of subtitle:
 
@@ -82,6 +93,7 @@ If **astisub** has been installed properly you can:
 - [x] merging
 - [x] ordering
 - [x] optimizing
+- [x] linear correction
 - [x] .srt
 - [x] .ttml
 - [x] .vtt

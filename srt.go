@@ -1,43 +1,55 @@
 package astisub
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
+
+	"golang.org/x/net/html"
 )
 
 // Constants
 const (
-	srtTimeBoundariesSeparator = " --> "
+	srtTimeBoundariesSeparator = "-->"
 )
 
 // Vars
 var (
-	bytesSRTTimeBoundariesSeparator = []byte(srtTimeBoundariesSeparator)
+	bytesSRTTimeBoundariesSeparator = []byte(" " + srtTimeBoundariesSeparator + " ")
 )
 
 // parseDurationSRT parses an .srt duration
-func parseDurationSRT(i string) (time.Duration, error) {
-	return parseDuration(i, ",", 3)
+func parseDurationSRT(i string) (d time.Duration, err error) {
+	for _, s := range []string{",", "."} {
+		if d, err = parseDuration(i, s, 3); err == nil {
+			return
+		}
+	}
+	return
 }
 
 // ReadFromSRT parses an .srt content
 func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	// Init
 	o = NewSubtitles()
-	var scanner = bufio.NewScanner(i)
+	var scanner = newScanner(i)
 
 	// Scan
 	var line string
 	var lineNum int
 	var s = &Item{}
+	var sa = &StyleAttributes{}
 	for scanner.Scan() {
 		// Fetch line
 		line = strings.TrimSpace(scanner.Text())
 		lineNum++
+		if !utf8.ValidString(line) {
+			err = fmt.Errorf("astisub: line %d is not valid utf-8", lineNum)
+			return
+		}
 
 		// Remove BOM header
 		if lineNum == 1 {
@@ -46,15 +58,18 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 
 		// Line contains time boundaries
 		if strings.Contains(line, srtTimeBoundariesSeparator) {
-			// Return the wrong number of rows
-			if len(s.Lines) == 0 {
-				err = fmt.Errorf("astisub: line %d: no lines", lineNum)
-				return
-			}
+			// Reset style attributes
+			sa = &StyleAttributes{}
 
-			// Remove last item of previous subtitle since it's the index
-			index := s.Lines[len(s.Lines)-1]
-			s.Lines = s.Lines[:len(s.Lines)-1]
+			// Remove last item of previous subtitle since it should be the index.
+			// If the last line is empty then the item is missing an index.
+			var index string
+			if len(s.Lines) != 0 {
+				index = s.Lines[len(s.Lines)-1].String()
+				if index != "" {
+					s.Lines = s.Lines[:len(s.Lines)-1]
+				}
+			}
 
 			// Remove trailing empty lines
 			if len(s.Lines) > 0 {
@@ -79,7 +94,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			s = &Item{}
 
 			// Fetch Index
-			s.Index, _ = strconv.Atoi(index.String())
+			if index != "" {
+				s.Index, _ = strconv.Atoi(index)
+			}
 
 			// Extract time boundaries
 			s1 := strings.Split(line, srtTimeBoundariesSeparator)
@@ -88,7 +105,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 				return
 			}
 			// We do this to eliminate extra stuff like positions which are not documented anywhere
-			s2 := strings.Split(s1[1], " ")
+			s2 := strings.Fields(s1[1])
 
 			// Parse time boundaries
 			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {
@@ -104,7 +121,87 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			o.Items = append(o.Items, s)
 		} else {
 			// Add text
-			s.Lines = append(s.Lines, Line{Items: []LineItem{{Text: strings.TrimSpace(line)}}})
+			if l := parseTextSrt(line, sa); len(l.Items) > 0 {
+				s.Lines = append(s.Lines, l)
+			}
+		}
+	}
+	return
+}
+
+// parseTextSrt parses the input line to fill the Line
+func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
+	// special handling needed for empty line
+	if strings.TrimSpace(i) == "" {
+		o.Items = []LineItem{{Text: ""}}
+		return
+	}
+
+	// Create tokenizer
+	tr := html.NewTokenizer(strings.NewReader(i))
+
+	// Loop
+	for {
+		// Get next tag
+		t := tr.Next()
+
+		// Process error
+		if err := tr.Err(); err != nil {
+			break
+		}
+
+		// Get unmodified text
+		raw := string(tr.Raw())
+		// Get current token
+		token := tr.Token()
+
+		switch t {
+		case html.EndTagToken:
+			// Parse italic/bold/underline
+			switch token.Data {
+			case "b":
+				sa.SRTBold = false
+			case "i":
+				sa.SRTItalics = false
+			case "u":
+				sa.SRTUnderline = false
+			case "font":
+				sa.SRTColor = nil
+			}
+		case html.StartTagToken:
+			// Parse italic/bold/underline
+			switch token.Data {
+			case "b":
+				sa.SRTBold = true
+			case "i":
+				sa.SRTItalics = true
+			case "u":
+				sa.SRTUnderline = true
+			case "font":
+				if c := htmlTokenAttribute(&token, "color"); c != nil {
+					sa.SRTColor = c
+				}
+			}
+		case html.TextToken:
+			if s := strings.TrimSpace(raw); s != "" {
+				// Get style attribute
+				var styleAttributes *StyleAttributes
+				if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
+					styleAttributes = &StyleAttributes{
+						SRTBold:      sa.SRTBold,
+						SRTColor:     sa.SRTColor,
+						SRTItalics:   sa.SRTItalics,
+						SRTUnderline: sa.SRTUnderline,
+					}
+					styleAttributes.propagateSRTAttributes()
+				}
+
+				// Append item
+				o.Items = append(o.Items, LineItem{
+					InlineStyle: styleAttributes,
+					Text:        unescapeHTML(raw),
+				})
+			}
 		}
 	}
 	return
@@ -139,8 +236,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 
 		// Loop through lines
 		for _, l := range v.Lines {
-			c = append(c, []byte(l.String())...)
-			c = append(c, bytesLineSeparator...)
+			c = append(c, []byte(l.srtBytes())...)
 		}
 
 		// Add new line
@@ -154,6 +250,64 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 	if _, err = o.Write(c); err != nil {
 		err = fmt.Errorf("astisub: writing failed: %w", err)
 		return
+	}
+	return
+}
+
+func (l Line) srtBytes() (c []byte) {
+	for _, li := range l.Items {
+		c = append(c, li.srtBytes()...)
+	}
+	c = append(c, bytesLineSeparator...)
+	return
+}
+
+func (li LineItem) srtBytes() (c []byte) {
+	// Get color
+	var color string
+	if li.InlineStyle != nil && li.InlineStyle.SRTColor != nil {
+		color = *li.InlineStyle.SRTColor
+	}
+
+	// Get bold/italics/underline
+	b := li.InlineStyle != nil && li.InlineStyle.SRTBold
+	i := li.InlineStyle != nil && li.InlineStyle.SRTItalics
+	u := li.InlineStyle != nil && li.InlineStyle.SRTUnderline
+
+	// Get position
+	var pos byte
+	if li.InlineStyle != nil {
+		pos = li.InlineStyle.SRTPosition
+	}
+
+	// Append
+	if color != "" {
+		c = append(c, []byte("<font color=\""+color+"\">")...)
+	}
+	if b {
+		c = append(c, []byte("<b>")...)
+	}
+	if i {
+		c = append(c, []byte("<i>")...)
+	}
+	if u {
+		c = append(c, []byte("<u>")...)
+	}
+	if pos != 0 {
+		c = append(c, []byte(fmt.Sprintf(`{\an%d}`, pos))...)
+	}
+	c = append(c, []byte(escapeHTML(li.Text))...)
+	if u {
+		c = append(c, []byte("</u>")...)
+	}
+	if i {
+		c = append(c, []byte("</i>")...)
+	}
+	if b {
+		c = append(c, []byte("</b>")...)
+	}
+	if color != "" {
+		c = append(c, []byte("</font>")...)
 	}
 	return
 }

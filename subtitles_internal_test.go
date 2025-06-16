@@ -63,4 +63,6 @@ func TestFormatDuration(t *testing.T) {
 	assert.Equal(t, "03:25:45,678", s)
 	s = formatDuration(34*time.Hour+17*time.Minute+36*time.Second+789*time.Millisecond, ",", 3)
 	assert.Equal(t, "34:17:36,789", s)
+	s = formatDuration(12*time.Hour+34*time.Minute+56*time.Second+999*time.Millisecond, ",", 2)
+	assert.Equal(t, "12:34:56,99", s)
 }

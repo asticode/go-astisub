@@ -210,15 +210,23 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 	// Update metadata
 	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
-		Framerate:              g.framerate,
-		STLCountryOfOrigin:     g.countryOfOrigin,
-		STLCreationDate:        &g.creationDate,
-		STLDisplayStandardCode: g.displayStandardCode,
+		Framerate:               g.framerate,
+		STLCountryOfOrigin:      g.countryOfOrigin,
+		STLCreationDate:         &g.creationDate,
+		STLDisplayStandardCode:  g.displayStandardCode,
+		STLEditorContactDetails: g.editorContactDetails,
+		STLEditorName:           g.editorName,
 		STLMaximumNumberOfDisplayableCharactersInAnyTextRow: astikit.IntPtr(g.maximumNumberOfDisplayableCharactersInAnyTextRow),
 		STLMaximumNumberOfDisplayableRows:                   astikit.IntPtr(g.maximumNumberOfDisplayableRows),
+		STLOriginalEpisodeTitle:                             g.originalEpisodeTitle,
 		STLPublisher:                                        g.publisher,
 		STLRevisionDate:                                     &g.revisionDate,
+		STLRevisionNumber:                                   g.revisionNumber,
 		STLSubtitleListReferenceCode:                        g.subtitleListReferenceCode,
+		STLTranslatedEpisodeTitle:                           g.translatedEpisodeTitle,
+		STLTranslatedProgramTitle:                           g.translatedProgramTitle,
+		STLTranslatorContactDetails:                         g.translatorContactDetails,
+		STLTranslatorName:                                   g.translatorName,
 		Title:                                               g.originalProgramTitle,
 	}
 	if !opts.IgnoreTimecodeStartOfProgramme {
@@ -371,6 +379,8 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		}
 		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
 		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
+		g.editorContactDetails = s.Metadata.STLEditorContactDetails
+		g.editorName = s.Metadata.STLEditorName
 		g.framerate = s.Metadata.Framerate
 		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
 			g.languageCode = v.(string)
@@ -382,12 +392,18 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 		if s.Metadata.STLMaximumNumberOfDisplayableRows != nil {
 			g.maximumNumberOfDisplayableRows = *s.Metadata.STLMaximumNumberOfDisplayableRows
 		}
+		g.originalEpisodeTitle = s.Metadata.STLOriginalEpisodeTitle
 		g.publisher = s.Metadata.STLPublisher
 		if s.Metadata.STLRevisionDate != nil {
 			g.revisionDate = *s.Metadata.STLRevisionDate
 		}
+		g.revisionNumber = s.Metadata.STLRevisionNumber
 		g.subtitleListReferenceCode = s.Metadata.STLSubtitleListReferenceCode
 		g.timecodeStartOfProgramme = s.Metadata.STLTimecodeStartOfProgramme
+		g.translatedEpisodeTitle = s.Metadata.STLTranslatedEpisodeTitle
+		g.translatedProgramTitle = s.Metadata.STLTranslatedProgramTitle
+		g.translatorContactDetails = s.Metadata.STLTranslatorContactDetails
+		g.translatorName = s.Metadata.STLTranslatorName
 	}
 
 	// Timecode first in cue
@@ -413,8 +429,8 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 		publisher:                 string(bytes.TrimSpace(b[277:309])),
 		subtitleListReferenceCode: string(bytes.TrimSpace(b[208:224])),
 		timecodeStatus:            string(bytes.TrimSpace([]byte{b[255]})),
-		translatedEpisodeTitle:    string(bytes.TrimSpace(b[80:112])),
-		translatedProgramTitle:    string(bytes.TrimSpace(b[112:144])),
+		translatedProgramTitle:    string(bytes.TrimSpace(b[80:112])),
+		translatedEpisodeTitle:    string(bytes.TrimSpace(b[112:144])),
 		translatorContactDetails:  string(bytes.TrimSpace(b[176:208])),
 		translatorName:            string(bytes.TrimSpace(b[144:176])),
 		userDefinedArea:           string(bytes.TrimSpace(b[448:])),
@@ -657,7 +673,7 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		commentFlag:          stlCommentFlagTextContainsSubtitleData,
 		cumulativeStatus:     stlCumulativeStatusSubtitleNotPartOfACumulativeSet,
 		extensionBlockNumber: 255,
-		justificationCode:    stlJustificationCodeLeftJustifiedText,
+		justificationCode:    stlJustificationCodeFromStyle(i.InlineStyle),
 		subtitleGroupNumber:  0,
 		subtitleNumber:       idx,
 		timecodeIn:           i.StartAt,
@@ -676,6 +692,24 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 	}
 	t.text = []byte(strings.Join(lines, string(rune(stlLineSeparator))))
 	return
+}
+
+func stlJustificationCodeFromStyle(sa *StyleAttributes) byte {
+	if sa == nil || sa.STLJustification == nil {
+		return stlJustificationCodeLeftJustifiedText
+	}
+	switch *sa.STLJustification {
+	case JustificationCentered:
+		return stlJustificationCodeCentredText
+	case JustificationLeft:
+		return stlJustificationCodeLeftJustifiedText
+	case JustificationRight:
+		return stlJustificationCodeRightJustifiedText
+	case JustificationUnchanged:
+		return stlJustificationCodeUnchangedPresentation
+	default:
+		return stlJustificationCodeLeftJustifiedText
+	}
 }
 
 func stlVerticalPositionFromStyle(sa *StyleAttributes) int {

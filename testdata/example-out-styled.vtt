@@ -1,0 +1,43 @@
+WEBVTT
+
+1
+00:00:17.985 --> 00:00:20.521
+<c.lime><b>[instrumental music]</b></c>
+
+2
+00:00:47.115 --> 00:00:48.282
+<c.magenta>[ticks]</c>
+
+3
+00:00:58.192 --> 00:00:59.727
+<c.lime>[instrumental music]</c>
+
+4
+00:01:01.662 --> 00:01:03.063
+<b><u>[dog barking]</u></b>
+
+5
+00:01:26.787 --> 00:01:29.523
+[beeping]
+
+6
+00:01:29.590 --> 00:01:31.992
+[automated]
+<i>'The time is 7:35.'</i>
+
+7
+00:08:00.000 --> 00:09:00.000
+<i>Test with multi line italics</i>
+<i>Terminated on the next line</i>
+
+8
+00:09:00.000 --> 00:10:00.000
+<i>Unterminated styles</i>
+
+9
+00:10:00.000 --> 00:11:00.000
+Do no fall to the next item
+
+10
+00:12:00.000 --> 00:13:00.000
+<i>x</i>^3 * <i>x</i> = 100
