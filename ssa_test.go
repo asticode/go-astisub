@@ -104,6 +104,24 @@ func TestSSA(t *testing.T) {
 	assert.Equal(t, string(c), w.String())
 }
 
+func TestSSAv4plus(t *testing.T) {
+	// Open
+	s, err := astisub.OpenFile("./testdata/example-in.ssa")
+	assert.NoError(t, err)
+	assertSubtitleItems(t, s)
+	// Metadata
+	s.Metadata.SSAScriptType = "v4.00+"
+
+	// Write
+	w := &bytes.Buffer{}
+	err = s.WriteToSSA(w)
+	assert.NoError(t, err)
+
+	c, err := ioutil.ReadFile("./testdata/example-out-v4plus.ssa")
+	assert.NoError(t, err)
+	assert.Equal(t, string(c), w.String())
+}
+
 func TestInBetweenSSAEffect(t *testing.T) {
 	s, err := astisub.ReadFromSSA(bytes.NewReader([]byte(`[Events]
 Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

@@ -1,0 +1,12 @@
+﻿1
+00:00:00,331 --> 00:00:03,750
+The man in black fled across the desert, &nbsp;
+&amp; the gunslinger followed.
+
+2
+00:00:04,101 --> 00:00:05,430
+Go,&nbsp;then,
+
+3
+00:00:06,331 --> 00:00:09,675
+there are other &lt; worlds than these.

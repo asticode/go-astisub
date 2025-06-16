@@ -1,16 +1,19 @@
 package astisub_test
 
 import (
+	"bytes"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLine_Text(t *testing.T) {
 	var l = astisub.Line{Items: []astisub.LineItem{{Text: "1"}, {Text: "2"}, {Text: "3"}}}
-	assert.Equal(t, "1 2 3", l.String())
+	assert.Equal(t, "123", l.String())
 }
 
 func assertSubtitleItems(t *testing.T, i *astisub.Subtitles) {
@@ -301,4 +304,88 @@ func TestSubtitles_ClipFrom(t *testing.T) {
 	assert.Equal(t, 1*time.Second, s.Items[0].EndAt)
 	assert.Equal(t, 1*time.Second, s.Items[1].StartAt)
 	assert.Equal(t, 5*time.Second, s.Items[1].EndAt)
+}
+
+func TestSubtitles_ApplyLinearCorrection(t *testing.T) {
+	s := &astisub.Subtitles{Items: []*astisub.Item{
+		{
+			EndAt:   2 * time.Second,
+			StartAt: 1 * time.Second,
+		},
+		{
+			EndAt:   5 * time.Second,
+			StartAt: 3 * time.Second,
+		},
+		{
+			EndAt:   10 * time.Second,
+			StartAt: 7 * time.Second,
+		},
+	}}
+	s.ApplyLinearCorrection(3*time.Second, 5*time.Second, 5*time.Second, 8*time.Second)
+	require.Equal(t, 2*time.Second, s.Items[0].StartAt)
+	require.Equal(t, 3500*time.Millisecond, s.Items[0].EndAt)
+	require.Equal(t, 5*time.Second, s.Items[1].StartAt)
+	require.Equal(t, 8*time.Second, s.Items[1].EndAt)
+	require.Equal(t, 11*time.Second, s.Items[2].StartAt)
+	require.Equal(t, 15500*time.Millisecond, s.Items[2].EndAt)
+}
+
+func TestHTMLEntity(t *testing.T) {
+	exts := []string{"srt", "vtt"}
+	for _, ext := range exts {
+		// Read input with entities
+		s, err := astisub.OpenFile("./testdata/example-in-html-entities." + ext)
+		assert.NoError(t, err)
+
+		assert.Len(t, s.Items, 3)
+		assert.Equal(t, 331*time.Millisecond, s.Items[0].StartAt)
+		assert.Equal(t, 3*time.Second+750*time.Millisecond, s.Items[0].EndAt)
+		assert.Equal(t, "The man in black fled across the desert, \u00A0", s.Items[0].Lines[0].String())
+		assert.Equal(t, "& the gunslinger followed.", s.Items[0].Lines[1].String())
+		assert.Equal(t, 4*time.Second+101*time.Millisecond, s.Items[1].StartAt)
+		assert.Equal(t, 5*time.Second+430*time.Millisecond, s.Items[1].EndAt)
+		assert.Equal(t, "Go,\u00A0then,", s.Items[1].Lines[0].String())
+		assert.Equal(t, 6*time.Second+331*time.Millisecond, s.Items[2].StartAt)
+		assert.Equal(t, 9*time.Second+675*time.Millisecond, s.Items[2].EndAt)
+		assert.Equal(t, "there are other < worlds than these.", s.Items[2].Lines[0].String())
+
+		//Write to srt
+		w := &bytes.Buffer{}
+		c, err := os.ReadFile("./testdata/example-out-html-entities.srt")
+		assert.NoError(t, err)
+		err = s.WriteToSRT(w)
+		assert.NoError(t, err)
+		assert.Equal(t, string(c), w.String())
+
+		//Write WebVTT
+		w = &bytes.Buffer{}
+		c, err = os.ReadFile("./testdata/example-out-html-entities.vtt")
+		assert.NoError(t, err)
+		err = s.WriteToWebVTT(w)
+		assert.NoError(t, err)
+		assert.Equal(t, string(c), w.String())
+	}
+}
+
+func TestNewScanner(t *testing.T) {
+	exts := []string{"vtt", "srt", "ssa"}
+	for _, ext := range exts {
+		s, err := astisub.OpenFile("./testdata/example-in-carriage-return." + ext)
+		assert.NoError(t, err)
+		assert.Len(t, s.Items, 3)
+		assert.Equal(t, time.Duration(0), s.Items[0].StartAt)
+		assert.Equal(t, 3*time.Second+766*time.Millisecond, s.Items[0].EndAt)
+		assert.Equal(t, "Did one of the last stories strike you as", s.Items[0].Lines[0].String())
+		assert.Equal(t, "more interesting than the other?", s.Items[0].Lines[1].String())
+
+		assert.Equal(t, 3*time.Second+767*time.Millisecond, s.Items[1].StartAt)
+		assert.Equal(t, 10*time.Second+732*time.Millisecond, s.Items[1].EndAt)
+		assert.Equal(t, "That's true. You don’t often find 632", s.Items[1].Lines[0].String())
+		assert.Equal(t, "pieces of gum stuck on a sidewalk", s.Items[1].Lines[1].String())
+
+		assert.Equal(t, 10*time.Second+733*time.Millisecond, s.Items[2].StartAt)
+		assert.Equal(t, 14*time.Second+66*time.Millisecond, s.Items[2].EndAt)
+		assert.Equal(t, "at a busy bus stop or anywhere", s.Items[2].Lines[0].String())
+		assert.Equal(t, "else for that matter.", s.Items[2].Lines[1].String())
+	}
 }
