@@ -444,7 +444,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Creation date
 	if v := strings.TrimSpace(string(b[224:230])); len(v) > 0 {
 		if g.creationDate, err = time.Parse("060102", v); err != nil {
-			err = fmt.Errorf("astisub: parsing date %s failed: %w", v, err)
+			err = fmt.Errorf("creationDate: parsing date %s failed: %w", v, err)
 			return
 		}
 	}
@@ -452,7 +452,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Revision date
 	if v := strings.TrimSpace(string(b[230:236])); len(v) > 0 {
 		if g.revisionDate, err = time.Parse("060102", v); err != nil {
-			err = fmt.Errorf("astisub: parsing date %s failed: %w", v, err)
+			err = fmt.Errorf("revisionDate: parsing date %s failed: %w", v, err)
 			return
 		}
 	}
@@ -460,7 +460,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Revision number
 	if v := strings.TrimSpace(string(b[236:238])); len(v) > 0 {
 		if g.revisionNumber, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("revisionNumber: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -468,7 +468,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of TTI blocks
 	if v := strings.TrimSpace(string(b[238:243])); len(v) > 0 {
 		if g.totalNumberOfTTIBlocks, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("totalNumberOfTTIBlocks: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -476,7 +476,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of subtitles
 	if v := strings.TrimSpace(string(b[243:248])); len(v) > 0 {
 		if g.totalNumberOfSubtitles, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("totalNumberOfSubtitles: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -484,7 +484,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of subtitle groups
 	if v := strings.TrimSpace(string(b[248:251])); len(v) > 0 {
 		if g.totalNumberOfSubtitleGroups, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("totalNumberOfSubtitleGroups: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -492,7 +492,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Maximum number of displayable characters in any text row
 	if v := strings.TrimSpace(string(b[251:253])); len(v) > 0 {
 		if g.maximumNumberOfDisplayableCharactersInAnyTextRow, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("maximumNumberOfDisplayableCharactersInAnyTextRow: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -500,7 +500,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Maximum number of displayable rows
 	if v := strings.TrimSpace(string(b[253:255])); len(v) > 0 {
 		if g.maximumNumberOfDisplayableRows, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("maximumNumberOfDisplayableRows: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -508,7 +508,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Timecode start of programme
 	if v := strings.TrimSpace(string(b[256:264])); len(v) > 0 {
 		if g.timecodeStartOfProgramme, err = parseDurationSTL(v, g.framerate); err != nil {
-			err = fmt.Errorf("astisub: parsing of stl duration %s failed: %w", v, err)
+			err = fmt.Errorf("timecodeStartOfProgramme: parsing of stl duration %s failed: %w", v, err)
 			return
 		}
 	}
@@ -516,7 +516,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Timecode first in cue
 	if v := strings.TrimSpace(string(b[264:272])); len(v) > 0 {
 		if g.timecodeFirstInCue, err = parseDurationSTL(v, g.framerate); err != nil {
-			err = fmt.Errorf("astisub: parsing of stl duration %s failed: %w", v, err)
+			err = fmt.Errorf("timecodeFirstInCue: parsing of stl duration %s failed: %w", v, err)
 			return
 		}
 	}
@@ -524,7 +524,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of disks
 	if v := strings.TrimSpace(string(b[272])); len(v) > 0 {
 		if g.totalNumberOfDisks, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("totalNumberOfDisks: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -532,7 +532,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Disk sequence number
 	if v := strings.TrimSpace(string(b[273])); len(v) > 0 {
 		if g.diskSequenceNumber, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("astisub: atoi of %s failed: %w", v, err)
+			err = fmt.Errorf("diskSequenceNumber: atoi of %s failed: %w", v, err)
 			return
 		}
 	}
@@ -587,28 +587,28 @@ func parseDurationSTL(i string, framerate int) (d time.Duration, err error) {
 	// Parse hours
 	var hours, hoursString = 0, i[0:2]
 	if hours, err = strconv.Atoi(hoursString); err != nil {
-		err = fmt.Errorf("astisub: atoi of %s failed: %w", hoursString, err)
+		err = fmt.Errorf("hours: atoi of %s failed: %w", hoursString, err)
 		return
 	}
 
 	// Parse minutes
 	var minutes, minutesString = 0, i[2:4]
 	if minutes, err = strconv.Atoi(minutesString); err != nil {
-		err = fmt.Errorf("astisub: atoi of %s failed: %w", minutesString, err)
+		err = fmt.Errorf("minutes: atoi of %s failed: %w", minutesString, err)
 		return
 	}
 
 	// Parse seconds
 	var seconds, secondsString = 0, i[4:6]
 	if seconds, err = strconv.Atoi(secondsString); err != nil {
-		err = fmt.Errorf("astisub: atoi of %s failed: %w", secondsString, err)
+		err = fmt.Errorf("seconds: atoi of %s failed: %w", secondsString, err)
 		return
 	}
 
 	// Parse frames
 	var frames, framesString = 0, i[6:8]
 	if frames, err = strconv.Atoi(framesString); err != nil {
-		err = fmt.Errorf("astisub: atoi of %s failed: %w", framesString, err)
+		err = fmt.Errorf("frames: atoi of %s failed: %w", framesString, err)
 		return
 	}
 
@@ -832,7 +832,7 @@ func newSTLCharacterHandler(characterCodeTable uint16) (*stlCharacterHandler, er
 			m: v,
 		}, nil
 	}
-	return nil, fmt.Errorf("astisub: table doesn't exist for character code table %d", characterCodeTable)
+	return nil, fmt.Errorf("table doesn't exist for character code table %d", characterCodeTable)
 }
 
 // TODO Use this instead of encodeTextSTL => use in teletext process like for decode
