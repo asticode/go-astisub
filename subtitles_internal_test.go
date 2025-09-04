@@ -38,6 +38,9 @@ func TestParseDuration(t *testing.T) {
 	d, err = parseDuration("1:23:45.67", ".", 2)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Hour+23*time.Minute+45*time.Second+67*time.Millisecond, d)
+	d, err = parseDuration("1:23:45:67", ":", 2)
+	assert.NoError(t, err)
+	assert.Equal(t, time.Hour+23*time.Minute+45*time.Second+67*time.Millisecond, d)
 }
 
 func TestFormatDuration(t *testing.T) {
