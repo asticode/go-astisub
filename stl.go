@@ -524,16 +524,16 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	// Total number of disks
 	if v := strings.TrimSpace(string(b[272])); len(v) > 0 {
 		if g.totalNumberOfDisks, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("totalNumberOfDisks: atoi of %s failed: %w", v, err)
-			return
+			g.totalNumberOfDisks = 1
+			err = nil
 		}
 	}
 
 	// Disk sequence number
 	if v := strings.TrimSpace(string(b[273])); len(v) > 0 {
 		if g.diskSequenceNumber, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("diskSequenceNumber: atoi of %s failed: %w", v, err)
-			return
+			g.diskSequenceNumber = 1
+			err = nil
 		}
 	}
 	return
