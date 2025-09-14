@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asticode/go-astisub"
+	"github.com/shashank-sachan/go-astisub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
