@@ -185,14 +185,59 @@ func (i *TTMLInItems) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err 
 		// Start element
 		if se, ok := t.(xml.StartElement); ok {
 			var e = TTMLInItem{}
-			if err = d.DecodeElement(&e, &se); err != nil {
-				err = fmt.Errorf("astisub: decoding xml.StartElement failed: %w", err)
-				return
+
+			// Capture the raw content manually since DecodeElement with custom TokenDecoder
+			// doesn't work properly with xml:",innerxml"
+			var rawContent strings.Builder
+			depth := 1
+			for depth > 0 {
+				token, err := d.Token()
+				if err != nil {
+					break
+				}
+
+				switch t := token.(type) {
+				case xml.StartElement:
+					depth++
+					rawContent.WriteString("<" + t.Name.Local)
+					for _, attr := range t.Attr {
+						rawContent.WriteString(fmt.Sprintf(` %s="%s"`, attr.Name.Local, attr.Value))
+					}
+					rawContent.WriteString(">")
+				case xml.EndElement:
+					depth--
+					if depth > 0 {
+						rawContent.WriteString("</" + t.Name.Local + ">")
+					}
+				case xml.CharData:
+					rawContent.Write(t)
+				}
 			}
+
+			e.XMLName = se.Name
+			e.RawInnerXML = rawContent.String()
+
+			// Also try the standard decode (for attributes and fallback)
+			backupDecoder := xml.NewDecoder(strings.NewReader("<" + se.Name.Local + " " +
+				strings.Join(func() []string {
+					var attrs []string
+					for _, attr := range se.Attr {
+						attrs = append(attrs, fmt.Sprintf(`%s="%s"`, attr.Name.Local, attr.Value))
+					}
+					return attrs
+				}(), " ") +
+				">" + e.RawInnerXML + "</" + se.Name.Local + ">"))
+			var backup TTMLInItem
+			if backupDecoder.Decode(&backup) == nil {
+				if e.Style == "" {
+					e.Style = backup.Style
+				}
+			}
+
 			*i = append(*i, e)
 		} else if b, ok := t.(xml.CharData); ok {
 			if str := string(b); len(strings.TrimSpace(str)) > 0 {
-				*i = append(*i, TTMLInItem{Text: str})
+				*i = append(*i, TTMLInItem{InnerXML: str})
 			}
 		}
 	}
@@ -238,10 +283,64 @@ func newTTMLXmlDecoder(s string) *xml.Decoder {
 
 // TTMLInItem represents an input TTML item
 type TTMLInItem struct {
-	Style string `xml:"style,attr,omitempty"`
-	Text  string `xml:",chardata"`
+	Style       string `xml:"style,attr,omitempty"`
+	Text        string `xml:",chardata"`
+	InnerXML    string `xml:",innerxml"`
+	RawInnerXML string // Store the raw inner XML content manually
 	TTMLInStyleAttributes
 	XMLName xml.Name
+}
+
+// extractTextFromNestedXML extracts all text content from nested XML elements
+func extractTextFromNestedXML(xmlContent string) string {
+	if xmlContent == "" {
+		return ""
+	}
+
+	// If there are no XML tags, return as-is
+	if !strings.Contains(xmlContent, "<") {
+		return xmlContent
+	}
+
+	// Parse the XML and extract all text content
+	wrappedXML := "<root>" + xmlContent + "</root>"
+	decoder := xml.NewDecoder(strings.NewReader(wrappedXML))
+	var result strings.Builder
+
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			break
+		}
+
+		switch t := token.(type) {
+		case xml.CharData:
+			result.Write(t)
+		}
+	}
+
+	return strings.TrimSpace(result.String())
+}
+
+// GetText returns the text content, handling both direct text and nested elements
+func (item *TTMLInItem) GetText() string {
+	// First try the direct Text field (for simple cases)
+	if item.Text != "" && !strings.Contains(item.Text, "<") {
+		return item.Text
+	}
+
+	// If we have raw inner XML content, extract text from it
+	if item.RawInnerXML != "" {
+		return extractTextFromNestedXML(item.RawInnerXML)
+	}
+
+	// Fallback to processing InnerXML field
+	if item.InnerXML != "" {
+		return extractTextFromNestedXML(item.InnerXML)
+	}
+
+	// Final fallback to direct text
+	return item.Text
 }
 
 // TTMLInDuration represents an input TTML duration
@@ -425,7 +524,8 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 		// Unmarshal items
 		var items = TTMLInItems{}
-		if err = newTTMLXmlDecoder(strings.Join(lines, "")).Decode(&items); err != nil {
+		processedXML := strings.Join(lines, "")
+		if err = newTTMLXmlDecoder(processedXML).Decode(&items); err != nil {
 			err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
 			return
 		}
@@ -443,7 +543,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			// New line decoded as a line break. This can happen if there's a "br" tag within the text since
 			// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
 			// chardata xml tag.
-			for idx, li := range strings.Split(tt.Text, "\n") {
+			for idx, li := range strings.Split(tt.GetText(), "\n") {
 				// New line
 				if idx > 0 {
 					s.Lines = append(s.Lines, *l)
@@ -456,10 +556,11 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 					Text:        li,
 				}
 
+
 				// Add style
 				if len(tt.Style) > 0 {
 					if _, ok := o.Styles[tt.Style]; !ok {
-						err = fmt.Errorf("astisub: Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
+						err = fmt.Errorf("astisub: Style %s requested by item with text %s doesn't exist", tt.Style, tt.GetText())
 						return
 					}
 					t.Style = o.Styles[tt.Style]
