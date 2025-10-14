@@ -86,12 +86,12 @@ func TestWriteToTTMLWithIndentOption(t *testing.T) {
 	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
 }
 
-func TestTTMLInheritanceStyle(t *testing.T) {
+func TestTTMLMergeStyleAttributes(t *testing.T) {
 	// Open
-	s, err := astisub.OpenFile("./testdata/example-in-style-inheritance.ttml")
+	s, err := astisub.OpenFile("./testdata/example-in-merging-style.ttml")
 	assert.NoError(t, err)
 	// Styles
-	assert.Equal(t, 3, len(s.Items))
+	assert.Equal(t, 4, len(s.Items))
 	assert.Equal(t, s.Items[0].Region.ID, "region_0")
 	assert.Equal(t, s.Items[0].Style.ID, "style_1")
 	assert.Equal(t, *s.Items[0].InlineStyle.TTMLColor, "red")
@@ -100,11 +100,5 @@ func TestTTMLInheritanceStyle(t *testing.T) {
 	assert.Equal(t, s.Items[1].Lines[0].Items[0].Style.ID, "style_1")
 	assert.Equal(t, s.Items[2].Region.ID, "region_2")
 	assert.Equal(t, s.Items[2].Style.ID, "style_0")
-
-	w := &bytes.Buffer{}
-	c, err := ioutil.ReadFile("./testdata/example-out-style-inheritance.ttml")
-	assert.NoError(t, err)
-	err = s.WriteToTTML(w)
-	assert.NoError(t, err)
-	assert.Equal(t, string(c), w.String())
+	assert.Equal(t, *s.Items[3].InlineStyle.TTMLColor, "blue")
 }

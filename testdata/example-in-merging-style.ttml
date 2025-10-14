@@ -27,7 +27,12 @@
                 <span style="style_1">text2</span>
             </p>
             <p xml:id="sub_3" begin="00:01:00.000" end="00:02:00.000" region="region_2">
-                text3
+                text2.1
+            </p>
+        </div>
+        <div tts:color="blue">
+            <p xml:id="sub_2" begin="00:02:00.000" end="00:03:00.000">
+                <span style="style_1">text3</span>
             </p>
         </div>
     </body>
