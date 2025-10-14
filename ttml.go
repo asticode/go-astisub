@@ -41,17 +41,34 @@ var (
 	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+(\.\d+)?)(h|m|s|ms|f|t)$`)
 )
 
+type TTMLInBodyDiv struct {
+	XMLName   xml.Name         `xml:"div"`
+	Subtitles []TTMLInSubtitle `xml:"p"`
+
+	Region string `xml:"region,attr,omitempty"`
+	Style  string `xml:"style,attr,omitempty"`
+	TTMLInStyleAttributes
+}
+type TTMLInBody struct {
+	XMLName xml.Name        `xml:"body"`
+	Divs    []TTMLInBodyDiv `xml:"div"`
+
+	Region string `xml:"region,attr,omitempty"`
+	Style  string `xml:"style,attr,omitempty"`
+	TTMLInStyleAttributes
+}
+
 // TTMLIn represents an input TTML that must be unmarshaled
 // We split it from the output TTML as we can't add strict namespace without breaking retrocompatibility
 type TTMLIn struct {
-	Framerate int              `xml:"frameRate,attr"`
-	Lang      string           `xml:"lang,attr"`
-	Metadata  TTMLInMetadata   `xml:"head>metadata"`
-	Regions   []TTMLInRegion   `xml:"head>layout>region"`
-	Styles    []TTMLInStyle    `xml:"head>styling>style"`
-	Subtitles []TTMLInSubtitle `xml:"body>div>p"`
-	Tickrate  int              `xml:"tickRate,attr"`
-	XMLName   xml.Name         `xml:"tt"`
+	Framerate int            `xml:"frameRate,attr"`
+	Lang      string         `xml:"lang,attr"`
+	Metadata  TTMLInMetadata `xml:"head>metadata"`
+	Regions   []TTMLInRegion `xml:"head>layout>region"`
+	Styles    []TTMLInStyle  `xml:"head>styling>style"`
+	Body      TTMLInBody     `xml:"body"`
+	Tickrate  int            `xml:"tickRate,attr"`
+	XMLName   xml.Name       `xml:"tt"`
 }
 
 // metadata returns the Metadata of the TTML
@@ -386,94 +403,121 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Loop through subtitles
-	for _, ts := range ttml.Subtitles {
-		// Init item
-		ts.Begin.framerate = ttml.Framerate
-		ts.Begin.tickrate = ttml.Tickrate
-		ts.End.framerate = ttml.Framerate
-		ts.End.tickrate = ttml.Tickrate
+	bodyInlineStyle := ttml.Body.TTMLInStyleAttributes.styleAttributes()
+	for _, div := range ttml.Body.Divs {
+		divInlineStyle := div.TTMLInStyleAttributes.styleAttributes()
 
-		var s = &Item{
-			EndAt:       ts.End.duration(),
-			InlineStyle: ts.TTMLInStyleAttributes.styleAttributes(),
-			StartAt:     ts.Begin.duration(),
+		// Propagate styles from Body -> Div
+		divInlineStyle.merge(bodyInlineStyle)
+		if div.Region == "" {
+			div.Region = ttml.Body.Region
 		}
+		if div.Style == "" {
+			div.Style = ttml.Body.Style
+		}
+		for _, ts := range div.Subtitles {
+			// Init item
+			ts.Begin.framerate = ttml.Framerate
+			ts.Begin.tickrate = ttml.Tickrate
+			ts.End.framerate = ttml.Framerate
+			ts.End.tickrate = ttml.Tickrate
 
-		// Add region
-		if len(ts.Region) > 0 {
-			if _, ok := o.Regions[ts.Region]; !ok {
-				err = fmt.Errorf("astisub: Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
+			itemInlineStyle := ts.TTMLInStyleAttributes.styleAttributes()
+
+			// Propagate styles from Body -> Div -> Item.
+			// If the item has its own Region, Style, or InlineStyle, it overrides the Div's.
+			// This ensures all relevant styles are preserved at the item level,
+			// maintaining compatibility with existing logic that relies on the Subtitles structure.
+			itemInlineStyle.merge(divInlineStyle)
+			if ts.Region == "" {
+				ts.Region = div.Region
+			}
+			if ts.Style == "" {
+				ts.Style = div.Style
+			}
+
+			var s = &Item{
+				EndAt:       ts.End.duration(),
+				InlineStyle: itemInlineStyle,
+				StartAt:     ts.Begin.duration(),
+			}
+
+			// Add region
+			if len(ts.Region) > 0 {
+				if _, ok := o.Regions[ts.Region]; !ok {
+					err = fmt.Errorf("astisub: Region %s requested by subtitle between %s and %s doesn't exist", ts.Region, s.StartAt, s.EndAt)
+					return
+				}
+				s.Region = o.Regions[ts.Region]
+			}
+
+			// Add style
+			if len(ts.Style) > 0 {
+				if _, ok := o.Styles[ts.Style]; !ok {
+					err = fmt.Errorf("astisub: Style %s requested by subtitle between %s and %s doesn't exist", ts.Style, s.StartAt, s.EndAt)
+					return
+				}
+				s.Style = o.Styles[ts.Style]
+			}
+
+			// Remove items identation
+			lines := strings.Split(ts.Items, "\n")
+			for i := 0; i < len(lines); i++ {
+				lines[i] = strings.TrimLeftFunc(lines[i], unicode.IsSpace)
+			}
+
+			// Unmarshal items
+			var items = TTMLInItems{}
+			if err = newTTMLXmlDecoder(strings.Join(lines, "")).Decode(&items); err != nil {
+				err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
 				return
 			}
-			s.Region = o.Regions[ts.Region]
-		}
 
-		// Add style
-		if len(ts.Style) > 0 {
-			if _, ok := o.Styles[ts.Style]; !ok {
-				err = fmt.Errorf("astisub: Style %s requested by subtitle between %s and %s doesn't exist", ts.Style, s.StartAt, s.EndAt)
-				return
-			}
-			s.Style = o.Styles[ts.Style]
-		}
-
-		// Remove items identation
-		lines := strings.Split(ts.Items, "\n")
-		for i := 0; i < len(lines); i++ {
-			lines[i] = strings.TrimLeftFunc(lines[i], unicode.IsSpace)
-		}
-
-		// Unmarshal items
-		var items = TTMLInItems{}
-		if err = newTTMLXmlDecoder(strings.Join(lines, "")).Decode(&items); err != nil {
-			err = fmt.Errorf("astisub: unmarshaling items failed: %w", err)
-			return
-		}
-
-		// Loop through texts
-		var l = &Line{}
-		for _, tt := range items {
-			// New line specified with the "br" tag
-			if strings.ToLower(tt.XMLName.Local) == "br" {
-				s.Lines = append(s.Lines, *l)
-				l = &Line{}
-				continue
-			}
-
-			// New line decoded as a line break. This can happen if there's a "br" tag within the text since
-			// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
-			// chardata xml tag.
-			for idx, li := range strings.Split(tt.Text, "\n") {
-				// New line
-				if idx > 0 {
+			// Loop through texts
+			var l = &Line{}
+			for _, tt := range items {
+				// New line specified with the "br" tag
+				if strings.ToLower(tt.XMLName.Local) == "br" {
 					s.Lines = append(s.Lines, *l)
 					l = &Line{}
+					continue
 				}
 
-				// Init line item
-				var t = LineItem{
-					InlineStyle: tt.TTMLInStyleAttributes.styleAttributes(),
-					Text:        li,
-				}
-
-				// Add style
-				if len(tt.Style) > 0 {
-					if _, ok := o.Styles[tt.Style]; !ok {
-						err = fmt.Errorf("astisub: Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
-						return
+				// New line decoded as a line break. This can happen if there's a "br" tag within the text since
+				// since the go xml unmarshaler will unmarshal a "br" tag as a line break if the field has the
+				// chardata xml tag.
+				for idx, li := range strings.Split(tt.Text, "\n") {
+					// New line
+					if idx > 0 {
+						s.Lines = append(s.Lines, *l)
+						l = &Line{}
 					}
-					t.Style = o.Styles[tt.Style]
+
+					// Init line item
+					var t = LineItem{
+						InlineStyle: tt.TTMLInStyleAttributes.styleAttributes(),
+						Text:        li,
+					}
+
+					// Add style
+					if len(tt.Style) > 0 {
+						if _, ok := o.Styles[tt.Style]; !ok {
+							err = fmt.Errorf("astisub: Style %s requested by item with text %s doesn't exist", tt.Style, tt.Text)
+							return
+						}
+						t.Style = o.Styles[tt.Style]
+					}
+
+					// Append items
+					l.Items = append(l.Items, t)
 				}
 
-				// Append items
-				l.Items = append(l.Items, t)
 			}
+			s.Lines = append(s.Lines, *l)
 
+			// Append subtitle
+			o.Items = append(o.Items, s)
 		}
-		s.Lines = append(s.Lines, *l)
-
-		// Append subtitle
-		o.Items = append(o.Items, s)
 	}
 	return
 }
