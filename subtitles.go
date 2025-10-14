@@ -430,6 +430,109 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 	sa.SRTUnderline = sa.WebVTTUnderline
 }
 
+// merge - base on parent, override style attributes if defined in child
+// TODO: handle more formats than just TTML
+func (sa *StyleAttributes) merge(parent *StyleAttributes) {
+	if parent == nil || sa == nil {
+		return
+	}
+
+	if sa.TTMLBackgroundColor == nil {
+		sa.TTMLBackgroundColor = parent.TTMLBackgroundColor
+	}
+
+	if sa.TTMLColor == nil {
+		sa.TTMLColor = parent.TTMLColor
+	}
+
+	if sa.TTMLDirection == nil {
+		sa.TTMLDirection = parent.TTMLDirection
+	}
+
+	if sa.TTMLDisplay == nil {
+		sa.TTMLDisplay = parent.TTMLDisplay
+	}
+
+	if sa.TTMLDisplayAlign == nil {
+		sa.TTMLDisplayAlign = parent.TTMLDisplayAlign
+	}
+
+	if sa.TTMLExtent == nil {
+		sa.TTMLExtent = parent.TTMLExtent
+	}
+
+	if sa.TTMLFontFamily == nil {
+		sa.TTMLFontFamily = parent.TTMLFontFamily
+	}
+
+	if sa.TTMLFontSize == nil {
+		sa.TTMLFontSize = parent.TTMLFontSize
+	}
+
+	if sa.TTMLFontStyle == nil {
+		sa.TTMLFontStyle = parent.TTMLFontStyle
+	}
+	if sa.TTMLFontWeight == nil {
+		sa.TTMLFontWeight = parent.TTMLFontWeight
+	}
+
+	if sa.TTMLLineHeight == nil {
+		sa.TTMLLineHeight = parent.TTMLLineHeight
+	}
+
+	if sa.TTMLOpacity == nil {
+		sa.TTMLOpacity = parent.TTMLOpacity
+	}
+
+	if sa.TTMLOrigin == nil {
+		sa.TTMLOrigin = parent.TTMLOrigin
+	}
+
+	if sa.TTMLOverflow == nil {
+		sa.TTMLOverflow = parent.TTMLOverflow
+	}
+
+	if sa.TTMLPadding == nil {
+		sa.TTMLPadding = parent.TTMLPadding
+	}
+
+	if sa.TTMLShowBackground == nil {
+		sa.TTMLShowBackground = parent.TTMLShowBackground
+	}
+
+	if sa.TTMLTextAlign == nil {
+		sa.TTMLTextAlign = parent.TTMLTextAlign
+	}
+
+	if sa.TTMLTextDecoration == nil {
+		sa.TTMLTextDecoration = parent.TTMLTextDecoration
+	}
+
+	if sa.TTMLTextOutline == nil {
+		sa.TTMLTextOutline = parent.TTMLTextOutline
+	}
+
+	if sa.TTMLUnicodeBidi == nil {
+		sa.TTMLUnicodeBidi = parent.TTMLUnicodeBidi
+	}
+
+	if sa.TTMLVisibility == nil {
+		sa.TTMLVisibility = parent.TTMLVisibility
+	}
+
+	if sa.TTMLWrapOption == nil {
+		sa.TTMLWrapOption = parent.TTMLWrapOption
+	}
+
+	if sa.TTMLWritingMode == nil {
+		sa.TTMLWritingMode = parent.TTMLWritingMode
+	}
+
+	if sa.TTMLZIndex == nil {
+		sa.TTMLZIndex = parent.TTMLZIndex
+	}
+}
+
 // Metadata represents metadata
 // TODO Merge attributes
 type Metadata struct {

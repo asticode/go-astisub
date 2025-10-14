@@ -41,7 +41,7 @@ var (
 	ttmlRegexpOffsetTime      = regexp.MustCompile(`^(\d+(\.\d+)?)(h|m|s|ms|f|t)$`)
 )
 
-type TTMLInDiv struct {
+type TTMLInBodyDiv struct {
 	XMLName   xml.Name         `xml:"div"`
 	Subtitles []TTMLInSubtitle `xml:"p"`
 
@@ -50,8 +50,8 @@ type TTMLInDiv struct {
 	TTMLInStyleAttributes
 }
 type TTMLInBody struct {
-	XMLName xml.Name    `xml:"body"`
-	Divs    []TTMLInDiv `xml:"div"`
+	XMLName xml.Name        `xml:"body"`
+	Divs    []TTMLInBodyDiv `xml:"div"`
 
 	Region string `xml:"region,attr,omitempty"`
 	Style  string `xml:"style,attr,omitempty"`
@@ -349,108 +349,6 @@ func (d TTMLInDuration) duration() (o time.Duration) {
 	return
 }
 
-// overrideInlineStyles base on parentInlineStyle and set the missing values in childInlineStyle
-func overrideInlineStyles(parentInlineStyle, childInlineStyle *StyleAttributes) {
-	if parentInlineStyle == nil || childInlineStyle == nil {
-		return
-	}
-
-	if childInlineStyle.TTMLBackgroundColor == nil {
-		childInlineStyle.TTMLBackgroundColor = parentInlineStyle.TTMLBackgroundColor
-	}
-
-	if childInlineStyle.TTMLColor == nil {
-		childInlineStyle.TTMLColor = parentInlineStyle.TTMLColor
-	}
-
-	if childInlineStyle.TTMLDirection == nil {
-		childInlineStyle.TTMLDirection = parentInlineStyle.TTMLDirection
-	}
-
-	if childInlineStyle.TTMLDisplay == nil {
-		childInlineStyle.TTMLDisplay = parentInlineStyle.TTMLDisplay
-	}
-
-	if childInlineStyle.TTMLDisplayAlign == nil {
-		childInlineStyle.TTMLDisplayAlign = parentInlineStyle.TTMLDisplayAlign
-	}
-
-	if childInlineStyle.TTMLExtent == nil {
-		childInlineStyle.TTMLExtent = parentInlineStyle.TTMLExtent
-	}
-
-	if childInlineStyle.TTMLFontFamily == nil {
-		childInlineStyle.TTMLFontFamily = parentInlineStyle.TTMLFontFamily
-	}
-
-	if childInlineStyle.TTMLFontSize == nil {
-		childInlineStyle.TTMLFontSize = parentInlineStyle.TTMLFontSize
-	}
-
-	if childInlineStyle.TTMLFontStyle == nil {
-		childInlineStyle.TTMLFontStyle = parentInlineStyle.TTMLFontStyle
-	}
-	if childInlineStyle.TTMLFontWeight == nil {
-		childInlineStyle.TTMLFontWeight = parentInlineStyle.TTMLFontWeight
-	}
-
-	if childInlineStyle.TTMLLineHeight == nil {
-		childInlineStyle.TTMLLineHeight = parentInlineStyle.TTMLLineHeight
-	}
-
-	if childInlineStyle.TTMLOpacity == nil {
-		childInlineStyle.TTMLOpacity = parentInlineStyle.TTMLOpacity
-	}
-
-	if childInlineStyle.TTMLOrigin == nil {
-		childInlineStyle.TTMLOrigin = parentInlineStyle.TTMLOrigin
-	}
-
-	if childInlineStyle.TTMLOverflow == nil {
-		childInlineStyle.TTMLOverflow = parentInlineStyle.TTMLOverflow
-	}
-
-	if childInlineStyle.TTMLPadding == nil {
-		childInlineStyle.TTMLPadding = parentInlineStyle.TTMLPadding
-	}
-
-	if childInlineStyle.TTMLShowBackground == nil {
-		childInlineStyle.TTMLShowBackground = parentInlineStyle.TTMLShowBackground
-	}
-
-	if childInlineStyle.TTMLTextAlign == nil {
-		childInlineStyle.TTMLTextAlign = parentInlineStyle.TTMLTextAlign
-	}
-
-	if childInlineStyle.TTMLTextDecoration == nil {
-		childInlineStyle.TTMLTextDecoration = parentInlineStyle.TTMLTextDecoration
-	}
-
-	if childInlineStyle.TTMLTextOutline == nil {
-		childInlineStyle.TTMLTextOutline = parentInlineStyle.TTMLTextOutline
-	}
-
-	if childInlineStyle.TTMLUnicodeBidi == nil {
-		childInlineStyle.TTMLUnicodeBidi = parentInlineStyle.TTMLUnicodeBidi
-	}
-
-	if childInlineStyle.TTMLVisibility == nil {
-		childInlineStyle.TTMLVisibility = parentInlineStyle.TTMLVisibility
-	}
-
-	if childInlineStyle.TTMLWrapOption == nil {
-		childInlineStyle.TTMLWrapOption = parentInlineStyle.TTMLWrapOption
-	}
-
-	if childInlineStyle.TTMLWritingMode == nil {
-		childInlineStyle.TTMLWritingMode = parentInlineStyle.TTMLWritingMode
-	}
-
-	if childInlineStyle.TTMLZIndex == nil {
-		childInlineStyle.TTMLZIndex = parentInlineStyle.TTMLZIndex
-	}
-}
-
 // ReadFromTTML parses a .ttml content
 func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -510,7 +408,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		divInlineStyle := div.TTMLInStyleAttributes.styleAttributes()
 
 		// Propagate styles from Body -> Div
-		overrideInlineStyles(bodyInlineStyle, divInlineStyle)
+		divInlineStyle.merge(bodyInlineStyle)
 		if div.Region == "" {
 			div.Region = ttml.Body.Region
 		}
@@ -530,7 +428,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			// If the item has its own Region, Style, or InlineStyle, it overrides the Div's.
 			// This ensures all relevant styles are preserved at the item level,
 			// maintaining compatibility with existing logic that relies on the Subtitles structure.
-			overrideInlineStyles(divInlineStyle, itemInlineStyle)
+			itemInlineStyle.merge(divInlineStyle)
 			if ts.Region == "" {
 				ts.Region = div.Region
 			}
@@ -540,7 +438,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 
 			var s = &Item{
 				EndAt:       ts.End.duration(),
-				InlineStyle: ts.TTMLInStyleAttributes.styleAttributes(),
+				InlineStyle: itemInlineStyle,
 				StartAt:     ts.Begin.duration(),
 			}
 
