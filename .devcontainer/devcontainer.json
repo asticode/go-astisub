@@ -1,0 +1,22 @@
+{
+	"build": {
+		"args": {
+			"GO_VERSION": "1.25.3"
+		},
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.go"
+			],
+			"settings": {
+				"remote.autoForwardPorts": false
+			}
+		}
+	},
+	"mounts": [
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/root/.ssh,readonly,type=bind"
+	],
+	"name": "asticode/go-astisub"
+}
