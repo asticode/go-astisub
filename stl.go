@@ -459,10 +459,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 
 	// Revision number
 	if v := strings.TrimSpace(string(b[236:238])); len(v) > 0 {
-		if g.revisionNumber, err = strconv.Atoi(v); err != nil {
-			err = fmt.Errorf("revisionNumber: atoi of %s failed: %w", v, err)
-			return
-		}
+		g.revisionNumber, _ = strconv.Atoi(v)
 	}
 
 	// Total number of TTI blocks
