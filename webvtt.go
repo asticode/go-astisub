@@ -648,10 +648,21 @@ func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 		c = append(c, []byte("<"+formatDurationWebVTT(li.StartAt)+">")...)
 	}
 
-	// Get color
+	// Get color - only add TTMLColor-based tag if there are no WebVTT color tags
 	var color string
-	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != nil {
-		color = cssColor(*li.InlineStyle.TTMLColor)
+	var hasColorTags bool
+	if li.InlineStyle != nil {
+		// Check if we have WebVTT color tags
+		for _, tag := range li.InlineStyle.WebVTTTags {
+			if tag.Name == "c" {
+				hasColorTags = true
+				break
+			}
+		}
+		// Only use TTMLColor if we don't have WebVTT color tags
+		if !hasColorTags && li.InlineStyle.TTMLColor != nil {
+			color = cssColor(*li.InlineStyle.TTMLColor)
+		}
 	}
 
 	// Append
@@ -691,4 +702,31 @@ func cssColor(rgb string) string {
 		"#00ff00": "lime",    // foreign speak
 	}
 	return colors[strings.ToLower(rgb)] // returning the empty string is ok
+}
+
+// webVTTColorMap maps WebVTT color class names to Color instances
+var webVTTColorMap = map[string]*Color{
+	"black":   ColorBlack,
+	"red":     ColorRed,
+	"green":   ColorGreen,
+	"yellow":  ColorYellow,
+	"blue":    ColorBlue,
+	"magenta": ColorMagenta,
+	"cyan":    ColorCyan,
+	"white":   ColorWhite,
+	"silver":  ColorSilver,
+	"gray":    ColorGray,
+	"maroon":  ColorMaroon,
+	"olive":   ColorOlive,
+	"lime":    ColorLime,
+	"teal":    ColorTeal,
+	"navy":    ColorNavy,
+	"purple":  ColorPurple,
+}
+
+func parseWebVTTColorClass(color string) (*Color, error) {
+	if c, ok := webVTTColorMap[color]; ok {
+		return c, nil
+	}
+	return nil, fmt.Errorf("unknown color class %s", color)
 }

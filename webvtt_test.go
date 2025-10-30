@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astisub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,16 @@ func TestWebVTT(t *testing.T) {
 	assert.Equal(t, s.Regions["bill"], s.Items[0].Region)
 	assert.Equal(t, s.Regions["fred"], s.Items[1].Region)
 	// Styles
-	assert.Equal(t, astisub.StyleAttributes{WebVTTAlign: "left", WebVTTPosition: "10%,start", WebVTTSize: "35%"}, *s.Items[1].InlineStyle)
+	expected := astisub.StyleAttributes{
+		WebVTTAlign:    "left",
+		WebVTTPosition: "10%,line-left",
+		WebVTTSize:     "35%",
+	}
+	// propagateWebVTTAttributes() sets these based on WebVTT attributes
+	expected.TTMLTextAlign = astikit.StrPtr("left") // From WebVTTAlign since "start" is not a valid position alignment
+	expected.TTMLOrigin = astikit.StrPtr("10% 80%") // From position: 10% X, 80% Y (default when no line specified)
+	expected.TTMLExtent = astikit.StrPtr("35% 10%") // From size: 35% width, 10% height (default when no line specified)
+	assert.Equal(t, expected, *s.Items[1].InlineStyle)
 
 	// No subtitles to write
 	w := &bytes.Buffer{}
@@ -254,4 +264,86 @@ func TestWebVTTParseDuration(t *testing.T) {
 	assert.Equal(t, "Duration with tab spaced styles", s.Items[1].Lines[0].String())
 	assert.NotNil(t, s.Items[1].InlineStyle)
 	assert.Equal(t, s.Items[1].InlineStyle.WebVTTAlign, "middle")
+}
+
+func TestWebVTTColorToTTML(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:00:01.000 --> 00:00:03.000
+<c.red>Red text</c> and <c.blue.bg_yellow>blue text on yellow background</c>
+
+2
+00:00:04.000 --> 00:00:06.000
+<c.green>Green text</c> with <c.bg_cyan>text on cyan background</c>
+
+3
+00:00:07.000 --> 00:00:09.000
+Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	require.NoError(t, err)
+	require.Len(t, s.Items, 3)
+
+	// Test item 1: Red text and blue text on yellow background
+	item1 := s.Items[0]
+	require.Len(t, item1.Lines, 1)
+	require.Len(t, item1.Lines[0].Items, 3) // "Red text", " and ", "blue text on yellow background"
+
+	// Check red text
+	redItem := item1.Lines[0].Items[0]
+	assert.Equal(t, "Red text", redItem.Text)
+	require.NotNil(t, redItem.InlineStyle)
+	require.NotNil(t, redItem.InlineStyle.TTMLColor)
+	assert.Equal(t, "#ff0000", *redItem.InlineStyle.TTMLColor) // Red color
+	assert.Nil(t, redItem.InlineStyle.TTMLBackgroundColor)
+
+	// Check blue text on yellow background
+	blueYellowItem := item1.Lines[0].Items[2]
+	assert.Equal(t, "blue text on yellow background", blueYellowItem.Text)
+	require.NotNil(t, blueYellowItem.InlineStyle)
+	require.NotNil(t, blueYellowItem.InlineStyle.TTMLColor)
+	require.NotNil(t, blueYellowItem.InlineStyle.TTMLBackgroundColor)
+	assert.Equal(t, "#0000ff", *blueYellowItem.InlineStyle.TTMLColor)           // Blue color
+	assert.Equal(t, "#ffff00", *blueYellowItem.InlineStyle.TTMLBackgroundColor) // Yellow background
+
+	// Test item 2: Green text and background color only
+	item2 := s.Items[1]
+	require.Len(t, item2.Lines, 1)
+	require.Len(t, item2.Lines[0].Items, 3) // "Green text", " with ", "text on cyan background"
+
+	// Check green text
+	greenItem := item2.Lines[0].Items[0]
+	assert.Equal(t, "Green text", greenItem.Text)
+	require.NotNil(t, greenItem.InlineStyle)
+	require.NotNil(t, greenItem.InlineStyle.TTMLColor)
+	assert.Equal(t, "#008000", *greenItem.InlineStyle.TTMLColor) // Green color
+	assert.Nil(t, greenItem.InlineStyle.TTMLBackgroundColor)
+
+	// Check text with cyan background only
+	cyanBgItem := item2.Lines[0].Items[2]
+	assert.Equal(t, "text on cyan background", cyanBgItem.Text)
+	require.NotNil(t, cyanBgItem.InlineStyle)
+	assert.Nil(t, cyanBgItem.InlineStyle.TTMLColor) // No foreground color specified
+	require.NotNil(t, cyanBgItem.InlineStyle.TTMLBackgroundColor)
+	assert.Equal(t, "#00ffff", *cyanBgItem.InlineStyle.TTMLBackgroundColor) // Cyan background
+
+	// Test item 3: Known and unknown colors
+	item3 := s.Items[2]
+	require.Len(t, item3.Lines, 1)
+	require.Len(t, item3.Lines[0].Items, 4) // "Normal text with ", "magenta", " and ", "unknown color"
+
+	// Check magenta text (known color)
+	magentaItem := item3.Lines[0].Items[1]
+	assert.Equal(t, "magenta", magentaItem.Text)
+	require.NotNil(t, magentaItem.InlineStyle)
+	require.NotNil(t, magentaItem.InlineStyle.TTMLColor)
+	assert.Equal(t, "#ff00ff", *magentaItem.InlineStyle.TTMLColor) // Magenta color
+
+	// Check unknown color (should not set TTMLColor because "orange" is not in webVTTColorMap)
+	unknownColorItem := item3.Lines[0].Items[3]
+	assert.Equal(t, "unknown color", unknownColorItem.Text)
+	require.NotNil(t, unknownColorItem.InlineStyle)
+	assert.Nil(t, unknownColorItem.InlineStyle.TTMLColor) // Unknown color should not be converted
+	assert.Nil(t, unknownColorItem.InlineStyle.TTMLBackgroundColor)
 }
