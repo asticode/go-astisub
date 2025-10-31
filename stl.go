@@ -584,28 +584,28 @@ func parseDurationSTL(i string, framerate int) (d time.Duration, err error) {
 	// Parse hours
 	var hours, hoursString = 0, i[0:2]
 	if hours, err = strconv.Atoi(hoursString); err != nil {
-		err = fmt.Errorf("hours: atoi of %s failed: %w", hoursString, err)
+		err = fmt.Errorf("astisub: hours atoi of %s failed: %w", hoursString, err)
 		return
 	}
 
 	// Parse minutes
 	var minutes, minutesString = 0, i[2:4]
 	if minutes, err = strconv.Atoi(minutesString); err != nil {
-		err = fmt.Errorf("minutes: atoi of %s failed: %w", minutesString, err)
+		err = fmt.Errorf("astisub: minutes atoi of %s failed: %w", minutesString, err)
 		return
 	}
 
 	// Parse seconds
 	var seconds, secondsString = 0, i[4:6]
 	if seconds, err = strconv.Atoi(secondsString); err != nil {
-		err = fmt.Errorf("seconds: atoi of %s failed: %w", secondsString, err)
+		err = fmt.Errorf("astisub: seconds atoi of %s failed: %w", secondsString, err)
 		return
 	}
 
 	// Parse frames
 	var frames, framesString = 0, i[6:8]
 	if frames, err = strconv.Atoi(framesString); err != nil {
-		err = fmt.Errorf("frames: atoi of %s failed: %w", framesString, err)
+		err = fmt.Errorf("astisub: frames atoi of %s failed: %w", framesString, err)
 		return
 	}
 
