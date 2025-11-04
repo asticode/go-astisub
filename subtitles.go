@@ -455,19 +455,9 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 	}
 
 	// Handle WebVTT position and alignment conversion
-	sa.propagateWebVTTPosition()
-
-	if sa.WebVTTSize != "" {
-		sa.TTMLExtent = astikit.StrPtr(fmt.Sprintf("%s 10%%", sa.WebVTTSize))
-	}
-}
-
-// propagateWebVTTPosition handles WebVTT position and line attributes conversion
-func (sa *StyleAttributes) propagateWebVTTPosition() {
-	var yPos string
-	var hasPosition, hasLine bool
 
 	// Parse position if available
+	var hasPosition bool
 	if sa.WebVTTPosition != nil {
 		hasPosition = true
 
@@ -483,6 +473,8 @@ func (sa *StyleAttributes) propagateWebVTTPosition() {
 	}
 
 	// Handle line if available
+	var hasLine bool
+	var yPos string
 	if sa.WebVTTLine != "" {
 		hasLine = true
 		yPos = sa.WebVTTLine
@@ -498,6 +490,10 @@ func (sa *StyleAttributes) propagateWebVTTPosition() {
 	} else if hasLine {
 		// Only line is available, use default X position (10% for left)
 		sa.TTMLOrigin = astikit.StrPtr(fmt.Sprintf("10%% %s", yPos))
+	}
+
+	if sa.WebVTTSize != "" {
+		sa.TTMLExtent = astikit.StrPtr(fmt.Sprintf("%s 10%%", sa.WebVTTSize))
 	}
 }
 
