@@ -737,26 +737,6 @@ func cssColor(rgb string) string {
 	return colors[strings.ToLower(rgb)] // returning the empty string is ok
 }
 
-// webVTTColorMap maps WebVTT color class names to Color instances
-var webVTTColorMap = map[string]*Color{
-	"black":   ColorBlack,
-	"red":     ColorRed,
-	"green":   ColorGreen,
-	"yellow":  ColorYellow,
-	"blue":    ColorBlue,
-	"magenta": ColorMagenta,
-	"cyan":    ColorCyan,
-	"white":   ColorWhite,
-	"silver":  ColorSilver,
-	"gray":    ColorGray,
-	"maroon":  ColorMaroon,
-	"olive":   ColorOlive,
-	"lime":    ColorLime,
-	"teal":    ColorTeal,
-	"navy":    ColorNavy,
-	"purple":  ColorPurple,
-}
-
 func newColorFromWebVTTString(color string) (*Color, error) {
 	switch color {
 	case "black":
