@@ -255,7 +255,7 @@ type StyleAttributes struct {
 	WebVTTItalics        bool
 	WebVTTLine           string
 	WebVTTLines          int
-	WebVTTPosition       string
+	WebVTTPosition       *WebVTTPosition
 	WebVTTRegionAnchor   string
 	WebVTTScroll         string
 	WebVTTSize           string
@@ -307,28 +307,28 @@ func (sa *StyleAttributes) propagateSRTAttributes() {
 	switch sa.SRTPosition {
 	case 7: // top-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = "10%"
+		sa.WebVTTPosition = newWebVTTPosition("10%")
 	case 8: // top-center
-		sa.WebVTTPosition = "10%"
+		sa.WebVTTPosition = newWebVTTPosition("10%")
 	case 9: // top-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = "10%"
+		sa.WebVTTPosition = newWebVTTPosition("10%")
 	case 4: // middle-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = "50%"
+		sa.WebVTTPosition = newWebVTTPosition("50%")
 	case 5: // middle-center
-		sa.WebVTTPosition = "50%"
+		sa.WebVTTPosition = newWebVTTPosition("50%")
 	case 6: // middle-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = "50%"
+		sa.WebVTTPosition = newWebVTTPosition("50%")
 	case 1: // bottom-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = "90%"
+		sa.WebVTTPosition = newWebVTTPosition("90%")
 	case 2: // bottom-center
-		sa.WebVTTPosition = "90%"
+		sa.WebVTTPosition = newWebVTTPosition("90%")
 	case 3: // bottom-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = "90%"
+		sa.WebVTTPosition = newWebVTTPosition("90%")
 	}
 
 	sa.WebVTTBold = sa.SRTBold
@@ -411,10 +411,10 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
 		if len(coordinates) > 1 {
 			sa.WebVTTLine = coordinates[0]
-			sa.WebVTTPosition = coordinates[1]
+			sa.WebVTTPosition = newWebVTTPosition(coordinates[1])
 			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
 				sa.WebVTTLine = coordinates[1]
-				sa.WebVTTPosition = coordinates[0]
+				sa.WebVTTPosition = newWebVTTPosition(coordinates[0])
 			}
 		}
 	}
@@ -441,11 +441,11 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 			if len(tag.Classes) > 0 {
 				for _, color := range tag.Classes {
 					if strings.HasPrefix(color, "bg_") && len(color) > 3 {
-						if bgColor, err := parseWebVTTColorClass(color[3:]); err == nil {
+						if bgColor, err := newColorFromWebVTTString(color[3:]); err == nil {
 							sa.TTMLBackgroundColor = astikit.StrPtr("#" + bgColor.TTMLString())
 						}
 					} else {
-						if fgColor, err := parseWebVTTColorClass(color); err == nil {
+						if fgColor, err := newColorFromWebVTTString(color); err == nil {
 							sa.TTMLColor = astikit.StrPtr("#" + fgColor.TTMLString())
 						}
 					}
@@ -455,41 +455,24 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 	}
 
 	// Handle WebVTT position and alignment conversion
-	sa.handleWebVTTPositioning()
+	sa.propagateWebVTTPosition()
 
 	if sa.WebVTTSize != "" {
 		sa.TTMLExtent = astikit.StrPtr(fmt.Sprintf("%s 10%%", sa.WebVTTSize))
 	}
 }
 
-// parseWebVTTPosition parses WebVTT position string like "10%,line-left".
-// Returns (xPosition, alignment)
-func (sa *StyleAttributes) parseWebVTTPosition() (string, string) {
-	if sa.WebVTTPosition == "" {
-		return "", ""
-	}
-
-	parts := strings.Split(sa.WebVTTPosition, ",")
-	if len(parts) != 2 {
-		return sa.WebVTTPosition, ""
-	}
-
-	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
-}
-
-// handleWebVTTPositioning handles WebVTT position and line attributes conversion
-func (sa *StyleAttributes) handleWebVTTPositioning() {
-	var xPos, yPos string
+// propagateWebVTTPosition handles WebVTT position and line attributes conversion
+func (sa *StyleAttributes) propagateWebVTTPosition() {
+	var yPos string
 	var hasPosition, hasLine bool
 
 	// Parse position if available
-	if sa.WebVTTPosition != "" {
+	if sa.WebVTTPosition != nil {
 		hasPosition = true
-		var alignment string
-		xPos, alignment = sa.parseWebVTTPosition()
 
 		// Handle position alignment (takes precedence over WebVTTAlign)
-		switch alignment {
+		switch sa.WebVTTPosition.Alignment {
 		case "line-left":
 			sa.TTMLTextAlign = astikit.StrPtr("left")
 		case "center":
@@ -508,10 +491,10 @@ func (sa *StyleAttributes) handleWebVTTPositioning() {
 	// Set TTMLOrigin based on available position and line data
 	if hasPosition && hasLine {
 		// Both position and line are available
-		sa.TTMLOrigin = astikit.StrPtr(fmt.Sprintf("%s %s", xPos, yPos))
+		sa.TTMLOrigin = astikit.StrPtr(fmt.Sprintf("%s %s", sa.WebVTTPosition.XPosition, yPos))
 	} else if hasPosition {
 		// Only position is available, use default Y position (80% for bottom)
-		sa.TTMLOrigin = astikit.StrPtr(fmt.Sprintf("%s 80%%", xPos))
+		sa.TTMLOrigin = astikit.StrPtr(fmt.Sprintf("%s 80%%", sa.WebVTTPosition.XPosition))
 	} else if hasLine {
 		// Only line is available, use default X position (10% for left)
 		sa.TTMLOrigin = astikit.StrPtr(fmt.Sprintf("10%% %s", yPos))

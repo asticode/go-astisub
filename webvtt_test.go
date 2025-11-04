@@ -30,7 +30,7 @@ func TestWebVTT(t *testing.T) {
 	// Styles
 	expected := astisub.StyleAttributes{
 		WebVTTAlign:    "left",
-		WebVTTPosition: "10%,line-left",
+		WebVTTPosition: &astisub.WebVTTPosition{XPosition: "10%", Alignment: "line-left"},
 		WebVTTSize:     "35%",
 	}
 	// propagateWebVTTAttributes() sets these based on WebVTT attributes
