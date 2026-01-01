@@ -658,16 +658,28 @@ func ssaUpdateFormat(n string, formatMap map[string]bool, format []string) []str
 	return format
 }
 
-// updateFormat updates the format based on the non empty fields
+// updateFormat updates the format based on the non empty fields.
+// Fields MUST be added in the canonical V4+ order because parsers like Aegisub
+// ignore the Format line and parse style values by fixed position.
+// Order: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
+// BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle,
+// BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 func (s ssaStyle) updateFormat(formatMap map[string]bool, format []string) []string {
-	if s.alignment != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameAlignment, formatMap, format)
+	// Name is already added as the first element by the caller
+	if len(s.fontName) > 0 {
+		format = ssaUpdateFormat(ssaStyleFormatNameFontName, formatMap, format)
 	}
-	if s.alphaLevel != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameAlphaLevel, formatMap, format)
+	if s.fontSize != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameFontSize, formatMap, format)
 	}
-	if s.angle != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameAngle, formatMap, format)
+	if s.primaryColour != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNamePrimaryColour, formatMap, format)
+	}
+	if s.secondaryColour != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameSecondaryColour, formatMap, format)
+	}
+	if s.outlineColour != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameOutlineColour, formatMap, format)
 	}
 	if s.backColour != nil {
 		format = ssaUpdateFormat(ssaStyleFormatNameBackColour, formatMap, format)
@@ -675,20 +687,38 @@ func (s ssaStyle) updateFormat(formatMap map[string]bool, format []string) []str
 	if s.bold != nil {
 		format = ssaUpdateFormat(ssaStyleFormatNameBold, formatMap, format)
 	}
+	if s.italic != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameItalic, formatMap, format)
+	}
+	if s.underline != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameUnderline, formatMap, format)
+	}
+	if s.strikeout != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameStrikeout, formatMap, format)
+	}
+	if s.scaleX != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameScaleX, formatMap, format)
+	}
+	if s.scaleY != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameScaleY, formatMap, format)
+	}
+	if s.spacing != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameSpacing, formatMap, format)
+	}
+	if s.angle != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameAngle, formatMap, format)
+	}
 	if s.borderStyle != nil {
 		format = ssaUpdateFormat(ssaStyleFormatNameBorderStyle, formatMap, format)
 	}
-	if s.encoding != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameEncoding, formatMap, format)
+	if s.outline != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameOutline, formatMap, format)
 	}
-	if len(s.fontName) > 0 {
-		format = ssaUpdateFormat(ssaStyleFormatNameFontName, formatMap, format)
+	if s.shadow != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameShadow, formatMap, format)
 	}
-	if s.fontSize != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameFontSize, formatMap, format)
-	}
-	if s.italic != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameItalic, formatMap, format)
+	if s.alignment != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameAlignment, formatMap, format)
 	}
 	if s.marginLeft != nil {
 		format = ssaUpdateFormat(ssaStyleFormatNameMarginL, formatMap, format)
@@ -699,35 +729,12 @@ func (s ssaStyle) updateFormat(formatMap map[string]bool, format []string) []str
 	if s.marginVertical != nil {
 		format = ssaUpdateFormat(ssaStyleFormatNameMarginV, formatMap, format)
 	}
-	if s.outline != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameOutline, formatMap, format)
+	// AlphaLevel is SSA v4.00 only, not used in V4+ (ASS)
+	if s.alphaLevel != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameAlphaLevel, formatMap, format)
 	}
-	if s.outlineColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameOutlineColour, formatMap, format)
-	}
-	if s.primaryColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNamePrimaryColour, formatMap, format)
-	}
-	if s.scaleX != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameScaleX, formatMap, format)
-	}
-	if s.scaleY != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameScaleY, formatMap, format)
-	}
-	if s.secondaryColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameSecondaryColour, formatMap, format)
-	}
-	if s.shadow != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameShadow, formatMap, format)
-	}
-	if s.spacing != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameSpacing, formatMap, format)
-	}
-	if s.strikeout != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameStrikeout, formatMap, format)
-	}
-	if s.underline != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameUnderline, formatMap, format)
+	if s.encoding != nil {
+		format = ssaUpdateFormat(ssaStyleFormatNameEncoding, formatMap, format)
 	}
 	return format
 }
