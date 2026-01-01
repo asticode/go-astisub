@@ -658,95 +658,49 @@ func ssaUpdateFormat(n string, formatMap map[string]bool, format []string) []str
 	return format
 }
 
-// updateFormat updates the format based on the non empty fields.
-// Fields MUST be added in the canonical V4+ order because parsers like Aegisub
-// ignore the Format line and parse style values by fixed position.
+// updateFormat adds all canonical V4+ style fields to the format.
+// All fields are added unconditionally because parsers like Aegisub ignore
+// the Format line and parse style values by fixed position.
 // Order: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 // BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle,
 // BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 func (s ssaStyle) updateFormat(formatMap map[string]bool, format []string) []string {
-	// Name is already added as the first element by the caller
-	if len(s.fontName) > 0 {
-		format = ssaUpdateFormat(ssaStyleFormatNameFontName, formatMap, format)
-	}
-	if s.fontSize != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameFontSize, formatMap, format)
-	}
-	if s.primaryColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNamePrimaryColour, formatMap, format)
-	}
-	if s.secondaryColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameSecondaryColour, formatMap, format)
-	}
-	if s.outlineColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameOutlineColour, formatMap, format)
-	}
-	if s.backColour != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameBackColour, formatMap, format)
-	}
-	if s.bold != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameBold, formatMap, format)
-	}
-	if s.italic != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameItalic, formatMap, format)
-	}
-	if s.underline != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameUnderline, formatMap, format)
-	}
-	if s.strikeout != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameStrikeout, formatMap, format)
-	}
-	if s.scaleX != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameScaleX, formatMap, format)
-	}
-	if s.scaleY != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameScaleY, formatMap, format)
-	}
-	if s.spacing != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameSpacing, formatMap, format)
-	}
-	if s.angle != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameAngle, formatMap, format)
-	}
-	if s.borderStyle != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameBorderStyle, formatMap, format)
-	}
-	if s.outline != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameOutline, formatMap, format)
-	}
-	if s.shadow != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameShadow, formatMap, format)
-	}
-	if s.alignment != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameAlignment, formatMap, format)
-	}
-	if s.marginLeft != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameMarginL, formatMap, format)
-	}
-	if s.marginRight != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameMarginR, formatMap, format)
-	}
-	if s.marginVertical != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameMarginV, formatMap, format)
-	}
-	// AlphaLevel is SSA v4.00 only, not used in V4+ (ASS)
-	if s.alphaLevel != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameAlphaLevel, formatMap, format)
-	}
-	if s.encoding != nil {
-		format = ssaUpdateFormat(ssaStyleFormatNameEncoding, formatMap, format)
-	}
+	// Name is already added as the first element by the caller.
+	// All other fields are added unconditionally in canonical V4+ order.
+	format = ssaUpdateFormat(ssaStyleFormatNameFontName, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameFontSize, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNamePrimaryColour, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameSecondaryColour, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameOutlineColour, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameBackColour, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameBold, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameItalic, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameUnderline, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameStrikeout, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameScaleX, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameScaleY, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameSpacing, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameAngle, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameBorderStyle, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameOutline, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameShadow, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameAlignment, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameMarginL, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameMarginR, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameMarginV, formatMap, format)
+	format = ssaUpdateFormat(ssaStyleFormatNameEncoding, formatMap, format)
 	return format
 }
 
-// string returns the block as a string
+// string returns the block as a string.
+// For nil fields, sensible defaults are output to ensure valid ASS format.
 func (s ssaStyle) string(format []string) string {
 	var ss = []string{s.name}
 	for _, attr := range format {
 		var v string
 		var found = true
 		switch attr {
-		// Bool
+		// Bool - default to "0" (false)
 		case ssaStyleFormatNameBold, ssaStyleFormatNameItalic, ssaStyleFormatNameStrikeout,
 			ssaStyleFormatNameUnderline:
 			var b *bool
@@ -760,13 +714,11 @@ func (s ssaStyle) string(format []string) string {
 			case ssaStyleFormatNameUnderline:
 				b = s.underline
 			}
-			if b != nil {
-				v = "0"
-				if *b {
-					v = "1"
-				}
+			v = "0"
+			if b != nil && *b {
+				v = "1"
 			}
-		// Color
+		// Color - default to black (&H00000000), white for primary (&H00FFFFFF)
 		case ssaStyleFormatNamePrimaryColour, ssaStyleFormatNameSecondaryColour,
 			ssaStyleFormatNameOutlineColour, ssaStyleFormatNameBackColour:
 			var c *Color
@@ -782,59 +734,89 @@ func (s ssaStyle) string(format []string) string {
 			}
 			if c != nil {
 				v = newSSAColorFromColor(c)
+			} else {
+				// Aegisub defaults: white primary, red secondary, black outline/back
+				switch attr {
+				case ssaStyleFormatNamePrimaryColour:
+					v = "&H00FFFFFF"
+				case ssaStyleFormatNameSecondaryColour:
+					v = "&H000000FF"
+				default:
+					v = "&H00000000"
+				}
 			}
-		// Float
+		// Float - with sensible defaults per field
 		case ssaStyleFormatNameAlphaLevel, ssaStyleFormatNameAngle, ssaStyleFormatNameFontSize,
 			ssaStyleFormatNameScaleX, ssaStyleFormatNameScaleY,
 			ssaStyleFormatNameOutline, ssaStyleFormatNameShadow, ssaStyleFormatNameSpacing:
 			var f *float64
+			var defaultVal float64
 			switch attr {
 			case ssaStyleFormatNameAlphaLevel:
 				f = s.alphaLevel
+				defaultVal = 0
 			case ssaStyleFormatNameAngle:
 				f = s.angle
+				defaultVal = 0
 			case ssaStyleFormatNameFontSize:
 				f = s.fontSize
+				defaultVal = 48
 			case ssaStyleFormatNameScaleX:
 				f = s.scaleX
+				defaultVal = 100
 			case ssaStyleFormatNameScaleY:
 				f = s.scaleY
+				defaultVal = 100
 			case ssaStyleFormatNameOutline:
 				f = s.outline
+				defaultVal = 2
 			case ssaStyleFormatNameShadow:
 				f = s.shadow
+				defaultVal = 2
 			case ssaStyleFormatNameSpacing:
 				f = s.spacing
+				defaultVal = 0
 			}
 			if f != nil {
 				v = strconv.FormatFloat(*f, 'f', 3, 64)
+			} else {
+				v = strconv.FormatFloat(defaultVal, 'f', 3, 64)
 			}
-		// Int
+		// Int - with sensible defaults per field
 		case ssaStyleFormatNameAlignment, ssaStyleFormatNameBorderStyle, ssaStyleFormatNameEncoding,
 			ssaStyleFormatNameMarginL, ssaStyleFormatNameMarginR, ssaStyleFormatNameMarginV:
 			var i *int
+			var defaultVal int
 			switch attr {
 			case ssaStyleFormatNameAlignment:
 				i = s.alignment
+				defaultVal = 2 // bottom center
 			case ssaStyleFormatNameBorderStyle:
 				i = s.borderStyle
+				defaultVal = 1
 			case ssaStyleFormatNameEncoding:
 				i = s.encoding
+				defaultVal = 1
 			case ssaStyleFormatNameMarginL:
 				i = s.marginLeft
+				defaultVal = 10
 			case ssaStyleFormatNameMarginR:
 				i = s.marginRight
+				defaultVal = 10
 			case ssaStyleFormatNameMarginV:
 				i = s.marginVertical
+				defaultVal = 10
 			}
 			if i != nil {
 				v = strconv.Itoa(*i)
+			} else {
+				v = strconv.Itoa(defaultVal)
 			}
-		// String
+		// String - default to Arial
 		case ssaStyleFormatNameFontName:
-			switch attr {
-			case ssaStyleFormatNameFontName:
-				v = s.fontName
+			v = s.fontName
+			if v == "" {
+				v = "Arial"
 			}
 		default:
 			found = false
