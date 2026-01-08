@@ -1,0 +1,227 @@
+// Copied from https://github.com/zapping-vbi/zvbi/blob/main/test/unicode-out-ref.txt
+// A huge thanks to them <3
+
+-> Latin National Option Sub-sets
+
+# ů č ť ž ý í ř é á ě ú š 
+£ $ @ ← ½ → ↑ # — ¼ ‖ ¾ ÷ 
+# õ Š Ä Ö Ž Ü Õ š ä ö ž ü 
+é ï à ë ê ù î # è â ô û ç 
+# $ § Ä Ö Ü ^ _ ° ä ö ü ß 
+£ $ é ° ç → ↑ # ù à ò è ì 
+# $ Š ė ȩ Ž č ū š ą ų ž į 
+# ń ą Ƶ Ś Ł ć ó ę ż ś ł ź 
+ç $ ¡ á é í ó ú ¿ ü ñ è à 
+# ¤ Ţ Â Ş Ǎ Í ı ţ â ş ǎ î 
+# Ë Č Ć Ž Ð Š ë č ć ž ð š 
+# ¤ É Ä Ö Å Ü _ é ä ö å ü 
+ ğ İ Ş Ö Ç Ü Ğ ı ş ö ç ü 
+
+-> Latin G0 Primary Set
+
+  0 @ P ` p 
+! 1 A Q a q 
+" 2 B R b r 
+# 3 C S c s 
+¤ 4 D T d t 
+% 5 E U e u 
+& 6 F V f v 
+' 7 G W g w 
+( 8 H X h x 
+) 9 I Y i y 
+* : J Z j z 
++ ; K [ k { 
+, < L \ l ¦ 
+- = M ] m } 
+. > N ^ n ~ 
+/ ? O _ o ■ 
+
+-> Latin G2 Supplementary Set
+
+  °   — Ω ĸ 
+¡ ± ˋ ¹ Æ æ 
+¢ ² ˊ ® Ð đ 
+£ ³ ˆ © ª ð 
+$ × ˜ ™ Ħ ħ 
+¥ µ ˉ ♪   ı 
+# ¶ ˘ ₠ Ĳ ĳ 
+§ · ˙ ‰ Ŀ ŀ 
+¤ ÷ ¨ ɑ Ł ł 
+‘ ’ .   Ø ø 
+“ ” ˚   Œ œ 
+« » ˏ   º ß 
+← ¼ ˍ ⅛ Þ þ 
+↑ ½ ˝ ⅜ Ŧ ŧ 
+→ ¾ ˛ ⅝ Ŋ ŋ 
+↓ ¿ ˇ ⅞ ŉ ■ 
+
+-> Cyrillic G0 Primary Set - Option 1 - Serbian/Croatian
+
+  0 Ч П ч п 
+! 1 А Ќ а ќ 
+" 2 Б Р б р 
+# 3 Ц С ц с 
+$ 4 Д Т д т 
+% 5 Е У е у 
+& 6 Ф В ф в 
+' 7 Г Ѓ г ѓ 
+( 8 Х Љ х љ 
+) 9 И Њ и њ 
+* : Ј З ј з 
++ ; К Ћ к ћ 
+, < Л Ж л ж 
+- = М Ђ м ђ 
+. > Н Ш н ш 
+/ ? О Џ о ■ 
+
+-> Cyrillic G0 Primary Set - Option 2 - Russian/Bulgarian
+
+  0 Ю П ю п 
+! 1 А Я а я 
+" 2 Б Р б р 
+# 3 Ц С ц с 
+$ 4 Д Т д т 
+% 5 Е У е у 
+ы 6 Ф Ж ф ж 
+' 7 Г В г в 
+( 8 Х Ь х ь 
+) 9 И Ъ и ъ 
+* : Ѝ З ѝ з 
++ ; К Ш к ш 
+, < Л Э л э 
+- = М Щ м щ 
+. > Н Ч н ч 
+/ ? О Ы о ■ 
+
+-> Cyrillic G0 Primary Set - Option 3 - Ukrainian
+
+  0 Ю П ю п 
+! 1 А Я а я 
+" 2 Б Р б р 
+# 3 Ц С ц с 
+$ 4 Д Т д т 
+% 5 Е У е у 
+ï 6 Ф Ж ф ж 
+' 7 Г В г в 
+( 8 Х Ь х ь 
+) 9 И І и і 
+* : Ѝ З ѝ з 
++ ; К Ш к ш 
+, < Л Є л є 
+- = М Щ м щ 
+. > Н Ч н ч 
+/ ? О Ї о ■ 
+
+-> Cyrillic G2 Supplementary Set
+
+  °   — D d 
+¡ ± ˋ ¹ E e 
+¢ ² ˊ ® F f 
+£ ³ ˆ © G g 
+  × ˜ ™ I i 
+¥ µ ˉ ♪ J j 
+# ¶ ˘ ₠ K k 
+§ · ˙ ‰ L l 
+  ÷ ¨ ɑ N n 
+‘ ’ . Ł Q q 
+“ ” ˚ ł R r 
+« » ˏ ß S s 
+← ¼ ˍ ⅛ U u 
+↑ ½ ˝ ⅜ V v 
+→ ¾ ˛ ⅝ W w 
+↓ ¿ ˇ ⅞ Z z 
+
+-> Greek G0 Primary Set
+
+  0 ΐ Π ΰ π 
+! 1 Α Ρ α ρ 
+" 2 Β ʹ β ς 
+# 3 Γ Σ γ σ 
+$ 4 Δ Τ δ τ 
+% 5 Ε Υ ε υ 
+& 6 Ζ Φ ζ φ 
+' 7 Η Χ η χ 
+( 8 Θ Ψ θ ψ 
+) 9 Ι Ω ι ω 
+* : Κ Ϊ κ ϊ 
++ ; Λ Ϋ λ ϋ 
+, « Μ ά μ ό 
+- = Ν έ ν ύ 
+. » Ξ ή ξ ώ 
+/ ? Ο ί ο ■ 
+
+-> Greek G2 Supplementary Set
+
+  °   ? C c 
+a ± ˋ ¹ D d 
+b ² ˊ ® F f 
+£ ³ ˆ © G g 
+e x ˜ ™ J j 
+h m ˉ ♪ L l 
+i n ˘ ₠ Q q 
+§ p ˙ ‰ R r 
+: ÷ ¨ ɑ S s 
+‘ ’ . Ί U u 
+“ ” ˚ Ύ V v 
+k t ˏ Ώ W w 
+← ¼ ˍ ⅛ Y y 
+↑ ½ ˝ ⅜ Z z 
+→ ¾ ˛ ⅝ Ά Έ 
+↓ x ˇ ⅞ Ή ■ 
+
+-> Arabic G0 Primary Set
+
+  0     
+! 1     
+" 2     
+£ 3     
+$ 4     
+% 5     
+ 6     
+ 7     
+) 8     
+( 9     
+* :     
++ ؛     
+، >     
+- =     
+. <     
+/ ؟  #  ■ 
+
+-> Arabic G2 Supplementary Set
+
+  à P é p 
+  A Q a q 
+  B R b r 
+  C S c s 
+  D T d t 
+  E U e u 
+  F V f v 
+  G W g w 
+  H X h x 
+  I Y i y 
+  J Z j z 
+  K ë k â 
+  L ê l ô 
+  M ù m û 
+  N î n ç 
+  O  o   
+
+-> Hebrew G0 Primary Set
+
+  0 @ P א נ 
+! 1 A Q ב ס 
+" 2 B R ג ע 
+# 3 C S ד ף 
+$ 4 D T ה פ 
+% 5 E U ו ץ 
+& 6 F V ז צ 
+' 7 G W ח ק 
+( 8 H X ט ר 
+) 9 I Y י ש 
+* : J Z ך ת 
++ ; K ← כ ₪ 
+, < L ½ ל ‖ 
+- = M → ם ¾ 
+. > N ↑ מ ÷ 
+/ ? O # ן ■ 
