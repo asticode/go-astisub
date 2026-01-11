@@ -172,6 +172,14 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
+// Equals checks if two colors are equal
+func (c *Color) Equals(other *Color) bool {
+	if c == nil || other == nil {
+		return c == other
+	}
+	return c.Red == other.Red && c.Green == other.Green && c.Blue == other.Blue && c.Alpha == other.Alpha
+}
+
 type Justification int
 
 var (
@@ -447,6 +455,7 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 					} else {
 						if fgColor, err := newColorFromWebVTTString(color); err == nil {
 							sa.TTMLColor = astikit.StrPtr("#" + fgColor.TTMLString())
+							sa.TeletextColor = fgColor // Also set TeletextColor for STL export
 						}
 					}
 				}

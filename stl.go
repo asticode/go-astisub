@@ -729,6 +729,31 @@ func stlVerticalPositionFromStyle(sa *StyleAttributes) int {
 func (li LineItem) STLString() string {
 	rs := li.Text
 	if li.InlineStyle != nil {
+		// Add color code prefix
+		if li.InlineStyle.TeletextColor != nil {
+			var colorCode byte
+			switch {
+			case li.InlineStyle.TeletextColor.Equals(ColorBlack):
+				colorCode = 0x00
+			case li.InlineStyle.TeletextColor.Equals(ColorRed):
+				colorCode = 0x01
+			case li.InlineStyle.TeletextColor.Equals(ColorGreen):
+				colorCode = 0x02
+			case li.InlineStyle.TeletextColor.Equals(ColorYellow):
+				colorCode = 0x03
+			case li.InlineStyle.TeletextColor.Equals(ColorBlue):
+				colorCode = 0x04
+			case li.InlineStyle.TeletextColor.Equals(ColorMagenta):
+				colorCode = 0x05
+			case li.InlineStyle.TeletextColor.Equals(ColorCyan):
+				colorCode = 0x06
+			case li.InlineStyle.TeletextColor.Equals(ColorWhite):
+				colorCode = 0x07
+			default:
+				colorCode = 0x07 // Default to white
+			}
+			rs = string(rune(colorCode)) + rs
+		}
 		if li.InlineStyle.STLItalics != nil && *li.InlineStyle.STLItalics {
 			rs = string(rune(0x80)) + rs + string(rune(0x81))
 		}
@@ -867,6 +892,7 @@ func (h *stlCharacterHandler) decode(i byte) (o []byte) {
 
 type stlStyler struct {
 	boxing    *bool
+	color     *Color
 	italics   *bool
 	underline *bool
 }
@@ -877,6 +903,22 @@ func newSTLStyler() *stlStyler {
 
 func (s *stlStyler) parseSpacingAttribute(i byte) {
 	switch i {
+	case 0x00:
+		s.color = ColorBlack
+	case 0x01:
+		s.color = ColorRed
+	case 0x02:
+		s.color = ColorGreen
+	case 0x03:
+		s.color = ColorYellow
+	case 0x04:
+		s.color = ColorBlue
+	case 0x05:
+		s.color = ColorMagenta
+	case 0x06:
+		s.color = ColorCyan
+	case 0x07:
+		s.color = ColorWhite
 	case 0x80:
 		s.italics = astikit.BoolPtr(true)
 	case 0x81:
@@ -893,11 +935,11 @@ func (s *stlStyler) parseSpacingAttribute(i byte) {
 }
 
 func (s *stlStyler) hasBeenSet() bool {
-	return s.italics != nil || s.boxing != nil || s.underline != nil
+	return s.italics != nil || s.boxing != nil || s.underline != nil || s.color != nil
 }
 
 func (s *stlStyler) hasChanged(sa *StyleAttributes) bool {
-	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline
+	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline || s.color != sa.TeletextColor
 }
 
 func (s *stlStyler) propagateStyleAttributes(sa *StyleAttributes) {
@@ -907,6 +949,9 @@ func (s *stlStyler) propagateStyleAttributes(sa *StyleAttributes) {
 func (s *stlStyler) update(sa *StyleAttributes) {
 	if s.boxing != nil && s.boxing != sa.STLBoxing {
 		sa.STLBoxing = s.boxing
+	}
+	if s.color != nil && s.color != sa.TeletextColor {
+		sa.TeletextColor = s.color
 	}
 	if s.italics != nil && s.italics != sa.STLItalics {
 		sa.STLItalics = s.italics
@@ -1068,14 +1113,21 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) erro
 			s = fs()
 		}
 
-		if isTeletextControlCode(v) {
+		// Check if this is a valid control code (color or style codes)
+		isColorCode := v >= 0x00 && v <= 0x07
+		isStyleCode := v >= 0x80 && v <= 0x85
+
+		// Error on teletext control codes that aren't color or style codes
+		if isTeletextControlCode(v) && !isColorCode && !isStyleCode {
 			return errors.New("teletext control code in open text")
 		}
+
+		// Parse spacing attributes (color and style codes)
 		if s != nil {
 			s.parseSpacingAttribute(v)
 		}
 
-		// Style has been set
+		// Style has been set by a control code
 		if s != nil && s.hasBeenSet() {
 			// Style has changed
 			if s.hasChanged(li.InlineStyle) {
@@ -1090,10 +1142,12 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) erro
 				}
 				s.update(li.InlineStyle)
 			}
-		} else {
-			// Append text
-			li.Text += string(d.decode(v))
+			// Control codes don't get appended as text, continue to next byte
+			continue
 		}
+
+		// Not a control code, append as text
+		li.Text += string(d.decode(v))
 	}
 
 	appendOpenSubtitleLineItem(&l, li, s)
