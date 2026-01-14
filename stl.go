@@ -730,24 +730,24 @@ func (li LineItem) STLString() string {
 	rs := li.Text
 	if li.InlineStyle != nil {
 		// Add color code prefix
-		if li.InlineStyle.TeletextColor != nil {
+		if li.InlineStyle.STLColor != nil {
 			var colorCode byte
-			switch {
-			case li.InlineStyle.TeletextColor.Equals(ColorBlack):
+			switch li.InlineStyle.STLColor {
+			case ColorBlack:
 				colorCode = 0x00
-			case li.InlineStyle.TeletextColor.Equals(ColorRed):
+			case ColorRed:
 				colorCode = 0x01
-			case li.InlineStyle.TeletextColor.Equals(ColorGreen):
+			case ColorGreen:
 				colorCode = 0x02
-			case li.InlineStyle.TeletextColor.Equals(ColorYellow):
+			case ColorYellow:
 				colorCode = 0x03
-			case li.InlineStyle.TeletextColor.Equals(ColorBlue):
+			case ColorBlue:
 				colorCode = 0x04
-			case li.InlineStyle.TeletextColor.Equals(ColorMagenta):
+			case ColorMagenta:
 				colorCode = 0x05
-			case li.InlineStyle.TeletextColor.Equals(ColorCyan):
+			case ColorCyan:
 				colorCode = 0x06
-			case li.InlineStyle.TeletextColor.Equals(ColorWhite):
+			case ColorWhite:
 				colorCode = 0x07
 			default:
 				colorCode = 0x07 // Default to white
@@ -939,7 +939,7 @@ func (s *stlStyler) hasBeenSet() bool {
 }
 
 func (s *stlStyler) hasChanged(sa *StyleAttributes) bool {
-	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline || s.color != sa.TeletextColor
+	return s.boxing != sa.STLBoxing || s.italics != sa.STLItalics || s.underline != sa.STLUnderline || s.color != sa.STLColor
 }
 
 func (s *stlStyler) propagateStyleAttributes(sa *StyleAttributes) {
@@ -950,8 +950,8 @@ func (s *stlStyler) update(sa *StyleAttributes) {
 	if s.boxing != nil && s.boxing != sa.STLBoxing {
 		sa.STLBoxing = s.boxing
 	}
-	if s.color != nil && s.color != sa.TeletextColor {
-		sa.TeletextColor = s.color
+	if s.color != nil && s.color != sa.STLColor {
+		sa.STLColor = s.color
 	}
 	if s.italics != nil && s.italics != sa.STLItalics {
 		sa.STLItalics = s.italics
@@ -1098,10 +1098,6 @@ func parseSTLJustificationCode(i byte) Justification {
 	}
 }
 
-func isTeletextControlCode(i byte) (b bool) {
-	return i <= 0x1f
-}
-
 func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) error {
 	// Loop through columns
 	var l = Line{}
@@ -1114,11 +1110,12 @@ func parseOpenSubtitleRow(i *Item, d decoder, fs func() styler, row []byte) erro
 		}
 
 		// Check if this is a valid control code (color or style codes)
+		isTeletextControlCode := v <= 0x1f
 		isColorCode := v >= 0x00 && v <= 0x07
 		isStyleCode := v >= 0x80 && v <= 0x85
 
 		// Error on teletext control codes that aren't color or style codes
-		if isTeletextControlCode(v) && !isColorCode && !isStyleCode {
+		if isTeletextControlCode && !isColorCode && !isStyleCode {
 			return errors.New("teletext control code in open text")
 		}
 
