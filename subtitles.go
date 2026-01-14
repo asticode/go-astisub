@@ -172,14 +172,6 @@ func (c *Color) TTMLString() string {
 	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
-// Equals checks if two colors are equal
-func (c *Color) Equals(other *Color) bool {
-	if c == nil || other == nil {
-		return c == other
-	}
-	return c.Red == other.Red && c.Green == other.Green && c.Blue == other.Blue && c.Alpha == other.Alpha
-}
-
 type Justification int
 
 var (
@@ -223,6 +215,7 @@ type StyleAttributes struct {
 	SSAStrikeout         *bool
 	SSAUnderline         *bool
 	STLBoxing            *bool
+	STLColor             *Color
 	STLItalics           *bool
 	STLJustification     *Justification
 	STLPosition          *STLPosition
@@ -380,6 +373,10 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 			sa.WebVTTLine = fmt.Sprintf("%d%%", (sa.STLPosition.VerticalPosition-1)*100/sa.STLPosition.MaxRows)
 		}
 	}
+	// Propagate STL color to TeletextColor
+	if sa.STLColor != nil {
+		sa.TeletextColor = sa.STLColor
+	}
 }
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
@@ -455,7 +452,7 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 					} else {
 						if fgColor, err := newColorFromWebVTTString(color); err == nil {
 							sa.TTMLColor = astikit.StrPtr("#" + fgColor.TTMLString())
-							sa.TeletextColor = fgColor // Also set TeletextColor for STL export
+							sa.STLColor = fgColor
 						}
 					}
 				}
