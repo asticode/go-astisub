@@ -162,6 +162,48 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 	return
 }
 
+// newColorFromTTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
+func newColorFromTTMLString(s string) (*Color, error) {
+	// Remove leading # if present
+	s = strings.TrimPrefix(s, "#")
+
+	// Check for named colors
+	switch strings.ToLower(s) {
+	case "black":
+		return ColorBlack, nil
+	case "red":
+		return ColorRed, nil
+	case "green":
+		return ColorGreen, nil
+	case "yellow":
+		return ColorYellow, nil
+	case "blue":
+		return ColorBlue, nil
+	case "magenta":
+		return ColorMagenta, nil
+	case "cyan":
+		return ColorCyan, nil
+	case "white":
+		return ColorWhite, nil
+	}
+
+	// Parse hex color (RRGGBB format)
+	if len(s) != 6 {
+		return nil, fmt.Errorf("invalid TTML color format: %s", s)
+	}
+
+	i, err := strconv.ParseUint(s, 16, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parsing TTML color %s failed: %w", s, err)
+	}
+
+	return &Color{
+		Red:   uint8(i >> 16 & 0xff),
+		Green: uint8(i >> 8 & 0xff),
+		Blue:  uint8(i & 0xff),
+	}, nil
+}
+
 // SSAString expresses the color as an SSA string
 func (c *Color) SSAString() string {
 	return fmt.Sprintf("%.8x", uint32(c.Alpha)<<24|uint32(c.Blue)<<16|uint32(c.Green)<<8|uint32(c.Red))
@@ -421,6 +463,12 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 				sa.WebVTTLine = coordinates[1]
 				sa.WebVTTPosition = newWebVTTPosition(coordinates[0])
 			}
+		}
+	}
+	// Propagate TTML color to STLColor for STL export
+	if sa.TTMLColor != nil {
+		if color, err := newColorFromTTMLString(*sa.TTMLColor); err == nil {
+			sa.STLColor = color
 		}
 	}
 }
