@@ -664,7 +664,7 @@ type ttiBlock struct {
 }
 
 // newTTIBlock builds an item TTI block
-func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
+func newTTIBlock(i *Item, idx int, dsc string) (t *ttiBlock) {
 	// Init
 	t = &ttiBlock{
 		commentFlag:          stlCommentFlagTextContainsSubtitleData,
@@ -685,9 +685,14 @@ func newTTIBlock(i *Item, idx int) (t *ttiBlock) {
 		for _, li := range l.Items {
 			lineItems = append(lineItems, li.STLString())
 		}
-		lines = append(lines, strings.Join(lineItems, " "))
+		var lineText = strings.Join(lineItems, " ")
+		// For teletext, prepend start box control code
+		if dsc != stlDisplayStandardCodeOpenSubtitling {
+			lineText = string(rune(0x0b)) + lineText
+		}
+		lines = append(lines, lineText)
 	}
-	t.text = []byte(strings.Join(lines, string(rune(stlLineSeparator))))
+	t.text = encodeTextSTL(strings.Join(lines, string(rune(stlLineSeparator))))
 	return
 }
 
@@ -754,15 +759,15 @@ func (t *ttiBlock) bytes(g *gsiBlock) (o []byte) {
 	o = append(o, byte(uint8(t.subtitleGroupNumber))) // Subtitle group number
 	var b = make([]byte, 2)
 	binary.LittleEndian.PutUint16(b, uint16(t.subtitleNumber))
-	o = append(o, b...)                                                                                              // Subtitle number
-	o = append(o, byte(uint8(t.extensionBlockNumber)))                                                               // Extension block number
-	o = append(o, t.cumulativeStatus)                                                                                // Cumulative status
-	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                                              // Timecode in
-	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                                             // Timecode out
-	o = append(o, validateVerticalPosition(t.verticalPosition, g.displayStandardCode))                               // Vertical position
-	o = append(o, t.justificationCode)                                                                               // Justification code
-	o = append(o, t.commentFlag)                                                                                     // Comment flag
-	o = append(o, astikit.BytesPad(encodeTextSTL(string(t.text)), '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
+	o = append(o, b...)                                                                       // Subtitle number
+	o = append(o, byte(uint8(t.extensionBlockNumber)))                                        // Extension block number
+	o = append(o, t.cumulativeStatus)                                                         // Cumulative status
+	o = append(o, formatDurationSTLBytes(t.timecodeIn, g.framerate)...)                       // Timecode in
+	o = append(o, formatDurationSTLBytes(t.timecodeOut, g.framerate)...)                      // Timecode out
+	o = append(o, validateVerticalPosition(t.verticalPosition, g.displayStandardCode))        // Vertical position
+	o = append(o, t.justificationCode)                                                        // Justification code
+	o = append(o, t.commentFlag)                                                              // Comment flag
+	o = append(o, astikit.BytesPad(t.text, '\x8f', 112, astikit.PadRight, astikit.PadCut)...) // Text field
 	return
 }
 
@@ -925,7 +930,7 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 	// Loop through items
 	for idx, item := range s.Items {
 		// Write tti block
-		if _, err = o.Write(newTTIBlock(item, idx+1).bytes(g)); err != nil {
+		if _, err = o.Write(newTTIBlock(item, idx+1, g.displayStandardCode).bytes(g)); err != nil {
 			err = fmt.Errorf("astisub: writing tti block #%d failed: %w", idx+1, err)
 			return
 		}
