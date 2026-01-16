@@ -378,10 +378,14 @@ func newGSIBlock(s Subtitles) (g *gsiBlock) {
 			g.creationDate = *s.Metadata.STLCreationDate
 		}
 		g.countryOfOrigin = s.Metadata.STLCountryOfOrigin
-		g.displayStandardCode = s.Metadata.STLDisplayStandardCode
+		if s.Metadata.STLDisplayStandardCode != "" {
+			g.displayStandardCode = s.Metadata.STLDisplayStandardCode
+		}
 		g.editorContactDetails = s.Metadata.STLEditorContactDetails
 		g.editorName = s.Metadata.STLEditorName
-		g.framerate = s.Metadata.Framerate
+		if s.Metadata.Framerate > 0 {
+			g.framerate = s.Metadata.Framerate
+		}
 		if v, ok := stlLanguageMapping.GetInverse(s.Metadata.Language); ok {
 			g.languageCode = v.(string)
 		}
