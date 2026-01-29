@@ -694,7 +694,7 @@ func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 		}
 		// Only use TTMLColor if we don't have WebVTT color tags
 		if !hasColorTags && li.InlineStyle.TTMLColor != nil {
-			color = cssColor(*li.InlineStyle.TTMLColor)
+			color = cssColor("#" + li.InlineStyle.TTMLColor.TTMLString())
 		}
 	}
 

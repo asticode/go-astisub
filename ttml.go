@@ -121,30 +121,39 @@ type TTMLInStyleAttributes struct {
 // StyleAttributes converts TTMLInStyleAttributes into a StyleAttributes
 func (s TTMLInStyleAttributes) styleAttributes() (o *StyleAttributes) {
 	o = &StyleAttributes{
-		TTMLBackgroundColor: s.BackgroundColor,
-		TTMLColor:           s.Color,
-		TTMLDirection:       s.Direction,
-		TTMLDisplay:         s.Display,
-		TTMLDisplayAlign:    s.DisplayAlign,
-		TTMLExtent:          s.Extent,
-		TTMLFontFamily:      s.FontFamily,
-		TTMLFontSize:        s.FontSize,
-		TTMLFontStyle:       s.FontStyle,
-		TTMLFontWeight:      s.FontWeight,
-		TTMLLineHeight:      s.LineHeight,
-		TTMLOpacity:         s.Opacity,
-		TTMLOrigin:          s.Origin,
-		TTMLOverflow:        s.Overflow,
-		TTMLPadding:         s.Padding,
-		TTMLShowBackground:  s.ShowBackground,
-		TTMLTextAlign:       s.TextAlign,
-		TTMLTextDecoration:  s.TextDecoration,
-		TTMLTextOutline:     s.TextOutline,
-		TTMLUnicodeBidi:     s.UnicodeBidi,
-		TTMLVisibility:      s.Visibility,
-		TTMLWrapOption:      s.WrapOption,
-		TTMLWritingMode:     s.WritingMode,
-		TTMLZIndex:          s.ZIndex,
+		TTMLDirection:      s.Direction,
+		TTMLDisplay:        s.Display,
+		TTMLDisplayAlign:   s.DisplayAlign,
+		TTMLExtent:         s.Extent,
+		TTMLFontFamily:     s.FontFamily,
+		TTMLFontSize:       s.FontSize,
+		TTMLFontStyle:      s.FontStyle,
+		TTMLFontWeight:     s.FontWeight,
+		TTMLLineHeight:     s.LineHeight,
+		TTMLOpacity:        s.Opacity,
+		TTMLOrigin:         s.Origin,
+		TTMLOverflow:       s.Overflow,
+		TTMLPadding:        s.Padding,
+		TTMLShowBackground: s.ShowBackground,
+		TTMLTextAlign:      s.TextAlign,
+		TTMLTextDecoration: s.TextDecoration,
+		TTMLTextOutline:    s.TextOutline,
+		TTMLUnicodeBidi:    s.UnicodeBidi,
+		TTMLVisibility:     s.Visibility,
+		TTMLWrapOption:     s.WrapOption,
+		TTMLWritingMode:    s.WritingMode,
+		TTMLZIndex:         s.ZIndex,
+	}
+	// Parse colors if present
+	if s.Color != nil {
+		if color, err := newColorFromTTMLString(*s.Color); err == nil {
+			o.TTMLColor = color
+		}
+	}
+	if s.BackgroundColor != nil {
+		if color, err := newColorFromTTMLString(*s.BackgroundColor); err == nil {
+			o.TTMLBackgroundColor = color
+		}
 	}
 	o.propagateTTMLAttributes()
 	return
@@ -569,14 +578,34 @@ type TTMLOutStyleAttributes struct {
 	ZIndex          *int    `xml:"tts:zIndex,attr,omitempty"`
 }
 
+// ttmlColorString converts a Color to a TTML hex color string (better compatibility than named colors)
+func ttmlColorString(c *Color) string {
+	if c == nil {
+		return ""
+	}
+
+	return "#" + c.TTMLString()
+}
+
 // ttmlOutStyleAttributesFromStyleAttributes converts StyleAttributes into a TTMLOutStyleAttributes
 func ttmlOutStyleAttributesFromStyleAttributes(s *StyleAttributes) TTMLOutStyleAttributes {
 	if s == nil {
 		return TTMLOutStyleAttributes{}
 	}
+	var color *string
+	if s.TTMLColor != nil {
+		// Try to convert to named color first, fall back to hex
+		colorStr := ttmlColorString(s.TTMLColor)
+		color = &colorStr
+	}
+	var backgroundColor *string
+	if s.TTMLBackgroundColor != nil {
+		colorStr := ttmlColorString(s.TTMLBackgroundColor)
+		backgroundColor = &colorStr
+	}
 	return TTMLOutStyleAttributes{
-		BackgroundColor: s.TTMLBackgroundColor,
-		Color:           s.TTMLColor,
+		BackgroundColor: backgroundColor,
+		Color:           color,
 		Direction:       s.TTMLDirection,
 		Display:         s.TTMLDisplay,
 		DisplayAlign:    s.TTMLDisplayAlign,

@@ -226,7 +226,7 @@ var (
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
 	SRTBold              bool
-	SRTColor             *string
+	SRTColor             *Color
 	SRTItalics           bool
 	SRTPosition          byte // 1-9 numpad layout
 	SRTUnderline         bool
@@ -269,8 +269,8 @@ type StyleAttributes struct {
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
 	// TODO Use pointers with real types below
-	TTMLBackgroundColor  *string // https://htmlcolorcodes.com/fr/
-	TTMLColor            *string
+	TTMLBackgroundColor  *Color
+	TTMLColor            *Color
 	TTMLDirection        *string
 	TTMLDisplay          *string
 	TTMLDisplayAlign     *string
@@ -423,7 +423,7 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
-		sa.TTMLColor = astikit.StrPtr("#" + sa.TeletextColor.TTMLString())
+		sa.TTMLColor = sa.TeletextColor
 	}
 }
 
@@ -467,9 +467,7 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 	}
 	// Propagate TTML color to STLColor for STL export
 	if sa.TTMLColor != nil {
-		if color, err := newColorFromTTMLString(*sa.TTMLColor); err == nil {
-			sa.STLColor = color
-		}
+		sa.STLColor = sa.TTMLColor
 	}
 }
 
@@ -495,11 +493,11 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 				for _, color := range tag.Classes {
 					if strings.HasPrefix(color, "bg_") && len(color) > 3 {
 						if bgColor, err := newColorFromWebVTTString(color[3:]); err == nil {
-							sa.TTMLBackgroundColor = astikit.StrPtr("#" + bgColor.TTMLString())
+							sa.TTMLBackgroundColor = bgColor
 						}
 					} else {
 						if fgColor, err := newColorFromWebVTTString(color); err == nil {
-							sa.TTMLColor = astikit.StrPtr("#" + fgColor.TTMLString())
+							sa.TTMLColor = fgColor
 							sa.STLColor = fgColor
 						}
 					}
