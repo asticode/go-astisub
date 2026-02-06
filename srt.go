@@ -23,7 +23,7 @@ var (
 
 // parseDurationSRT parses an .srt duration
 func parseDurationSRT(i string) (d time.Duration, err error) {
-	for _, s := range []string{",", "."} {
+	for _, s := range []string{",", ".", ":"} {
 		if d, err = parseDuration(i, s, 3); err == nil {
 			return
 		}

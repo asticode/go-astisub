@@ -21,9 +21,9 @@ func TestTTML(t *testing.T) {
 	assert.Equal(t, &astisub.Metadata{Framerate: 25, Language: astisub.LanguageFrench, Title: "Title test", TTMLCopyright: "Copyright test"}, s.Metadata)
 	// Styles
 	assert.Equal(t, 3, len(s.Styles))
-	assert.Equal(t, astisub.Style{ID: "style_0", InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("white"), TTMLExtent: astikit.StrPtr("100% 10%"), TTMLFontFamily: astikit.StrPtr("sansSerif"), TTMLFontStyle: astikit.StrPtr("normal"), TTMLOrigin: astikit.StrPtr("0% 90%"), TTMLTextAlign: astikit.StrPtr("center"), WebVTTAlign: "center", WebVTTLine: "0%", WebVTTLines: 2, WebVTTPosition: "90%", WebVTTRegionAnchor: "0%,0%", WebVTTScroll: "up", WebVTTSize: "10%", WebVTTViewportAnchor: "0%,90%", WebVTTWidth: "100%"}, Style: s.Styles["style_2"]}, *s.Styles["style_0"])
-	assert.Equal(t, astisub.Style{ID: "style_1", InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("white"), TTMLExtent: astikit.StrPtr("100% 13%"), TTMLFontFamily: astikit.StrPtr("sansSerif"), TTMLFontStyle: astikit.StrPtr("normal"), TTMLOrigin: astikit.StrPtr("0% 87%"), TTMLTextAlign: astikit.StrPtr("center"), WebVTTAlign: "center", WebVTTLine: "0%", WebVTTLines: 2, WebVTTPosition: "87%", WebVTTRegionAnchor: "0%,0%", WebVTTScroll: "up", WebVTTSize: "13%", WebVTTViewportAnchor: "0%,87%", WebVTTWidth: "100%"}}, *s.Styles["style_1"])
-	assert.Equal(t, astisub.Style{ID: "style_2", InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("white"), TTMLExtent: astikit.StrPtr("100% 20%"), TTMLFontFamily: astikit.StrPtr("sansSerif"), TTMLFontStyle: astikit.StrPtr("normal"), TTMLOrigin: astikit.StrPtr("0% 80%"), TTMLTextAlign: astikit.StrPtr("center"), WebVTTAlign: "center", WebVTTLine: "0%", WebVTTLines: 4, WebVTTPosition: "80%", WebVTTRegionAnchor: "0%,0%", WebVTTScroll: "up", WebVTTSize: "20%", WebVTTViewportAnchor: "0%,80%", WebVTTWidth: "100%"}}, *s.Styles["style_2"])
+	assert.Equal(t, astisub.Style{ID: "style_0", InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("white"), TTMLExtent: astikit.StrPtr("100% 10%"), TTMLFontFamily: astikit.StrPtr("sansSerif"), TTMLFontStyle: astikit.StrPtr("normal"), TTMLOrigin: astikit.StrPtr("0% 90%"), TTMLTextAlign: astikit.StrPtr("center"), WebVTTAlign: "center", WebVTTLine: "0%", WebVTTLines: 2, WebVTTPosition: &astisub.WebVTTPosition{XPosition: "90%"}, WebVTTRegionAnchor: "0%,0%", WebVTTScroll: "up", WebVTTSize: "10%", WebVTTViewportAnchor: "0%,90%", WebVTTWidth: "100%"}, Style: s.Styles["style_2"]}, *s.Styles["style_0"])
+	assert.Equal(t, astisub.Style{ID: "style_1", InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("white"), TTMLExtent: astikit.StrPtr("100% 13%"), TTMLFontFamily: astikit.StrPtr("sansSerif"), TTMLFontStyle: astikit.StrPtr("normal"), TTMLOrigin: astikit.StrPtr("0% 87%"), TTMLTextAlign: astikit.StrPtr("center"), WebVTTAlign: "center", WebVTTLine: "0%", WebVTTLines: 2, WebVTTPosition: &astisub.WebVTTPosition{XPosition: "87%"}, WebVTTRegionAnchor: "0%,0%", WebVTTScroll: "up", WebVTTSize: "13%", WebVTTViewportAnchor: "0%,87%", WebVTTWidth: "100%"}}, *s.Styles["style_1"])
+	assert.Equal(t, astisub.Style{ID: "style_2", InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("white"), TTMLExtent: astikit.StrPtr("100% 20%"), TTMLFontFamily: astikit.StrPtr("sansSerif"), TTMLFontStyle: astikit.StrPtr("normal"), TTMLOrigin: astikit.StrPtr("0% 80%"), TTMLTextAlign: astikit.StrPtr("center"), WebVTTAlign: "center", WebVTTLine: "0%", WebVTTLines: 4, WebVTTPosition: &astisub.WebVTTPosition{XPosition: "80%"}, WebVTTRegionAnchor: "0%,0%", WebVTTScroll: "up", WebVTTSize: "20%", WebVTTViewportAnchor: "0%,80%", WebVTTWidth: "100%"}}, *s.Styles["style_2"])
 	// Regions
 	assert.Equal(t, 3, len(s.Regions))
 	assert.Equal(t, astisub.Region{ID: "region_0", Style: s.Styles["style_0"], InlineStyle: &astisub.StyleAttributes{TTMLColor: astikit.StrPtr("blue")}}, *s.Regions["region_0"])
@@ -84,4 +84,21 @@ func TestWriteToTTMLWithIndentOption(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, strings.TrimSpace(string(c)), strings.TrimSpace(w.String()))
+}
+
+func TestTTMLMergeStyleAttributes(t *testing.T) {
+	// Open
+	s, err := astisub.OpenFile("./testdata/example-in-merging-style.ttml")
+	assert.NoError(t, err)
+	// Styles
+	assert.Equal(t, 4, len(s.Items))
+	assert.Equal(t, s.Items[0].Region.ID, "region_0")
+	assert.Equal(t, s.Items[0].Style.ID, "style_1")
+	assert.Equal(t, *s.Items[0].InlineStyle.TTMLColor, "red")
+	assert.Equal(t, s.Items[1].Region.ID, "region_1")
+	assert.Equal(t, s.Items[1].Style.ID, "style_0")
+	assert.Equal(t, s.Items[1].Lines[0].Items[0].Style.ID, "style_1")
+	assert.Equal(t, s.Items[2].Region.ID, "region_2")
+	assert.Equal(t, s.Items[2].Style.ID, "style_0")
+	assert.Equal(t, *s.Items[3].InlineStyle.TTMLColor, "blue")
 }

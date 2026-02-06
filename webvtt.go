@@ -37,6 +37,39 @@ var (
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
 )
 
+type WebVTTPosition struct {
+	XPosition string
+	Alignment string
+}
+
+// newWebVTTPosition creates a new WebVTTPosition from a string.
+// The string can be in the format "XPosition,Alignment" or just "XPosition".
+func newWebVTTPosition(s string) *WebVTTPosition {
+	if s == "" {
+		return nil
+	}
+
+	parts := strings.Split(s, ",")
+	if len(parts) != 2 {
+		return &WebVTTPosition{XPosition: strings.TrimSpace(s)}
+	}
+
+	return &WebVTTPosition{
+		XPosition: strings.TrimSpace(parts[0]),
+		Alignment: strings.TrimSpace(parts[1]),
+	}
+}
+
+func (p *WebVTTPosition) String() string {
+	if p == nil {
+		return ""
+	}
+	if p.Alignment != "" {
+		return fmt.Sprintf("%s,%s", p.XPosition, p.Alignment)
+	}
+	return p.XPosition
+}
+
 // parseDurationWebVTT parses a .vtt duration
 func parseDurationWebVTT(i string) (time.Duration, error) {
 	return parseDuration(i, ".", 3)
@@ -272,7 +305,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 					case "line":
 						item.InlineStyle.WebVTTLine = split[1]
 					case "position":
-						item.InlineStyle.WebVTTPosition = split[1]
+						item.InlineStyle.WebVTTPosition = newWebVTTPosition(split[1])
 					case "region":
 						if _, ok := o.Regions[split[1]]; !ok {
 							err = fmt.Errorf("astisub: line %d: Unknown region %s", lineNum, split[1])
@@ -597,12 +630,12 @@ func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
 				c = append(c, bytesSpace...)
 				c = append(c, []byte("line:"+item.Style.InlineStyle.WebVTTLine)...)
 			}
-			if item.InlineStyle.WebVTTPosition != "" {
+			if item.InlineStyle.WebVTTPosition != nil {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("position:"+item.InlineStyle.WebVTTPosition)...)
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTPosition != "" {
+				c = append(c, []byte("position:"+item.InlineStyle.WebVTTPosition.String())...)
+			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTPosition != nil {
 				c = append(c, bytesSpace...)
-				c = append(c, []byte("position:"+item.Style.InlineStyle.WebVTTPosition)...)
+				c = append(c, []byte("position:"+item.Style.InlineStyle.WebVTTPosition.String())...)
 			}
 			if item.Region != nil {
 				c = append(c, bytesSpace...)
@@ -671,10 +704,21 @@ func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 		c = append(c, []byte("<"+formatDurationWebVTT(li.StartAt)+">")...)
 	}
 
-	// Get color
+	// Get color - only add TTMLColor-based tag if there are no WebVTT color tags
 	var color string
-	if li.InlineStyle != nil && li.InlineStyle.TTMLColor != nil {
-		color = cssColor(*li.InlineStyle.TTMLColor)
+	var hasColorTags bool
+	if li.InlineStyle != nil {
+		// Check if we have WebVTT color tags
+		for _, tag := range li.InlineStyle.WebVTTTags {
+			if tag.Name == "c" {
+				hasColorTags = true
+				break
+			}
+		}
+		// Only use TTMLColor if we don't have WebVTT color tags
+		if !hasColorTags && li.InlineStyle.TTMLColor != nil {
+			color = cssColor(*li.InlineStyle.TTMLColor)
+		}
 	}
 
 	// Append
@@ -714,4 +758,43 @@ func cssColor(rgb string) string {
 		"#00ff00": "lime",    // foreign speak
 	}
 	return colors[strings.ToLower(rgb)] // returning the empty string is ok
+}
+
+func newColorFromWebVTTString(color string) (*Color, error) {
+	switch color {
+	case "black":
+		return ColorBlack, nil
+	case "red":
+		return ColorRed, nil
+	case "green":
+		return ColorGreen, nil
+	case "yellow":
+		return ColorYellow, nil
+	case "blue":
+		return ColorBlue, nil
+	case "magenta":
+		return ColorMagenta, nil
+	case "cyan":
+		return ColorCyan, nil
+	case "white":
+		return ColorWhite, nil
+	case "silver":
+		return ColorSilver, nil
+	case "gray":
+		return ColorGray, nil
+	case "maroon":
+		return ColorMaroon, nil
+	case "olive":
+		return ColorOlive, nil
+	case "lime":
+		return ColorLime, nil
+	case "teal":
+		return ColorTeal, nil
+	case "navy":
+		return ColorNavy, nil
+	case "purple":
+		return ColorPurple, nil
+	default:
+		return nil, fmt.Errorf("unknown color class %s", color)
+	}
 }
