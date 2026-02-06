@@ -347,3 +347,16 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	assert.Nil(t, unknownColorItem.InlineStyle.TTMLColor) // Unknown color should not be converted
 	assert.Nil(t, unknownColorItem.InlineStyle.TTMLBackgroundColor)
 }
+
+func BenchmarkWriteToWebVTT(b *testing.B) {
+	s, err := astisub.OpenFile("./testdata/example-in.vtt")
+	if err != nil {
+		b.Fatal(err)
+	}
+	w := &bytes.Buffer{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w.Reset()
+		s.WriteToWebVTT(w)
+	}
+}

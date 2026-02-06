@@ -171,3 +171,16 @@ func TestSRTParseDuration(t *testing.T) {
 	assert.Equal(t, 5*time.Second+985*time.Millisecond, s.Items[1].EndAt)
 	assert.Equal(t, "Duration without colon milliseconds", s.Items[1].Lines[0].String())
 }
+
+func BenchmarkWriteToSRT(b *testing.B) {
+	s, err := astisub.OpenFile("./testdata/example-in.srt")
+	if err != nil {
+		b.Fatal(err)
+	}
+	w := &bytes.Buffer{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w.Reset()
+		s.WriteToSRT(w)
+	}
+}
