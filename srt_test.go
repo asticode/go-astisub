@@ -153,13 +153,34 @@ func TestSRTParseDuration(t *testing.T) {
 	testData := `
 	1
 	00:00:01.876-->00:0:03.390
-	Duration without enclosing space`
+	Duration without enclosing space
+	
+	2
+	00:00:04:609-->00:0:05:985
+	Duration without colon milliseconds`
 
 	s, err := astisub.ReadFromSRT(strings.NewReader(testData))
 	require.NoError(t, err)
 
-	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items, 2)
 	assert.Equal(t, 1*time.Second+876*time.Millisecond, s.Items[0].StartAt)
 	assert.Equal(t, 3*time.Second+390*time.Millisecond, s.Items[0].EndAt)
 	assert.Equal(t, "Duration without enclosing space", s.Items[0].Lines[0].String())
+
+	assert.Equal(t, 4*time.Second+609*time.Millisecond, s.Items[1].StartAt)
+	assert.Equal(t, 5*time.Second+985*time.Millisecond, s.Items[1].EndAt)
+	assert.Equal(t, "Duration without colon milliseconds", s.Items[1].Lines[0].String())
+}
+
+func BenchmarkWriteToSRT(b *testing.B) {
+	s, err := astisub.OpenFile("./testdata/example-in.srt")
+	if err != nil {
+		b.Fatal(err)
+	}
+	w := &bytes.Buffer{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w.Reset()
+		s.WriteToSRT(w)
+	}
 }

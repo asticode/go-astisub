@@ -17,7 +17,7 @@ To install the library:
 
 To install the CLI:
 
-    go install github.com/asticode/go-astisub/astisub        
+    go install github.com/asticode/go-astisub/cmd/astisub        
 
 # Using the library in your code
 

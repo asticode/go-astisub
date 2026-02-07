@@ -29,7 +29,7 @@ NOTE This a comment inside the VTT
 and this is the second line
 
 2
-00:02:04.080 --> 00:02:07.120 align:left position:10%,start region:fred size:35%
+00:02:04.080 --> 00:02:07.120 align:left position:10%,line-left region:fred size:35%
 MAN:
 How did we end up here?
 
