@@ -356,8 +356,10 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 			// default to middle anyway?
 		case JustificationRight:
 			sa.WebVTTAlign = "right"
+			sa.TTMLTextAlign = astikit.StrPtr("right")
 		case JustificationLeft:
 			sa.WebVTTAlign = "left"
+			sa.TTMLTextAlign = astikit.StrPtr("left")
 		}
 	}
 	// converts STL vertical position (row number) to WebVTT line percentage
