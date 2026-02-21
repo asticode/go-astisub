@@ -578,15 +578,6 @@ type TTMLOutStyleAttributes struct {
 	ZIndex          *int    `xml:"tts:zIndex,attr,omitempty"`
 }
 
-// ttmlColorString converts a Color to a TTML hex color string (better compatibility than named colors)
-func ttmlColorString(c *Color) string {
-	if c == nil {
-		return ""
-	}
-
-	return "#" + c.TTMLString()
-}
-
 // ttmlOutStyleAttributesFromStyleAttributes converts StyleAttributes into a TTMLOutStyleAttributes
 func ttmlOutStyleAttributesFromStyleAttributes(s *StyleAttributes) TTMLOutStyleAttributes {
 	if s == nil {
@@ -595,13 +586,11 @@ func ttmlOutStyleAttributesFromStyleAttributes(s *StyleAttributes) TTMLOutStyleA
 	var color *string
 	if s.TTMLColor != nil {
 		// Try to convert to named color first, fall back to hex
-		colorStr := ttmlColorString(s.TTMLColor)
-		color = &colorStr
+		color = astikit.StrPtr(s.TTMLColor.HTMLString())
 	}
 	var backgroundColor *string
 	if s.TTMLBackgroundColor != nil {
-		colorStr := ttmlColorString(s.TTMLBackgroundColor)
-		backgroundColor = &colorStr
+		backgroundColor = astikit.StrPtr(s.TTMLBackgroundColor.HTMLString())
 	}
 	return TTMLOutStyleAttributes{
 		BackgroundColor: backgroundColor,

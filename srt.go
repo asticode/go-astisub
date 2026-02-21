@@ -269,7 +269,7 @@ func (li LineItem) srtBytes() (c []byte) {
 	// Get color
 	var color string
 	if li.InlineStyle != nil && li.InlineStyle.SRTColor != nil {
-		color = "#" + li.InlineStyle.SRTColor.TTMLString()
+		color = li.InlineStyle.SRTColor.HTMLString()
 	}
 
 	// Get bold/italics/underline

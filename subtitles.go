@@ -204,14 +204,72 @@ func newColorFromHTMLString(s string) (*Color, error) {
 	}, nil
 }
 
+func newColorFromWebVTTString(color string) (*Color, error) {
+	switch color {
+	case "black":
+		return ColorBlack, nil
+	case "red":
+		return ColorRed, nil
+	case "green":
+		return ColorGreen, nil
+	case "yellow":
+		return ColorYellow, nil
+	case "blue":
+		return ColorBlue, nil
+	case "magenta":
+		return ColorMagenta, nil
+	case "cyan":
+		return ColorCyan, nil
+	case "white":
+		return ColorWhite, nil
+	case "silver":
+		return ColorSilver, nil
+	case "gray":
+		return ColorGray, nil
+	case "maroon":
+		return ColorMaroon, nil
+	case "olive":
+		return ColorOlive, nil
+	case "lime":
+		return ColorLime, nil
+	case "teal":
+		return ColorTeal, nil
+	case "navy":
+		return ColorNavy, nil
+	case "purple":
+		return ColorPurple, nil
+	default:
+		return nil, fmt.Errorf("unknown color class %s", color)
+	}
+}
+
 // SSAString expresses the color as an SSA string
 func (c *Color) SSAString() string {
 	return fmt.Sprintf("%.8x", uint32(c.Alpha)<<24|uint32(c.Blue)<<16|uint32(c.Green)<<8|uint32(c.Red))
 }
 
-// TTMLString expresses the color as a TTML string
-func (c *Color) TTMLString() string {
-	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
+// HTMLString expresses the color as a hex string (e.g., "#ffffff")
+func (c *Color) HTMLString() string {
+	if c == nil {
+		return ""
+	}
+	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
+}
+
+// CSSString expresses the color as a CSS color class name (e.g., "red" or "cyan")
+func (c *Color) CSSString() string {
+	if c == nil {
+		return ""
+	}
+	rgb := fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
+	colors := map[string]string{
+		"#00ffff": "cyan",    // narrator, thought
+		"#ffff00": "yellow",  // out of vision
+		"#ff0000": "red",     // noises
+		"#ff00ff": "magenta", // song
+		"#00ff00": "lime",    // foreign speak
+	}
+	return colors[rgb]
 }
 
 type Justification int
