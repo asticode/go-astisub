@@ -146,12 +146,12 @@ func (s TTMLInStyleAttributes) styleAttributes() (o *StyleAttributes) {
 	}
 	// Parse colors if present
 	if s.Color != nil {
-		if color, err := newColorFromTTMLString(*s.Color); err == nil {
+		if color, err := newColorFromHTMLString(*s.Color); err == nil {
 			o.TTMLColor = color
 		}
 	}
 	if s.BackgroundColor != nil {
-		if color, err := newColorFromTTMLString(*s.BackgroundColor); err == nil {
+		if color, err := newColorFromHTMLString(*s.BackgroundColor); err == nil {
 			o.TTMLBackgroundColor = color
 		}
 	}

@@ -162,8 +162,8 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 	return
 }
 
-// newColorFromTTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
-func newColorFromTTMLString(s string) (*Color, error) {
+// newColorFromHTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
+func newColorFromHTMLString(s string) (*Color, error) {
 	// Remove leading # if present
 	s = strings.TrimPrefix(s, "#")
 
