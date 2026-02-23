@@ -295,7 +295,7 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	assert.Equal(t, "Red text", redItem.Text)
 	require.NotNil(t, redItem.InlineStyle)
 	require.NotNil(t, redItem.InlineStyle.TTMLColor)
-	assert.Equal(t, "#ff0000", *redItem.InlineStyle.TTMLColor) // Red color
+	assert.Equal(t, astisub.ColorRed, redItem.InlineStyle.TTMLColor)
 	assert.Nil(t, redItem.InlineStyle.TTMLBackgroundColor)
 
 	// Check blue text on yellow background
@@ -304,8 +304,8 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	require.NotNil(t, blueYellowItem.InlineStyle)
 	require.NotNil(t, blueYellowItem.InlineStyle.TTMLColor)
 	require.NotNil(t, blueYellowItem.InlineStyle.TTMLBackgroundColor)
-	assert.Equal(t, "#0000ff", *blueYellowItem.InlineStyle.TTMLColor)           // Blue color
-	assert.Equal(t, "#ffff00", *blueYellowItem.InlineStyle.TTMLBackgroundColor) // Yellow background
+	assert.Equal(t, astisub.ColorBlue, blueYellowItem.InlineStyle.TTMLColor)
+	assert.Equal(t, astisub.ColorYellow, blueYellowItem.InlineStyle.TTMLBackgroundColor)
 
 	// Test item 2: Green text and background color only
 	item2 := s.Items[1]
@@ -317,7 +317,7 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	assert.Equal(t, "Green text", greenItem.Text)
 	require.NotNil(t, greenItem.InlineStyle)
 	require.NotNil(t, greenItem.InlineStyle.TTMLColor)
-	assert.Equal(t, "#008000", *greenItem.InlineStyle.TTMLColor) // Green color
+	assert.Equal(t, astisub.ColorGreen, greenItem.InlineStyle.TTMLColor)
 	assert.Nil(t, greenItem.InlineStyle.TTMLBackgroundColor)
 
 	// Check text with cyan background only
@@ -326,7 +326,7 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	require.NotNil(t, cyanBgItem.InlineStyle)
 	assert.Nil(t, cyanBgItem.InlineStyle.TTMLColor) // No foreground color specified
 	require.NotNil(t, cyanBgItem.InlineStyle.TTMLBackgroundColor)
-	assert.Equal(t, "#00ffff", *cyanBgItem.InlineStyle.TTMLBackgroundColor) // Cyan background
+	assert.Equal(t, astisub.ColorCyan, cyanBgItem.InlineStyle.TTMLBackgroundColor)
 
 	// Test item 3: Known and unknown colors
 	item3 := s.Items[2]
@@ -338,7 +338,7 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	assert.Equal(t, "magenta", magentaItem.Text)
 	require.NotNil(t, magentaItem.InlineStyle)
 	require.NotNil(t, magentaItem.InlineStyle.TTMLColor)
-	assert.Equal(t, "#ff00ff", *magentaItem.InlineStyle.TTMLColor) // Magenta color
+	assert.Equal(t, astisub.ColorMagenta, magentaItem.InlineStyle.TTMLColor)
 
 	// Check unknown color (should not set TTMLColor because "orange" is not in webVTTColorMap)
 	unknownColorItem := item3.Lines[0].Items[3]

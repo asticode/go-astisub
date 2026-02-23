@@ -162,14 +162,115 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 	return
 }
 
+// newColorFromHTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
+func newColorFromHTMLString(s string) (*Color, error) {
+	// Remove leading # if present
+	s = strings.TrimPrefix(s, "#")
+
+	// Check for named colors
+	switch strings.ToLower(s) {
+	case "black":
+		return ColorBlack, nil
+	case "red":
+		return ColorRed, nil
+	case "green":
+		return ColorGreen, nil
+	case "yellow":
+		return ColorYellow, nil
+	case "blue":
+		return ColorBlue, nil
+	case "magenta":
+		return ColorMagenta, nil
+	case "cyan":
+		return ColorCyan, nil
+	case "white":
+		return ColorWhite, nil
+	}
+
+	// Parse hex color (RRGGBB format)
+	if len(s) != 6 {
+		return nil, fmt.Errorf("invalid TTML color format: %s", s)
+	}
+
+	i, err := strconv.ParseUint(s, 16, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parsing TTML color %s failed: %w", s, err)
+	}
+
+	return &Color{
+		Red:   uint8(i >> 16 & 0xff),
+		Green: uint8(i >> 8 & 0xff),
+		Blue:  uint8(i & 0xff),
+	}, nil
+}
+
+func newColorFromWebVTTString(color string) (*Color, error) {
+	switch color {
+	case "black":
+		return ColorBlack, nil
+	case "red":
+		return ColorRed, nil
+	case "green":
+		return ColorGreen, nil
+	case "yellow":
+		return ColorYellow, nil
+	case "blue":
+		return ColorBlue, nil
+	case "magenta":
+		return ColorMagenta, nil
+	case "cyan":
+		return ColorCyan, nil
+	case "white":
+		return ColorWhite, nil
+	case "silver":
+		return ColorSilver, nil
+	case "gray":
+		return ColorGray, nil
+	case "maroon":
+		return ColorMaroon, nil
+	case "olive":
+		return ColorOlive, nil
+	case "lime":
+		return ColorLime, nil
+	case "teal":
+		return ColorTeal, nil
+	case "navy":
+		return ColorNavy, nil
+	case "purple":
+		return ColorPurple, nil
+	default:
+		return nil, fmt.Errorf("unknown color class %s", color)
+	}
+}
+
 // SSAString expresses the color as an SSA string
 func (c *Color) SSAString() string {
 	return fmt.Sprintf("%.8x", uint32(c.Alpha)<<24|uint32(c.Blue)<<16|uint32(c.Green)<<8|uint32(c.Red))
 }
 
-// TTMLString expresses the color as a TTML string
-func (c *Color) TTMLString() string {
-	return fmt.Sprintf("%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
+// HTMLString expresses the color as a hex string (e.g., "#ffffff")
+func (c *Color) HTMLString() string {
+	if c == nil {
+		return ""
+	}
+	// TODO Check named colors first
+	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
+}
+
+// WebVTTString expresses the color as a CSS color class name (e.g., "red" or "cyan")
+func (c *Color) WebVTTString() string {
+	if c == nil {
+		return ""
+	}
+	rgb := fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
+	colors := map[string]string{
+		"#00ffff": "cyan",    // narrator, thought
+		"#ffff00": "yellow",  // out of vision
+		"#ff0000": "red",     // noises
+		"#ff00ff": "magenta", // song
+		"#00ff00": "lime",    // foreign speak
+	}
+	return colors[rgb]
 }
 
 type Justification int
@@ -184,7 +285,7 @@ var (
 // StyleAttributes represents style attributes
 type StyleAttributes struct {
 	SRTBold              bool
-	SRTColor             *string
+	SRTColor             *Color
 	SRTItalics           bool
 	SRTPosition          byte // 1-9 numpad layout
 	SRTUnderline         bool
@@ -215,6 +316,7 @@ type StyleAttributes struct {
 	SSAStrikeout         *bool
 	SSAUnderline         *bool
 	STLBoxing            *bool
+	STLColor             *Color
 	STLItalics           *bool
 	STLJustification     *Justification
 	STLPosition          *STLPosition
@@ -226,8 +328,8 @@ type StyleAttributes struct {
 	TeletextSpacesAfter  *int
 	TeletextSpacesBefore *int
 	// TODO Use pointers with real types below
-	TTMLBackgroundColor  *string // https://htmlcolorcodes.com/fr/
-	TTMLColor            *string
+	TTMLBackgroundColor  *Color
+	TTMLColor            *Color
 	TTMLDirection        *string
 	TTMLDisplay          *string
 	TTMLDisplayAlign     *string
@@ -372,11 +474,15 @@ func (sa *StyleAttributes) propagateSTLAttributes() {
 			sa.WebVTTLine = fmt.Sprintf("%d%%", (sa.STLPosition.VerticalPosition-1)*100/sa.STLPosition.MaxRows)
 		}
 	}
+	// Propagate STL color to TeletextColor
+	if sa.STLColor != nil {
+		sa.TeletextColor = sa.STLColor
+	}
 }
 
 func (sa *StyleAttributes) propagateTeletextAttributes() {
 	if sa.TeletextColor != nil {
-		sa.TTMLColor = astikit.StrPtr("#" + sa.TeletextColor.TTMLString())
+		sa.TTMLColor = sa.TeletextColor
 	}
 }
 
@@ -418,6 +524,10 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 		}
 	}
+	// Propagate TTML color to STLColor for STL export
+	if sa.TTMLColor != nil {
+		sa.STLColor = sa.TTMLColor
+	}
 }
 
 func (sa *StyleAttributes) propagateWebVTTAttributes() {
@@ -442,11 +552,12 @@ func (sa *StyleAttributes) propagateWebVTTAttributes() {
 				for _, color := range tag.Classes {
 					if strings.HasPrefix(color, "bg_") && len(color) > 3 {
 						if bgColor, err := newColorFromWebVTTString(color[3:]); err == nil {
-							sa.TTMLBackgroundColor = astikit.StrPtr("#" + bgColor.TTMLString())
+							sa.TTMLBackgroundColor = bgColor
 						}
 					} else {
 						if fgColor, err := newColorFromWebVTTString(color); err == nil {
-							sa.TTMLColor = astikit.StrPtr("#" + fgColor.TTMLString())
+							sa.TTMLColor = fgColor
+							sa.STLColor = fgColor
 						}
 					}
 				}

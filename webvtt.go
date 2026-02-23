@@ -694,7 +694,7 @@ func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 		}
 		// Only use TTMLColor if we don't have WebVTT color tags
 		if !hasColorTags && li.InlineStyle.TTMLColor != nil {
-			color = cssColor(*li.InlineStyle.TTMLColor)
+			color = li.InlineStyle.TTMLColor.WebVTTString()
 		}
 	}
 
@@ -724,54 +724,4 @@ func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 		c = append(c, []byte("</c>")...)
 	}
 	return
-}
-
-func cssColor(rgb string) string {
-	colors := map[string]string{
-		"#00ffff": "cyan",    // narrator, thought
-		"#ffff00": "yellow",  // out of vision
-		"#ff0000": "red",     // noises
-		"#ff00ff": "magenta", // song
-		"#00ff00": "lime",    // foreign speak
-	}
-	return colors[strings.ToLower(rgb)] // returning the empty string is ok
-}
-
-func newColorFromWebVTTString(color string) (*Color, error) {
-	switch color {
-	case "black":
-		return ColorBlack, nil
-	case "red":
-		return ColorRed, nil
-	case "green":
-		return ColorGreen, nil
-	case "yellow":
-		return ColorYellow, nil
-	case "blue":
-		return ColorBlue, nil
-	case "magenta":
-		return ColorMagenta, nil
-	case "cyan":
-		return ColorCyan, nil
-	case "white":
-		return ColorWhite, nil
-	case "silver":
-		return ColorSilver, nil
-	case "gray":
-		return ColorGray, nil
-	case "maroon":
-		return ColorMaroon, nil
-	case "olive":
-		return ColorOlive, nil
-	case "lime":
-		return ColorLime, nil
-	case "teal":
-		return ColorTeal, nil
-	case "navy":
-		return ColorNavy, nil
-	case "purple":
-		return ColorPurple, nil
-	default:
-		return nil, fmt.Errorf("unknown color class %s", color)
-	}
 }
