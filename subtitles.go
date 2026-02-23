@@ -253,11 +253,12 @@ func (c *Color) HTMLString() string {
 	if c == nil {
 		return ""
 	}
+	// TODO Check named colors first
 	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
 }
 
-// CSSString expresses the color as a CSS color class name (e.g., "red" or "cyan")
-func (c *Color) CSSString() string {
+// WebVTTString expresses the color as a CSS color class name (e.g., "red" or "cyan")
+func (c *Color) WebVTTString() string {
 	if c == nil {
 		return ""
 	}
