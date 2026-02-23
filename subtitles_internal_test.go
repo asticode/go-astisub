@@ -69,3 +69,99 @@ func TestFormatDuration(t *testing.T) {
 	s = formatDuration(12*time.Hour+34*time.Minute+56*time.Second+999*time.Millisecond, ",", 2)
 	assert.Equal(t, "12:34:56,99", s)
 }
+
+func TestPropagateSTLAttributes(t *testing.T) {
+	// Test JustificationRight propagates to both WebVTTAlign and TTMLTextAlign
+	t.Run("JustificationRight", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLJustification: &JustificationRight,
+		}
+		sa.propagateSTLAttributes()
+		assert.Equal(t, "right", sa.WebVTTAlign)
+		assert.NotNil(t, sa.TTMLTextAlign)
+		assert.Equal(t, "right", *sa.TTMLTextAlign)
+	})
+
+	// Test JustificationLeft propagates to both WebVTTAlign and TTMLTextAlign
+	t.Run("JustificationLeft", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLJustification: &JustificationLeft,
+		}
+		sa.propagateSTLAttributes()
+		assert.Equal(t, "left", sa.WebVTTAlign)
+		assert.NotNil(t, sa.TTMLTextAlign)
+		assert.Equal(t, "left", *sa.TTMLTextAlign)
+	})
+
+	// Test JustificationCentered doesn't set TTMLTextAlign
+	t.Run("JustificationCentered", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLJustification: &JustificationCentered,
+		}
+		sa.propagateSTLAttributes()
+		assert.Empty(t, sa.WebVTTAlign)
+		assert.Nil(t, sa.TTMLTextAlign)
+	})
+
+	// Test nil justification doesn't set anything
+	t.Run("NoJustification", func(t *testing.T) {
+		sa := &StyleAttributes{}
+		sa.propagateSTLAttributes()
+		assert.Empty(t, sa.WebVTTAlign)
+		assert.Nil(t, sa.TTMLTextAlign)
+	})
+
+	// Test STLPosition to WebVTTLine conversion (in-vision)
+	t.Run("STLPositionInVision", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLPosition: &STLPosition{
+				VerticalPosition: 50,
+				MaxRows:          99,
+			},
+		}
+		sa.propagateSTLAttributes()
+		assert.Equal(t, "50%", sa.WebVTTLine)
+	})
+
+	// Test STLPosition to WebVTTLine conversion (teletext)
+	t.Run("STLPositionTeletext", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLPosition: &STLPosition{
+				VerticalPosition: 22,
+				MaxRows:          23,
+			},
+		}
+		sa.propagateSTLAttributes()
+		// (22-1)*100/23 = 91
+		assert.Equal(t, "91%", sa.WebVTTLine)
+	})
+
+	// Test STLPosition at row 0 for teletext (edge case)
+	t.Run("STLPositionTeletextRow0", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLPosition: &STLPosition{
+				VerticalPosition: 0,
+				MaxRows:          23,
+			},
+		}
+		sa.propagateSTLAttributes()
+		// When VerticalPosition is 0, we don't subtract 1
+		assert.Equal(t, "0%", sa.WebVTTLine)
+	})
+
+	// Test combined justification and position
+	t.Run("JustificationAndPosition", func(t *testing.T) {
+		sa := &StyleAttributes{
+			STLJustification: &JustificationRight,
+			STLPosition: &STLPosition{
+				VerticalPosition: 10,
+				MaxRows:          23,
+			},
+		}
+		sa.propagateSTLAttributes()
+		assert.Equal(t, "right", sa.WebVTTAlign)
+		assert.NotNil(t, sa.TTMLTextAlign)
+		assert.Equal(t, "right", *sa.TTMLTextAlign)
+		assert.Equal(t, "39%", sa.WebVTTLine) // (10-1)*100/23 = 39
+	})
+}
