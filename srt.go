@@ -1,6 +1,7 @@
 package astisub
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -223,49 +224,76 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 		return
 	}
 
+	// Init writer
+	w := bufio.NewWriter(o)
+	defer w.Flush()
+
 	// Add BOM header
-	var c []byte
-	c = append(c, BytesBOM...)
+	if _, err = w.Write(BytesBOM); err != nil {
+		err = fmt.Errorf("astisub: writing bom failed: %w", err)
+		return
+	}
 
 	// Loop through subtitles
 	for k, v := range s.Items {
 		// Add time boundaries
-		c = append(c, []byte(strconv.Itoa(k+1))...)
-		c = append(c, bytesLineSeparator...)
-		c = append(c, []byte(formatDurationSRT(v.StartAt))...)
-		c = append(c, bytesSRTTimeBoundariesSeparator...)
-		c = append(c, []byte(formatDurationSRT(v.EndAt))...)
-		c = append(c, bytesLineSeparator...)
+		if _, err = w.WriteString(strconv.Itoa(k + 1)); err != nil {
+			err = fmt.Errorf("astisub: writing index failed: %w", err)
+			return
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+			return
+		}
+		if _, err = w.WriteString(formatDurationSRT(v.StartAt)); err != nil {
+			err = fmt.Errorf("astisub: writing start at failed: %w", err)
+			return
+		}
+		if _, err = w.Write(bytesSRTTimeBoundariesSeparator); err != nil {
+			err = fmt.Errorf("astisub: writing time boundaries separator failed: %w", err)
+			return
+		}
+		if _, err = w.WriteString(formatDurationSRT(v.EndAt)); err != nil {
+			err = fmt.Errorf("astisub: writing end at failed: %w", err)
+			return
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+			return
+		}
 
 		// Loop through lines
 		for _, l := range v.Lines {
-			c = append(c, []byte(l.srtBytes())...)
+			if err = l.writeSRT(w); err != nil {
+				return
+			}
 		}
 
 		// Add new line
-		c = append(c, bytesLineSeparator...)
+		if k < len(s.Items)-1 {
+			if _, err = w.Write(bytesLineSeparator); err != nil {
+				err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+				return
+			}
+		}
 	}
+	return
+}
 
-	// Remove last new line
-	c = c[:len(c)-1]
-
-	// Write
-	if _, err = o.Write(c); err != nil {
-		err = fmt.Errorf("astisub: writing failed: %w", err)
+func (l Line) writeSRT(w io.Writer) (err error) {
+	for _, li := range l.Items {
+		if err = li.writeSRT(w); err != nil {
+			return
+		}
+	}
+	if _, err = w.Write(bytesLineSeparator); err != nil {
+		err = fmt.Errorf("astisub: writing line separator failed: %w", err)
 		return
 	}
 	return
 }
 
-func (l Line) srtBytes() (c []byte) {
-	for _, li := range l.Items {
-		c = append(c, li.srtBytes()...)
-	}
-	c = append(c, bytesLineSeparator...)
-	return
-}
-
-func (li LineItem) srtBytes() (c []byte) {
+func (li LineItem) writeSRT(w io.Writer) (err error) {
 	// Get color
 	var color string
 	if li.InlineStyle != nil && li.InlineStyle.SRTColor != nil {
@@ -285,32 +313,52 @@ func (li LineItem) srtBytes() (c []byte) {
 
 	// Append
 	if color != "" {
-		c = append(c, []byte("<font color=\""+color+"\">")...)
+		if _, err = w.Write([]byte("<font color=\"" + color + "\">")); err != nil {
+			return fmt.Errorf("astisub: writing font color failed: %w", err)
+		}
 	}
 	if b {
-		c = append(c, []byte("<b>")...)
+		if _, err = w.Write([]byte("<b>")); err != nil {
+			return fmt.Errorf("astisub: writing bold failed: %w", err)
+		}
 	}
 	if i {
-		c = append(c, []byte("<i>")...)
+		if _, err = w.Write([]byte("<i>")); err != nil {
+			return fmt.Errorf("astisub: writing italics failed: %w", err)
+		}
 	}
 	if u {
-		c = append(c, []byte("<u>")...)
+		if _, err = w.Write([]byte("<u>")); err != nil {
+			return fmt.Errorf("astisub: writing underline failed: %w", err)
+		}
 	}
 	if pos != 0 {
-		c = append(c, []byte(fmt.Sprintf(`{\an%d}`, pos))...)
+		if _, err = w.Write([]byte(fmt.Sprintf(`{\an%d}`, pos))); err != nil {
+			return fmt.Errorf("astisub: writing position failed: %w", err)
+		}
 	}
-	c = append(c, []byte(escapeHTML(li.Text))...)
+	if _, err = w.Write([]byte(escapeHTML(li.Text))); err != nil {
+		return fmt.Errorf("astisub: writing text failed: %w", err)
+	}
 	if u {
-		c = append(c, []byte("</u>")...)
+		if _, err = w.Write([]byte("</u>")); err != nil {
+			return fmt.Errorf("astisub: writing underline close failed: %w", err)
+		}
 	}
 	if i {
-		c = append(c, []byte("</i>")...)
+		if _, err = w.Write([]byte("</i>")); err != nil {
+			return fmt.Errorf("astisub: writing italics close failed: %w", err)
+		}
 	}
 	if b {
-		c = append(c, []byte("</b>")...)
+		if _, err = w.Write([]byte("</b>")); err != nil {
+			return fmt.Errorf("astisub: writing bold close failed: %w", err)
+		}
 	}
 	if color != "" {
-		c = append(c, []byte("</font>")...)
+		if _, err = w.Write([]byte("</font>")); err != nil {
+			return fmt.Errorf("astisub: writing font close failed: %w", err)
+		}
 	}
 	return
 }
