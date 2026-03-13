@@ -3,7 +3,7 @@ module github.com/asticode/go-astisub
 go 1.24.0
 
 require (
-	github.com/asticode/go-astikit v0.57.1
+	github.com/asticode/go-astikit v0.58.0
 	github.com/asticode/go-astits v1.15.0
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.49.0

@@ -1,7 +1,6 @@
 package astisub
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,8 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/net/html"
+
+	"github.com/asticode/go-astikit"
 )
 
 // https://www.w3.org/TR/webvtt1/
@@ -495,38 +496,31 @@ func formatDurationWebVTT(i time.Duration) string {
 
 // WriteToWebVTT writes subtitles in .vtt format
 // if set true in second args write index as item index
-func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
-	var o io.Writer
+// WriteToWebVTT writes subtitles in .vtt format
+// if set true in second args write index as item index
+func (s Subtitles) WriteToWebVTT(o io.Writer, args ...interface{}) (err error) {
+	// Options
 	writeWithIndex := false
 	for i, arg := range args {
 		switch i {
-		case 0: // default output writer
-			out, ok := arg.(io.Writer)
-			if !ok {
-				return fmt.Errorf("first input argument must be io.Writer")
+		case 0:
+			if b, ok := arg.(bool); ok {
+				writeWithIndex = b
 			}
-			o = out
-		case 1:
-			b, ok := arg.(bool)
-			if !ok {
-				return fmt.Errorf("second input argument must be boolean")
-			}
-			writeWithIndex = b
 		}
 	}
+
 	// Do not write anything if no subtitles
 	if len(s.Items) == 0 {
 		err = ErrNoSubtitlesToWrite
 		return
 	}
 
-	// Init writer
-	w := bufio.NewWriter(o)
-	defer w.Flush()
+	// Init chainer
+	c := astikit.NewWriteChainer(o)
 
 	// Add header
-	if _, err = w.WriteString("WEBVTT"); err != nil {
-		err = fmt.Errorf("astisub: writing header failed: %w", err)
+	if _, err = c.Write(astikit.WriteWithLabel("header", []byte("WEBVTT"))); err != nil {
 		return
 	}
 
@@ -534,18 +528,15 @@ func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
 	if s.Metadata != nil {
 		webVTTTimestampMap := s.Metadata.WebVTTTimestampMap
 		if webVTTTimestampMap != nil {
-			if _, err = w.Write([]byte("\n")); err != nil {
-				err = fmt.Errorf("astisub: writing newline failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString(webVTTTimestampMap.String()); err != nil {
-				err = fmt.Errorf("astisub: writing timestamp map failed: %w", err)
+			if _, err = c.Write(
+				astikit.WriteWithLabel("newline", []byte("\n")),
+				astikit.WriteWithLabel("timestamp map", []byte(webVTTTimestampMap.String())),
+			); err != nil {
 				return
 			}
 		}
 	}
-	if _, err = w.Write([]byte("\n\n")); err != nil {
-		err = fmt.Errorf("astisub: writing newline failed: %w", err)
+	if _, err = c.Write(astikit.WriteWithLabel("newline", []byte("\n\n"))); err != nil {
 		return
 	}
 
@@ -557,8 +548,7 @@ func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
 	}
 
 	if len(style) > 0 {
-		if _, err = w.WriteString(fmt.Sprintf("STYLE\n%s\n\n", strings.Join(style, "\n"))); err != nil {
-			err = fmt.Errorf("astisub: writing style failed: %w", err)
+		if _, err = c.Write(astikit.WriteWithLabel("style", []byte(fmt.Sprintf("STYLE\n%s\n\n", strings.Join(style, "\n"))))); err != nil {
 			return
 		}
 	}
@@ -571,113 +561,87 @@ func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
 
 	sort.Strings(k)
 	for _, id := range k {
-		if _, err = w.WriteString("Region: id=" + s.Regions[id].ID); err != nil {
-			err = fmt.Errorf("astisub: writing region id failed: %w", err)
+		var r = s.Regions[id]
+		if _, err = c.Write(astikit.WriteWithLabel("region id", []byte("Region: id="+r.ID))); err != nil {
 			return
 		}
-		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("lines=" + strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines)); err != nil {
-				err = fmt.Errorf("astisub: writing lines failed: %w", err)
-				return
-			}
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("lines=" + strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines)); err != nil {
-				err = fmt.Errorf("astisub: writing lines failed: %w", err)
+
+		// Lines
+		lines := r.InlineStyle.WebVTTLines
+		if lines == 0 && r.Style != nil && r.Style.InlineStyle != nil {
+			lines = r.Style.InlineStyle.WebVTTLines
+		}
+		if lines != 0 {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("lines", []byte("lines="+strconv.Itoa(lines))),
+			); err != nil {
 				return
 			}
 		}
-		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("regionanchor=" + s.Regions[id].InlineStyle.WebVTTRegionAnchor); err != nil {
-				err = fmt.Errorf("astisub: writing regionanchor failed: %w", err)
-				return
-			}
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("regionanchor=" + s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor); err != nil {
-				err = fmt.Errorf("astisub: writing regionanchor failed: %w", err)
+
+		// Region anchor
+		ra := r.InlineStyle.WebVTTRegionAnchor
+		if ra == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			ra = r.Style.InlineStyle.WebVTTRegionAnchor
+		}
+		if ra != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("regionanchor", []byte("regionanchor="+ra)),
+			); err != nil {
 				return
 			}
 		}
-		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("scroll=" + s.Regions[id].InlineStyle.WebVTTScroll); err != nil {
-				err = fmt.Errorf("astisub: writing scroll failed: %w", err)
-				return
-			}
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("scroll=" + s.Regions[id].Style.InlineStyle.WebVTTScroll); err != nil {
-				err = fmt.Errorf("astisub: writing scroll failed: %w", err)
+
+		// Scroll
+		scroll := r.InlineStyle.WebVTTScroll
+		if scroll == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			scroll = r.Style.InlineStyle.WebVTTScroll
+		}
+		if scroll != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("scroll", []byte("scroll="+scroll)),
+			); err != nil {
 				return
 			}
 		}
-		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("viewportanchor=" + s.Regions[id].InlineStyle.WebVTTViewportAnchor); err != nil {
-				err = fmt.Errorf("astisub: writing viewportanchor failed: %w", err)
-				return
-			}
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("viewportanchor=" + s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor); err != nil {
-				err = fmt.Errorf("astisub: writing viewportanchor failed: %w", err)
+
+		// Viewport anchor
+		va := r.InlineStyle.WebVTTViewportAnchor
+		if va == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			va = r.Style.InlineStyle.WebVTTViewportAnchor
+		}
+		if va != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("viewportanchor", []byte("viewportanchor="+va)),
+			); err != nil {
 				return
 			}
 		}
-		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("width=" + s.Regions[id].InlineStyle.WebVTTWidth); err != nil {
-				err = fmt.Errorf("astisub: writing width failed: %w", err)
-				return
-			}
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
-			if _, err = w.Write(bytesSpace); err != nil {
-				err = fmt.Errorf("astisub: writing space failed: %w", err)
-				return
-			}
-			if _, err = w.WriteString("width=" + s.Regions[id].Style.InlineStyle.WebVTTWidth); err != nil {
-				err = fmt.Errorf("astisub: writing width failed: %w", err)
+
+		// Width
+		width := r.InlineStyle.WebVTTWidth
+		if width == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			width = r.Style.InlineStyle.WebVTTWidth
+		}
+		if width != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("width", []byte("width="+width)),
+			); err != nil {
 				return
 			}
 		}
-		if _, err = w.Write(bytesLineSeparator); err != nil {
-			err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+
+		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 			return
 		}
 	}
 	if len(s.Regions) > 0 {
-		if _, err = w.Write(bytesLineSeparator); err != nil {
-			err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 			return
 		}
 	}
@@ -686,195 +650,152 @@ func (s Subtitles) WriteToWebVTT(args ...interface{}) (err error) {
 	for index, item := range s.Items {
 		// Add comments
 		if len(item.Comments) > 0 {
-			if _, err = w.WriteString("NOTE "); err != nil {
-				err = fmt.Errorf("astisub: writing note failed: %w", err)
+			if _, err = c.Write(astikit.WriteWithLabel("note", []byte("NOTE "))); err != nil {
 				return
 			}
 			for _, comment := range item.Comments {
-				if _, err = w.WriteString(comment); err != nil {
-					err = fmt.Errorf("astisub: writing comment failed: %w", err)
-					return
-				}
-				if _, err = w.Write(bytesLineSeparator); err != nil {
-					err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+				if _, err = c.Write(
+					astikit.WriteWithLabel("comment", []byte(comment)),
+					astikit.WriteWithLabel("line separator", bytesLineSeparator),
+				); err != nil {
 					return
 				}
 			}
-			if _, err = w.Write(bytesLineSeparator); err != nil {
-				err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+			if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 				return
 			}
 		}
 
 		// Add time boundaries
+		idx := index + 1
 		if writeWithIndex {
-			if _, err = w.WriteString(strconv.Itoa(item.Index)); err != nil {
-				err = fmt.Errorf("astisub: writing index failed: %w", err)
-				return
-			}
-		} else {
-			if _, err = w.WriteString(strconv.Itoa(index + 1)); err != nil {
-				err = fmt.Errorf("astisub: writing index failed: %w", err)
-				return
-			}
+			idx = item.Index
 		}
-		if _, err = w.Write(bytesLineSeparator); err != nil {
-			err = fmt.Errorf("astisub: writing line separator failed: %w", err)
-			return
-		}
-		if _, err = w.WriteString(formatDurationWebVTT(item.StartAt)); err != nil {
-			err = fmt.Errorf("astisub: writing start at failed: %w", err)
-			return
-		}
-		if _, err = w.Write(bytesWebVTTTimeBoundariesSeparator); err != nil {
-			err = fmt.Errorf("astisub: writing time boundaries separator failed: %w", err)
-			return
-		}
-		if _, err = w.WriteString(formatDurationWebVTT(item.EndAt)); err != nil {
-			err = fmt.Errorf("astisub: writing end at failed: %w", err)
+		if _, err = c.Write(
+			astikit.WriteWithLabel("index", []byte(strconv.Itoa(idx))),
+			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("start at", []byte(formatDurationWebVTT(item.StartAt))),
+			astikit.WriteWithLabel("time boundaries separator", bytesWebVTTTimeBoundariesSeparator),
+			astikit.WriteWithLabel("end at", []byte(formatDurationWebVTT(item.EndAt))),
+		); err != nil {
 			return
 		}
 
 		// Add styles
 		if item.InlineStyle != nil {
-			if item.InlineStyle.WebVTTAlign != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("align:" + item.InlineStyle.WebVTTAlign); err != nil {
-					err = fmt.Errorf("astisub: writing align failed: %w", err)
-					return
-				}
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTAlign != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("align:" + item.Style.InlineStyle.WebVTTAlign); err != nil {
-					err = fmt.Errorf("astisub: writing align failed: %w", err)
+			// Align
+			align := item.InlineStyle.WebVTTAlign
+			if align == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				align = item.Style.InlineStyle.WebVTTAlign
+			}
+			if align != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("align", []byte("align:"+align)),
+				); err != nil {
 					return
 				}
 			}
-			if item.InlineStyle.WebVTTLine != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("line:" + item.InlineStyle.WebVTTLine); err != nil {
-					err = fmt.Errorf("astisub: writing line failed: %w", err)
-					return
-				}
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTLine != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("line:" + item.Style.InlineStyle.WebVTTLine); err != nil {
-					err = fmt.Errorf("astisub: writing line failed: %w", err)
+
+			// Line
+			line := item.InlineStyle.WebVTTLine
+			if line == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				line = item.Style.InlineStyle.WebVTTLine
+			}
+			if line != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("line", []byte("line:"+line)),
+				); err != nil {
 					return
 				}
 			}
-			if item.InlineStyle.WebVTTPosition != nil {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("position:" + item.InlineStyle.WebVTTPosition.String()); err != nil {
-					err = fmt.Errorf("astisub: writing position failed: %w", err)
-					return
-				}
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTPosition != nil {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("position:" + item.Style.InlineStyle.WebVTTPosition.String()); err != nil {
-					err = fmt.Errorf("astisub: writing position failed: %w", err)
+
+			// Position
+			pos := item.InlineStyle.WebVTTPosition
+			if pos == nil && item.Style != nil && item.Style.InlineStyle != nil {
+				pos = item.Style.InlineStyle.WebVTTPosition
+			}
+			if pos != nil {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("position", []byte("position:"+pos.String())),
+				); err != nil {
 					return
 				}
 			}
+
+			// Region
 			if item.Region != nil {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("region:" + item.Region.ID); err != nil {
-					err = fmt.Errorf("astisub: writing region failed: %w", err)
-					return
-				}
-			}
-			if item.InlineStyle.WebVTTSize != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("size:" + item.InlineStyle.WebVTTSize); err != nil {
-					err = fmt.Errorf("astisub: writing size failed: %w", err)
-					return
-				}
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTSize != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("size:" + item.Style.InlineStyle.WebVTTSize); err != nil {
-					err = fmt.Errorf("astisub: writing size failed: %w", err)
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("region", []byte("region:"+item.Region.ID)),
+				); err != nil {
 					return
 				}
 			}
-			if item.InlineStyle.WebVTTVertical != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
+
+			// Size
+			size := item.InlineStyle.WebVTTSize
+			if size == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				size = item.Style.InlineStyle.WebVTTSize
+			}
+			if size != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("size", []byte("size:"+size)),
+				); err != nil {
 					return
 				}
-				if _, err = w.WriteString("vertical:" + item.InlineStyle.WebVTTVertical); err != nil {
-					err = fmt.Errorf("astisub: writing vertical failed: %w", err)
-					return
-				}
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTVertical != "" {
-				if _, err = w.Write(bytesSpace); err != nil {
-					err = fmt.Errorf("astisub: writing space failed: %w", err)
-					return
-				}
-				if _, err = w.WriteString("vertical:" + item.Style.InlineStyle.WebVTTVertical); err != nil {
-					err = fmt.Errorf("astisub: writing vertical failed: %w", err)
+			}
+
+			// Vertical
+			vertical := item.InlineStyle.WebVTTVertical
+			if vertical == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				vertical = item.Style.InlineStyle.WebVTTVertical
+			}
+			if vertical != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("vertical", []byte("vertical:"+vertical)),
+				); err != nil {
 					return
 				}
 			}
 		}
 
-		// Add new line
-		if _, err = w.Write(bytesLineSeparator); err != nil {
-			err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 			return
 		}
 
-		// Loop through lines
+		// Add lines
 		for _, l := range item.Lines {
-			if err = l.writeWebVTT(w); err != nil {
+			if err = l.writeWebVTT(c); err != nil {
 				return
 			}
 		}
 
 		// Add new line
 		if index < len(s.Items)-1 {
-			if _, err = w.Write(bytesLineSeparator); err != nil {
-				err = fmt.Errorf("astisub: writing line separator failed: %w", err)
+			if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 				return
 			}
 		}
 	}
-
 	return
 }
 
-func (l Line) writeWebVTT(w io.Writer) (err error) {
+func (l Line) writeWebVTT(c *astikit.WriteChainer) (err error) {
+	// Voice name
 	if l.VoiceName != "" {
-		if _, err = w.Write([]byte("<v " + l.VoiceName + ">")); err != nil {
-			return fmt.Errorf("astisub: writing voice name failed: %w", err)
+		if _, err = c.Write(
+			astikit.WriteWithLabel("voice start", []byte("<v "+l.VoiceName+">")),
+		); err != nil {
+			return
 		}
 	}
+
+	// Items
 	for idx := 0; idx < len(l.Items); idx++ {
 		var previous, next *LineItem
 		if idx > 0 {
@@ -883,22 +804,23 @@ func (l Line) writeWebVTT(w io.Writer) (err error) {
 		if idx < len(l.Items)-1 {
 			next = &l.Items[idx+1]
 		}
-		if err = l.Items[idx].writeWebVTT(w, previous, next); err != nil {
+		if err = l.Items[idx].writeWebVTT(c, previous, next); err != nil {
 			return
 		}
 	}
-	if _, err = w.Write(bytesLineSeparator); err != nil {
-		return fmt.Errorf("astisub: writing line separator failed: %w", err)
+
+	if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+		return
 	}
 	return
 }
 
-func (li LineItem) writeWebVTT(w io.Writer, previous, next *LineItem) (err error) {
+func (li LineItem) writeWebVTT(c *astikit.WriteChainer, previous, next *LineItem) (err error) {
 	// Add timestamp
-	if li.StartAt > 0 {
-		if _, err = w.Write([]byte("<" + formatDurationWebVTT(li.StartAt) + ">")); err != nil {
-			return fmt.Errorf("astisub: writing start at failed: %w", err)
-		}
+	if _, err = c.Write(
+		astikit.WriteWithCondition("start at", []byte("<"+formatDurationWebVTT(li.StartAt)+">"), li.StartAt > 0),
+	); err != nil {
+		return
 	}
 
 	// Get color - only add TTMLColor-based tag if there are no WebVTT color tags
@@ -918,10 +840,10 @@ func (li LineItem) writeWebVTT(w io.Writer, previous, next *LineItem) (err error
 		}
 	}
 
-	// Append
+	// Write
 	if color != "" {
-		if _, err = w.Write([]byte("<c." + color + ">")); err != nil {
-			return fmt.Errorf("astisub: writing color failed: %w", err)
+		if _, err = c.Write(astikit.WriteWithLabel("color start", []byte("<c."+color+">"))); err != nil {
+			return
 		}
 	}
 	if li.InlineStyle != nil {
@@ -929,13 +851,13 @@ func (li LineItem) writeWebVTT(w io.Writer, previous, next *LineItem) (err error
 			if previous != nil && previous.InlineStyle != nil && len(previous.InlineStyle.WebVTTTags) > idx && tag.Name == previous.InlineStyle.WebVTTTags[idx].Name {
 				continue
 			}
-			if _, err = w.Write([]byte(tag.startTag())); err != nil {
-				return fmt.Errorf("astisub: writing start tag failed: %w", err)
+			if _, err = c.Write(astikit.WriteWithLabel("tag start", []byte(tag.startTag()))); err != nil {
+				return
 			}
 		}
 	}
-	if _, err = w.Write([]byte(escapeHTML(li.Text))); err != nil {
-		return fmt.Errorf("astisub: writing text failed: %w", err)
+	if _, err = c.Write(astikit.WriteWithLabel("text", []byte(escapeHTML(li.Text)))); err != nil {
+		return
 	}
 	if li.InlineStyle != nil {
 		for i := len(li.InlineStyle.WebVTTTags) - 1; i >= 0; i-- {
@@ -943,14 +865,14 @@ func (li LineItem) writeWebVTT(w io.Writer, previous, next *LineItem) (err error
 			if next != nil && next.InlineStyle != nil && len(next.InlineStyle.WebVTTTags) > i && tag.Name == next.InlineStyle.WebVTTTags[i].Name {
 				continue
 			}
-			if _, err = w.Write([]byte(tag.endTag())); err != nil {
-				return fmt.Errorf("astisub: writing end tag failed: %w", err)
+			if _, err = c.Write(astikit.WriteWithLabel("tag end", []byte(tag.endTag()))); err != nil {
+				return
 			}
 		}
 	}
 	if color != "" {
-		if _, err = w.Write([]byte("</c>")); err != nil {
-			return fmt.Errorf("astisub: writing color close failed: %w", err)
+		if _, err = c.Write(astikit.WriteWithLabel("color end", []byte("</c>"))); err != nil {
+			return
 		}
 	}
 	return
