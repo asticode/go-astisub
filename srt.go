@@ -180,7 +180,10 @@ func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 				sa.SRTUnderline = true
 			case "font":
 				if c := htmlTokenAttribute(&token, "color"); c != nil {
-					sa.SRTColor = c
+					// Parse the color string into a Color struct
+					if color, err := newColorFromHTMLString(*c); err == nil {
+						sa.SRTColor = color
+					}
 				}
 			}
 		case html.TextToken:
@@ -276,7 +279,7 @@ func (li LineItem) writeSRT(c *astikit.WriteChainer) (err error) {
 	// Get color
 	var color string
 	if li.InlineStyle != nil && li.InlineStyle.SRTColor != nil {
-		color = *li.InlineStyle.SRTColor
+		color = li.InlineStyle.SRTColor.HTMLString()
 	}
 
 	// Get bold/italics/underline

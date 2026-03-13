@@ -135,3 +135,178 @@ func TestTTMLToSTLGSIBlock(t *testing.T) {
 	assert.True(t, displayStandardCode == "0" || displayStandardCode == "1" || displayStandardCode == "2",
 		"Display standard code should be '0', '1', or '2', got '%s'", displayStandardCode)
 }
+
+func TestSTLColors(t *testing.T) {
+	// Create subtitles with different colored text
+	s := astisub.NewSubtitles()
+	s.Metadata = &astisub.Metadata{
+		Framerate:              25,
+		STLDisplayStandardCode: "0", // Open subtitling
+	}
+
+	// Add items with different colors
+	s.Items = []*astisub.Item{
+		{
+			StartAt: time.Second,
+			EndAt:   2 * time.Second,
+			Lines: []astisub.Line{
+				{
+					Items: []astisub.LineItem{
+						{
+							Text: "Red text",
+							InlineStyle: &astisub.StyleAttributes{
+								STLColor: astisub.ColorRed,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			StartAt: 3 * time.Second,
+			EndAt:   4 * time.Second,
+			Lines: []astisub.Line{
+				{
+					Items: []astisub.LineItem{
+						{
+							Text: "Green text",
+							InlineStyle: &astisub.StyleAttributes{
+								STLColor: astisub.ColorGreen,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			StartAt: 5 * time.Second,
+			EndAt:   6 * time.Second,
+			Lines: []astisub.Line{
+				{
+					Items: []astisub.LineItem{
+						{
+							Text: "Blue text",
+							InlineStyle: &astisub.StyleAttributes{
+								STLColor: astisub.ColorBlue,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			StartAt: 7 * time.Second,
+			EndAt:   8 * time.Second,
+			Lines: []astisub.Line{
+				{
+					Items: []astisub.LineItem{
+						{
+							Text: "Yellow text",
+							InlineStyle: &astisub.StyleAttributes{
+								STLColor: astisub.ColorYellow,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Write to STL
+	w := &bytes.Buffer{}
+	err := s.WriteToSTL(w)
+	assert.NoError(t, err)
+
+	// Read back from STL
+	s2, err := astisub.ReadFromSTL(bytes.NewReader(w.Bytes()), astisub.STLOptions{})
+	assert.NoError(t, err)
+
+	// Verify colors are preserved
+	assert.Equal(t, 4, len(s2.Items))
+	assert.Equal(t, astisub.ColorRed, s2.Items[0].Lines[0].Items[0].InlineStyle.STLColor)
+	assert.Equal(t, astisub.ColorGreen, s2.Items[1].Lines[0].Items[0].InlineStyle.STLColor)
+	assert.Equal(t, astisub.ColorBlue, s2.Items[2].Lines[0].Items[0].InlineStyle.STLColor)
+	assert.Equal(t, astisub.ColorYellow, s2.Items[3].Lines[0].Items[0].InlineStyle.STLColor)
+}
+
+func TestSTLColorsFromWebVTT(t *testing.T) {
+	// Open WebVTT file with colors
+	s, err := astisub.OpenFile("./testdata/example-out-styled.vtt")
+	assert.NoError(t, err)
+	assert.NotNil(t, s)
+
+	// Set metadata for STL
+	s.Metadata = &astisub.Metadata{
+		Framerate:              25,
+		STLDisplayStandardCode: "0", // Open subtitling
+	}
+
+	// Write to STL
+	w := &bytes.Buffer{}
+	err = s.WriteToSTL(w)
+	assert.NoError(t, err)
+
+	// Read back from STL
+	s2, err := astisub.ReadFromSTL(bytes.NewReader(w.Bytes()), astisub.STLOptions{})
+	assert.NoError(t, err)
+
+	// Verify colors are preserved through WebVTT -> STL -> STL round trip
+	// Item 1: lime color (maps to STLColor in WebVTT processing)
+	assert.Equal(t, 1, len(s2.Items[0].Lines))
+	if len(s2.Items[0].Lines[0].Items) > 0 {
+		assert.NotNil(t, s2.Items[0].Lines[0].Items[0].InlineStyle)
+		assert.NotNil(t, s2.Items[0].Lines[0].Items[0].InlineStyle.STLColor, "Item 1 should have STL color")
+	}
+
+	// Item 2: magenta color
+	assert.Equal(t, 1, len(s2.Items[1].Lines))
+	if len(s2.Items[1].Lines[0].Items) > 0 {
+		assert.NotNil(t, s2.Items[1].Lines[0].Items[0].InlineStyle)
+		assert.Equal(t, astisub.ColorMagenta, s2.Items[1].Lines[0].Items[0].InlineStyle.STLColor, "Item 2 should have magenta color")
+	}
+}
+
+func TestSTLColorsFromTTML(t *testing.T) {
+	// Open TTML file with colors
+	s, err := astisub.OpenFile("./testdata/example-in.ttml")
+	assert.NoError(t, err)
+	assert.NotNil(t, s)
+
+	// Set metadata for STL
+	s.Metadata = &astisub.Metadata{
+		Framerate:              25,
+		STLDisplayStandardCode: "0", // Open subtitling
+	}
+
+	// Write to STL
+	w := &bytes.Buffer{}
+	err = s.WriteToSTL(w)
+	assert.NoError(t, err)
+
+	// Read back from STL
+	s2, err := astisub.ReadFromSTL(bytes.NewReader(w.Bytes()), astisub.STLOptions{})
+	assert.NoError(t, err)
+
+	// Verify colors are preserved through TTML -> STL -> STL round trip
+	// Item 1: has black color in span
+	assert.Equal(t, 1, len(s2.Items[0].Lines))
+	if len(s2.Items[0].Lines[0].Items) > 0 {
+		assert.NotNil(t, s2.Items[0].Lines[0].Items[0].InlineStyle)
+		assert.Equal(t, astisub.ColorBlack, s2.Items[0].Lines[0].Items[0].InlineStyle.STLColor, "Item 1 should have black color")
+	}
+
+	// Item 2: has green color in one of the spans (across multiple lines due to <br/>)
+	foundGreen := false
+	for _, line := range s2.Items[1].Lines {
+		for _, item := range line.Items {
+			if item.InlineStyle != nil && item.InlineStyle.STLColor == astisub.ColorGreen {
+				foundGreen = true
+				break
+			}
+		}
+		if foundGreen {
+			break
+		}
+	}
+	assert.True(t, foundGreen, "Item 2 should have a span with green color")
+}

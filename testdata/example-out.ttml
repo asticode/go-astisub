@@ -5,26 +5,26 @@
             <ttm:title>Title test</ttm:title>
         </metadata>
         <styling>
-            <style xml:id="style_0" style="style_2" tts:color="white" tts:extent="100% 10%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 90%" tts:textAlign="center"></style>
-            <style xml:id="style_1" tts:color="white" tts:extent="100% 13%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 87%" tts:textAlign="center"></style>
-            <style xml:id="style_2" tts:color="white" tts:extent="100% 20%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 80%" tts:textAlign="center"></style>
+            <style xml:id="style_0" style="style_2" tts:color="#ffffff" tts:extent="100% 10%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 90%" tts:textAlign="center"></style>
+            <style xml:id="style_1" tts:color="#ffffff" tts:extent="100% 13%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 87%" tts:textAlign="center"></style>
+            <style xml:id="style_2" tts:color="#ffffff" tts:extent="100% 20%" tts:fontFamily="sansSerif" tts:fontStyle="normal" tts:origin="0% 80%" tts:textAlign="center"></style>
         </styling>
         <layout>
-            <region xml:id="region_0" style="style_0" tts:color="blue"></region>
+            <region xml:id="region_0" style="style_0" tts:color="#0000ff"></region>
             <region xml:id="region_1" style="style_1"></region>
             <region xml:id="region_2" style="style_2"></region>
         </layout>
     </head>
     <body>
         <div>
-            <p begin="00:01:39.000" end="00:01:41.040" region="region_1" style="style_1" tts:color="red">
-                <span style="style_1" tts:color="black">(deep rumbling)</span>
+            <p begin="00:01:39.000" end="00:01:41.040" region="region_1" style="style_1" tts:color="#ff0000">
+                <span style="style_1" tts:color="#000000">(deep rumbling)</span>
             </p>
             <p begin="00:02:04.080" end="00:02:07.120" region="region_2">
                 <span>MAN:</span>
                 <br></br>
                 <span>How did we </span>
-                <span style="style_1" tts:color="green">end up</span>
+                <span style="style_1" tts:color="#008000">end up</span>
                 <span> here?</span>
             </p>
             <p begin="00:02:12.160" end="00:02:15.200" region="region_1">
