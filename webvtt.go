@@ -496,8 +496,6 @@ func formatDurationWebVTT(i time.Duration) string {
 
 // WriteToWebVTT writes subtitles in .vtt format
 // if set true in second args write index as item index
-// WriteToWebVTT writes subtitles in .vtt format
-// if set true in second args write index as item index
 func (s Subtitles) WriteToWebVTT(o io.Writer, args ...interface{}) (err error) {
 	// Options
 	writeWithIndex := false
