@@ -1279,6 +1279,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 	// Write Script Info block
 	var si = newSSAScriptInfo(s.Metadata)
 	if err = si.write(c); err != nil {
+		err = fmt.Errorf("astisub: writing script info block failed: %w", err)
 		return
 	}
 

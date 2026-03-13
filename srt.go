@@ -249,6 +249,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 		// Loop through lines
 		for _, l := range v.Lines {
 			if err = l.writeSRT(c); err != nil {
+				err = fmt.Errorf("astisub: writing line item failed: %w", err)
 				return
 			}
 		}
@@ -266,6 +267,7 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 func (l Line) writeSRT(c *astikit.WriteChainer) (err error) {
 	for _, li := range l.Items {
 		if err = li.writeSRT(c); err != nil {
+			err = fmt.Errorf("astisub: writing line item failed: %w", err)
 			return
 		}
 	}
