@@ -496,18 +496,7 @@ func formatDurationWebVTT(i time.Duration) string {
 
 // WriteToWebVTT writes subtitles in .vtt format
 // if set true in second args write index as item index
-func (s Subtitles) WriteToWebVTT(o io.Writer, args ...interface{}) (err error) {
-	// Options
-	writeWithIndex := false
-	for i, arg := range args {
-		switch i {
-		case 0:
-			if b, ok := arg.(bool); ok {
-				writeWithIndex = b
-			}
-		}
-	}
-
+func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	// Do not write anything if no subtitles
 	if len(s.Items) == 0 {
 		err = ErrNoSubtitlesToWrite
@@ -665,12 +654,8 @@ func (s Subtitles) WriteToWebVTT(o io.Writer, args ...interface{}) (err error) {
 		}
 
 		// Add time boundaries
-		idx := index + 1
-		if writeWithIndex {
-			idx = item.Index
-		}
 		if _, err = c.Write(
-			astikit.WriteWithLabel("index", []byte(strconv.Itoa(idx))),
+			astikit.WriteWithLabel("index", []byte(strconv.Itoa(index+1))),
 			astikit.WriteWithLabel("line separator", bytesLineSeparator),
 			astikit.WriteWithLabel("start at", []byte(formatDurationWebVTT(item.StartAt))),
 			astikit.WriteWithLabel("time boundaries separator", bytesWebVTTTimeBoundariesSeparator),

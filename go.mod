@@ -1,6 +1,6 @@
 module github.com/asticode/go-astisub
 
-go 1.13
+go 1.24.0
 
 require (
 	github.com/asticode/go-astikit v0.58.0
