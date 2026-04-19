@@ -266,6 +266,18 @@ func TestWebVTTParseDuration(t *testing.T) {
 	assert.Equal(t, s.Items[1].InlineStyle.WebVTTAlign, "middle")
 }
 
+func TestWebVTTMissingEndTimeBoundary(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:00:01.000 -->
+Some subtitle text`
+
+	_, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing webvtt end time boundary")
+}
+
 func TestWebVTTColorToTTML(t *testing.T) {
 	testData := `WEBVTT
 

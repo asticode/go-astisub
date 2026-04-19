@@ -271,6 +271,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Split line on space to get remaining of time data
 			var right = strings.Fields(left[1])
+			if len(right) == 0 {
+				err = fmt.Errorf("astisub: line %d: missing webvtt end time boundary", lineNum)
+				return
+			}
 
 			// Parse time boundaries
 			if item.StartAt, err = parseDurationWebVTT(left[0]); err != nil {
