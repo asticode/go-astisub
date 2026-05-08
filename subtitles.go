@@ -504,9 +504,9 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 			//cue settings
 			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
-			sa.WebVTTSize = dimensions[1]
+			sa.WebVTTSize = dimensions[0]
 			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTSize = dimensions[0]
+				sa.WebVTTSize = dimensions[1]
 			}
 		}
 	}
