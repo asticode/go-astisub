@@ -534,45 +534,53 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	sort.Strings(k)
 	for _, id := range k {
-		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)
-		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
-		}
-		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
-		}
-		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
-		}
-		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
-		}
-		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
-		}
+		// W3C WebVTT Spec: REGION blocks use multi-line format with colon-separated settings
+		c = append(c, []byte("REGION")...)
 		c = append(c, bytesLineSeparator...)
-	}
-	if len(s.Regions) > 0 {
+		c = append(c, []byte("id:"+s.Regions[id].ID)...)
+		c = append(c, bytesLineSeparator...)
+
+		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
+			c = append(c, []byte("width:"+s.Regions[id].InlineStyle.WebVTTWidth)...)
+			c = append(c, bytesLineSeparator...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
+			c = append(c, []byte("width:"+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
+			c = append(c, bytesLineSeparator...)
+		}
+
+		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
+			c = append(c, []byte("lines:"+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
+			c = append(c, bytesLineSeparator...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
+			c = append(c, []byte("lines:"+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
+			c = append(c, bytesLineSeparator...)
+		}
+
+		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
+			c = append(c, []byte("viewportanchor:"+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
+			c = append(c, bytesLineSeparator...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
+			c = append(c, []byte("viewportanchor:"+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
+			c = append(c, bytesLineSeparator...)
+		}
+
+		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
+			c = append(c, []byte("regionanchor:"+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
+			c = append(c, bytesLineSeparator...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
+			c = append(c, []byte("regionanchor:"+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
+			c = append(c, bytesLineSeparator...)
+		}
+
+		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
+			c = append(c, []byte("scroll:"+s.Regions[id].InlineStyle.WebVTTScroll)...)
+			c = append(c, bytesLineSeparator...)
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
+			c = append(c, []byte("scroll:"+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
+			c = append(c, bytesLineSeparator...)
+		}
+
+		// Add blank line after each REGION block
 		c = append(c, bytesLineSeparator...)
 	}
 
