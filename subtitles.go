@@ -512,11 +512,31 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 	}
 	if sa.TTMLOrigin != nil {
 		//region settings
-		sa.WebVTTRegionAnchor = "0%,0%"
-		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
-		sa.WebVTTScroll = "up"
-		//cue settings
+		// Anchor at bottom-left (0%,100%) for bottom-aligned text
+		sa.WebVTTRegionAnchor = "0%,100%"
+
+		// Calculate viewport anchor at bottom edge for displayAlign="after"
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
+		if len(coordinates) > 1 && sa.TTMLExtent != nil {
+			dimensions := strings.Split(*sa.TTMLExtent, " ")
+			if len(dimensions) > 1 {
+				// Calculate bottom edge: origin Y + extent height
+				originY := strings.TrimSpace(coordinates[1])
+				extentHeight := strings.TrimSpace(dimensions[1])
+
+				originYVal, _ := strconv.ParseFloat(strings.ReplaceAll(originY, "%", ""), 64)
+				extentHeightVal, _ := strconv.ParseFloat(strings.ReplaceAll(extentHeight, "%", ""), 64)
+				bottomY := originYVal + extentHeightVal
+
+				sa.WebVTTViewportAnchor = fmt.Sprintf("%s,%.0f%%", strings.TrimSpace(coordinates[0]), bottomY)
+			} else {
+				sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+			}
+		} else {
+			sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+		}
+
+		//cue settings
 		if len(coordinates) > 1 {
 			sa.WebVTTLine = coordinates[0]
 			sa.WebVTTPosition = newWebVTTPosition(coordinates[1])
