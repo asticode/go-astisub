@@ -175,6 +175,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var comments []string
 	var index int
 	var sa = &StyleAttributes{}
+	var currentRegion *Region
 
 	for scanner.Scan() {
 		// Fetch line
@@ -192,6 +193,13 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			comments = append(comments, strings.TrimPrefix(line, "NOTE "))
 		// Empty line
 		case len(line) == 0:
+			// If we were parsing a REGION block, finalize it
+			if blockName == webvttBlockNameRegion && currentRegion != nil && currentRegion.ID != "" {
+				currentRegion.InlineStyle.propagateWebVTTAttributes()
+				o.Regions[currentRegion.ID] = currentRegion
+				currentRegion = nil
+			}
+
 			// Reset block name, if we are not in the middle of CSS.
 			// If we are in STYLE block and the CSS is empty or we meet the right brace at the end of last line,
 			// then we are not in CSS and can switch to parse next WebVTT block.
@@ -204,7 +212,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Reset WebVTTTags
 			sa.WebVTTTags = []WebVTTTag{}
 
-		// Region
+		// New REGION block format (W3C spec compliant)
+		case line == "REGION":
+			blockName = webvttBlockNameRegion
+			currentRegion = &Region{InlineStyle: &StyleAttributes{}}
+
+		// Old Region: format (backward compatibility)
 		case strings.HasPrefix(line, "Region: "):
 			// Add region styles
 			var r = &Region{InlineStyle: &StyleAttributes{}}
@@ -354,6 +367,33 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			switch blockName {
 			case webvttBlockNameComment:
 				comments = append(comments, line)
+			case webvttBlockNameRegion:
+				// Parse REGION block settings (multi-line format)
+				if currentRegion != nil {
+					var split = strings.Split(line, ":")
+					if len(split) > 1 {
+						key := strings.TrimSpace(split[0])
+						value := strings.TrimSpace(split[1])
+
+						switch key {
+						case "id":
+							currentRegion.ID = value
+						case "lines":
+							if currentRegion.InlineStyle.WebVTTLines, err = strconv.Atoi(value); err != nil {
+								err = fmt.Errorf("atoi of %s failed: %w", value, err)
+								return
+							}
+						case "regionanchor":
+							currentRegion.InlineStyle.WebVTTRegionAnchor = value
+						case "scroll":
+							currentRegion.InlineStyle.WebVTTScroll = value
+						case "viewportanchor":
+							currentRegion.InlineStyle.WebVTTViewportAnchor = value
+						case "width":
+							currentRegion.InlineStyle.WebVTTWidth = value
+						}
+					}
+				}
 			case webvttBlockNameStyle:
 				sa.WebVTTStyles = append(sa.WebVTTStyles, line)
 			case webvttBlockNameText:
