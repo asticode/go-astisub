@@ -106,6 +106,10 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			}
 			// We do this to eliminate extra stuff like positions which are not documented anywhere
 			s2 := strings.Fields(s1[1])
+			if len(s2) == 0 {
+				err = fmt.Errorf("astisub: line %d: missing srt end time boundary", lineNum)
+				return
+			}
 
 			// Parse time boundaries
 			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {
