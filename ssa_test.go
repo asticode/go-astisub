@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astisub"
@@ -120,6 +121,25 @@ func TestSSAv4plus(t *testing.T) {
 	c, err := ioutil.ReadFile("./testdata/example-out-v4plus.ssa")
 	assert.NoError(t, err)
 	assert.Equal(t, string(c), w.String())
+}
+
+func TestWriteToSSANilMetadata(t *testing.T) {
+	s := &astisub.Subtitles{
+		Items: []*astisub.Item{
+			{
+				StartAt: time.Second,
+				EndAt:   3 * time.Second,
+				Lines:   []astisub.Line{{Items: []astisub.LineItem{{Text: "Hello world"}}}},
+			},
+		},
+	}
+	// Metadata intentionally left nil (as ReadFromWebVTT etc. leave it).
+
+	w := &bytes.Buffer{}
+	err := s.WriteToSSA(w)
+	assert.NoError(t, err)
+	assert.Contains(t, w.String(), "[Script Info]")
+	assert.Contains(t, w.String(), "Hello world")
 }
 
 func TestInBetweenSSAEffect(t *testing.T) {

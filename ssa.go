@@ -1180,7 +1180,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		return
 	}
 
-	var v4plus = s.Metadata.SSAScriptType == "v4.00+"
+	var v4plus = s.Metadata != nil && s.Metadata.SSAScriptType == "v4.00+"
 
 	// Write Styles block
 	if len(s.Styles) > 0 {
