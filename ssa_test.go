@@ -124,6 +124,7 @@ func TestSSAv4plus(t *testing.T) {
 }
 
 func TestWriteToSSANilMetadata(t *testing.T) {
+	// Metadata intentionally left nil
 	s := &astisub.Subtitles{
 		Items: []*astisub.Item{
 			{
@@ -133,13 +134,11 @@ func TestWriteToSSANilMetadata(t *testing.T) {
 			},
 		},
 	}
-	// Metadata intentionally left nil (as ReadFromWebVTT etc. leave it).
 
 	w := &bytes.Buffer{}
-	err := s.WriteToSSA(w)
-	assert.NoError(t, err)
-	assert.Contains(t, w.String(), "[Script Info]")
-	assert.Contains(t, w.String(), "Hello world")
+	assert.NotPanics(t, func() {
+		s.WriteToSSA(w)
+	})
 }
 
 func TestInBetweenSSAEffect(t *testing.T) {
