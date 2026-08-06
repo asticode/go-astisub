@@ -1088,6 +1088,69 @@ func (s *Subtitles) RemoveStyling() {
 	}
 }
 
+// Validate checks for invalid subtitle states that might cause playback issues
+func (s *Subtitles) Validate() error {
+	for i, item := range s.Items {
+		if item.StartAt < 0 || item.EndAt < 0 {
+			return fmt.Errorf("item %d has a negative timestamp", i+1)
+		}
+		if item.StartAt >= item.EndAt {
+			return fmt.Errorf("item %d has a start time greater than or equal to its end time", i+1)
+		}
+		
+		isEmpty := true
+		for _, line := range item.Lines {
+			for _, lineItem := range line.Items {
+				if strings.TrimSpace(lineItem.Text) != "" {
+					isEmpty = false
+					break
+				}
+			}
+			if !isEmpty {
+				break
+			}
+		}
+		if isEmpty {
+			return fmt.Errorf("item %d has no text content", i+1)
+		}
+	}
+	return nil
+}
+
+// Trim removes subtitles that fall outside of the [startAt, endAt] window.
+// It also truncates items that overlap with the boundaries.
+// If endAt is 0, it is ignored (no end boundary).
+// If shiftTimestamps is true, the remaining subtitles will have their timestamps shifted back by startAt.
+func (s *Subtitles) Trim(startAt time.Duration, endAt time.Duration, shiftTimestamps bool) {
+	var items []*Item
+	for _, item := range s.Items {
+		// Ignore if completely outside the window
+		if item.EndAt <= startAt {
+			continue
+		}
+		if endAt > 0 && item.StartAt >= endAt {
+			continue
+		}
+
+		// Truncate overlapping items
+		if item.StartAt < startAt {
+			item.StartAt = startAt
+		}
+		if endAt > 0 && item.EndAt > endAt {
+			item.EndAt = endAt
+		}
+
+		// Shift timestamps
+		if shiftTimestamps {
+			item.StartAt -= startAt
+			item.EndAt -= startAt
+		}
+
+		items = append(items, item)
+	}
+	s.Items = items
+}
+
 // Unfragment unfragments subtitles
 func (s *Subtitles) Unfragment() {
 	// Nothing to do if less than 1 element

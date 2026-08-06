@@ -389,3 +389,75 @@ func TestNewScanner(t *testing.T) {
 		assert.Equal(t, "else for that matter.", s.Items[2].Lines[1].String())
 	}
 }
+
+func TestSubtitles_Validate(t *testing.T) {
+	// Valid
+	s := &astisub.Subtitles{
+		Items: []*astisub.Item{
+			{StartAt: 1 * time.Second, EndAt: 2 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "Valid text"}}}}},
+		},
+	}
+	assert.NoError(t, s.Validate())
+
+	// Negative start
+	s.Items[0].StartAt = -1 * time.Second
+	assert.Error(t, s.Validate())
+	s.Items[0].StartAt = 1 * time.Second
+
+	// Negative end
+	s.Items[0].EndAt = -1 * time.Second
+	assert.Error(t, s.Validate())
+	s.Items[0].EndAt = 2 * time.Second
+
+	// Start >= End
+	s.Items[0].EndAt = 1 * time.Second
+	assert.Error(t, s.Validate())
+	s.Items[0].EndAt = 2 * time.Second
+
+	// Empty text
+	s.Items[0].Lines[0].Items[0].Text = "  "
+	assert.Error(t, s.Validate())
+}
+
+func TestSubtitles_Trim(t *testing.T) {
+	createSubtitles := func() *astisub.Subtitles {
+		return &astisub.Subtitles{
+			Items: []*astisub.Item{
+				{StartAt: 1 * time.Second, EndAt: 3 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "1"}}}}},
+				{StartAt: 4 * time.Second, EndAt: 6 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "2"}}}}},
+				{StartAt: 7 * time.Second, EndAt: 9 * time.Second, Lines: []astisub.Line{{Items: []astisub.LineItem{{Text: "3"}}}}},
+			},
+		}
+	}
+
+	// Trim without shifting
+	s1 := createSubtitles()
+	s1.Trim(2*time.Second, 8*time.Second, false)
+	assert.Len(t, s1.Items, 3)
+	assert.Equal(t, 2*time.Second, s1.Items[0].StartAt)
+	assert.Equal(t, 3*time.Second, s1.Items[0].EndAt)
+	assert.Equal(t, 4*time.Second, s1.Items[1].StartAt)
+	assert.Equal(t, 6*time.Second, s1.Items[1].EndAt)
+	assert.Equal(t, 7*time.Second, s1.Items[2].StartAt)
+	assert.Equal(t, 8*time.Second, s1.Items[2].EndAt)
+
+	// Trim with shifting
+	s2 := createSubtitles()
+	s2.Trim(2*time.Second, 8*time.Second, true)
+	assert.Len(t, s2.Items, 3)
+	assert.Equal(t, 0*time.Second, s2.Items[0].StartAt)
+	assert.Equal(t, 1*time.Second, s2.Items[0].EndAt)
+	assert.Equal(t, 2*time.Second, s2.Items[1].StartAt)
+	assert.Equal(t, 4*time.Second, s2.Items[1].EndAt)
+	assert.Equal(t, 5*time.Second, s2.Items[2].StartAt)
+	assert.Equal(t, 6*time.Second, s2.Items[2].EndAt)
+
+	// Trim start only (endAt = 0)
+	s3 := createSubtitles()
+	s3.Trim(5*time.Second, 0, false)
+	assert.Len(t, s3.Items, 2)
+	assert.Equal(t, 5*time.Second, s3.Items[0].StartAt) // Truncated start
+	assert.Equal(t, 6*time.Second, s3.Items[0].EndAt)
+	assert.Equal(t, 7*time.Second, s3.Items[1].StartAt) // Untouched
+	assert.Equal(t, 9*time.Second, s3.Items[1].EndAt)
+}
