@@ -7,7 +7,7 @@ This is a Golang library to manipulate subtitles.
 
 It allows you to manipulate `srt`, `stl`, `ttml`, `ssa/ass`, `webvtt` and `teletext` files for now.
 
-Available operations are `parsing`, `writing`, `applying linear correction`, `syncing`, `fragmenting`, `unfragmenting`, `merging` and `optimizing`.
+Available operations are `parsing`, `writing`, `applying linear correction`, `syncing`, `fragmenting`, `unfragmenting`, `merging`, `optimizing`, `trimming` and `validating`.
 
 # Installation
 
@@ -45,6 +45,12 @@ s1.Unfragment()
 
 // Apply linear correction
 s1.ApplyLinearCorrection(1*time.Second, 2*time.Second, 5*time.Second, 7*time.Second)
+
+// Trim the subtitles
+s1.Trim(2*time.Second, 10*time.Second, true)
+
+// Validate the subtitles
+err := s1.Validate()
 
 // Write subtitles
 s1.Write("/path/to/example.srt")
@@ -84,6 +90,14 @@ If **astisub** has been installed properly you can:
 
         astisub sync -i example.srt -s "-2s" -o example.out.srt
 
+- trim any type of subtitle:
+
+        astisub trim -i example.srt -trim-start 2s -trim-end 10s -trim-shift -o example.out.srt
+
+- validate any type of subtitle:
+
+        astisub validate -i example.srt
+
 # Features and roadmap
 
 - [x] parsing
@@ -93,6 +107,8 @@ If **astisub** has been installed properly you can:
 - [x] merging
 - [x] ordering
 - [x] optimizing
+- [x] trimming
+- [x] validating
 - [x] linear correction
 - [x] .srt
 - [x] .ttml
