@@ -149,6 +149,16 @@ func TestSRTStyled(t *testing.T) {
 	assert.Equal(t, string(c), w.String())
 }
 
+func TestSRTMissingEndTimeBoundary(t *testing.T) {
+	testData := `1
+00:48:52,500 --> 
+Some subtitle text`
+
+	_, err := astisub.ReadFromSRT(strings.NewReader(testData))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing srt end time boundary")
+}
+
 func TestSRTParseDuration(t *testing.T) {
 	testData := `
 	1
