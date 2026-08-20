@@ -144,6 +144,13 @@ func (i Item) String() string {
 // Color represents a color
 type Color struct {
 	Alpha, Blue, Green, Red uint8
+
+	// raw preserves the original TTML/SRT color expression when it cannot be
+	// decoded into an RGBA triple (e.g. #RRGGBBAA with alpha, rgb()/rgba()
+	// functional notation, or a named color outside the recognized set).
+	// HTMLString returns it verbatim so these values round-trip losslessly
+	// instead of being silently dropped.
+	raw string
 }
 
 // newColorFromSSAString builds a new color based on an SSA string
@@ -164,6 +171,9 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 
 // newColorFromHTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
 func newColorFromHTMLString(s string) (*Color, error) {
+	// Keep the original expression so anything this parser cannot decode is
+	// preserved verbatim rather than dropped (see Color.raw).
+	original := s
 	// Remove leading # if present
 	s = strings.TrimPrefix(s, "#")
 
@@ -187,14 +197,16 @@ func newColorFromHTMLString(s string) (*Color, error) {
 		return ColorWhite, nil
 	}
 
-	// Parse hex color (RRGGBB format)
+	// Parse hex color (RRGGBB format). Any other expression (e.g. #RRGGBBAA,
+	// rgb()/rgba(), or an unrecognized named color) is legal TTML/SRT and is
+	// preserved verbatim so it round-trips instead of being dropped.
 	if len(s) != 6 {
-		return nil, fmt.Errorf("invalid TTML color format: %s", s)
+		return &Color{raw: original}, nil
 	}
 
 	i, err := strconv.ParseUint(s, 16, 32)
 	if err != nil {
-		return nil, fmt.Errorf("parsing TTML color %s failed: %w", s, err)
+		return &Color{raw: original}, nil
 	}
 
 	return &Color{
@@ -252,6 +264,11 @@ func (c *Color) SSAString() string {
 func (c *Color) HTMLString() string {
 	if c == nil {
 		return ""
+	}
+	// A preserved original expression (alpha hex, rgb(), unrecognized name) is
+	// emitted verbatim to keep the value lossless.
+	if c.raw != "" {
+		return c.raw
 	}
 	// TODO Check named colors first
 	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
