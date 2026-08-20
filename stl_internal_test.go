@@ -1,12 +1,28 @@
 package astisub
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
 	"github.com/asticode/go-astikit"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestSTLUnknownDiskFormatCode(t *testing.T) {
+	// A GSI block whose disk format code is not recognized used to leave the framerate
+	// at 0, which panicked with an integer division by zero when parsing a subsequent
+	// TTI block's timecodes. It now falls back to the default framerate of 25.
+	b := bytes.Repeat([]byte{0x20}, stlBlockSizeGSI)
+	// Valid character code table number (Latin) so parsing reaches timecode handling.
+	b[12] = 0x30
+	b[13] = 0x30
+	copy(b[3:11], []byte("XXXXXXXX")) // unknown disk format code
+	in := append(b, make([]byte, stlBlockSizeTTI)...)
+	assert.NotPanics(t, func() {
+		ReadFromSTL(bytes.NewReader(in), STLOptions{})
+	})
+}
 
 func TestSTLDuration(t *testing.T) {
 	// Default

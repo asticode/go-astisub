@@ -427,6 +427,7 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 		displayStandardCode:       string(bytes.TrimSpace([]byte{b[11]})),
 		editorName:                string(bytes.TrimSpace(b[309:341])),
 		editorContactDetails:      string(bytes.TrimSpace(b[341:373])),
+		framerate:                 25,
 		languageCode:              string(bytes.TrimSpace(b[14:16])),
 		originalEpisodeTitle:      string(bytes.TrimSpace(b[48:80])),
 		originalProgramTitle:      string(bytes.TrimSpace(b[16:48])),
@@ -441,6 +442,8 @@ func parseGSIBlock(b []byte) (g *gsiBlock, err error) {
 	}
 
 	// Framerate
+	// An unknown disk format code leaves the default framerate of 25 in place, which
+	// avoids a division by zero when parsing timecodes.
 	if v, ok := stlFramerateMapping.Get(string(b[3:11])); ok {
 		g.framerate = v.(int)
 	}
