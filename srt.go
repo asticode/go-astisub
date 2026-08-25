@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/asticode/go-astikit"
 	"golang.org/x/net/html"
 )
 
@@ -227,49 +228,60 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 		return
 	}
 
+	// Init chainer
+	c := astikit.NewWriteChainer(o)
+
 	// Add BOM header
-	var c []byte
-	c = append(c, BytesBOM...)
+	if _, err = c.Write(astikit.WriteWithLabel("bom", BytesBOM)); err != nil {
+		return
+	}
 
 	// Loop through subtitles
 	for k, v := range s.Items {
 		// Add time boundaries
-		c = append(c, []byte(strconv.Itoa(k+1))...)
-		c = append(c, bytesLineSeparator...)
-		c = append(c, []byte(formatDurationSRT(v.StartAt))...)
-		c = append(c, bytesSRTTimeBoundariesSeparator...)
-		c = append(c, []byte(formatDurationSRT(v.EndAt))...)
-		c = append(c, bytesLineSeparator...)
+		if _, err = c.Write(
+			astikit.WriteWithLabel("index", []byte(strconv.Itoa(k+1))),
+			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("start at", []byte(formatDurationSRT(v.StartAt))),
+			astikit.WriteWithLabel("time boundaries separator", bytesSRTTimeBoundariesSeparator),
+			astikit.WriteWithLabel("end at", []byte(formatDurationSRT(v.EndAt))),
+			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+		); err != nil {
+			return
+		}
 
 		// Loop through lines
 		for _, l := range v.Lines {
-			c = append(c, []byte(l.srtBytes())...)
+			if err = l.writeSRT(c); err != nil {
+				err = fmt.Errorf("astisub: writing line item failed: %w", err)
+				return
+			}
 		}
 
 		// Add new line
-		c = append(c, bytesLineSeparator...)
+		if k < len(s.Items)-1 {
+			if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+				return
+			}
+		}
 	}
+	return
+}
 
-	// Remove last new line
-	c = c[:len(c)-1]
-
-	// Write
-	if _, err = o.Write(c); err != nil {
-		err = fmt.Errorf("astisub: writing failed: %w", err)
+func (l Line) writeSRT(c *astikit.WriteChainer) (err error) {
+	for _, li := range l.Items {
+		if err = li.writeSRT(c); err != nil {
+			err = fmt.Errorf("astisub: writing line item failed: %w", err)
+			return
+		}
+	}
+	if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 		return
 	}
 	return
 }
 
-func (l Line) srtBytes() (c []byte) {
-	for _, li := range l.Items {
-		c = append(c, li.srtBytes()...)
-	}
-	c = append(c, bytesLineSeparator...)
-	return
-}
-
-func (li LineItem) srtBytes() (c []byte) {
+func (li LineItem) writeSRT(c *astikit.WriteChainer) (err error) {
 	// Get color
 	var color string
 	if li.InlineStyle != nil && li.InlineStyle.SRTColor != nil {
@@ -287,34 +299,20 @@ func (li LineItem) srtBytes() (c []byte) {
 		pos = li.InlineStyle.SRTPosition
 	}
 
-	// Append
-	if color != "" {
-		c = append(c, []byte("<font color=\""+color+"\">")...)
-	}
-	if b {
-		c = append(c, []byte("<b>")...)
-	}
-	if i {
-		c = append(c, []byte("<i>")...)
-	}
-	if u {
-		c = append(c, []byte("<u>")...)
-	}
-	if pos != 0 {
-		c = append(c, []byte(fmt.Sprintf(`{\an%d}`, pos))...)
-	}
-	c = append(c, []byte(escapeHTML(li.Text))...)
-	if u {
-		c = append(c, []byte("</u>")...)
-	}
-	if i {
-		c = append(c, []byte("</i>")...)
-	}
-	if b {
-		c = append(c, []byte("</b>")...)
-	}
-	if color != "" {
-		c = append(c, []byte("</font>")...)
+	// Write
+	if _, err = c.Write(
+		astikit.WriteWithCondition("font color", []byte("<font color=\""+color+"\">"), color != ""),
+		astikit.WriteWithCondition("bold", []byte("<b>"), b),
+		astikit.WriteWithCondition("italics", []byte("<i>"), i),
+		astikit.WriteWithCondition("underline", []byte("<u>"), u),
+		astikit.WriteWithCondition("position", []byte(fmt.Sprintf(`{\an%d}`, pos)), pos != 0),
+		astikit.WriteWithLabel("text", []byte(escapeHTML(li.Text))),
+		astikit.WriteWithCondition("underline close", []byte("</u>"), u),
+		astikit.WriteWithCondition("italics close", []byte("</i>"), i),
+		astikit.WriteWithCondition("bold close", []byte("</b>"), b),
+		astikit.WriteWithCondition("font close", []byte("</font>"), color != ""),
+	); err != nil {
+		return
 	}
 	return
 }

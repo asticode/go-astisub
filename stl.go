@@ -972,18 +972,19 @@ func (s Subtitles) WriteToSTL(o io.Writer) (err error) {
 		return
 	}
 
+	// Init chainer
+	c := astikit.NewWriteChainer(o)
+
 	// Write GSI block
 	var g = newGSIBlock(s)
-	if _, err = o.Write(g.bytes()); err != nil {
-		err = fmt.Errorf("astisub: writing gsi block failed: %w", err)
+	if _, err = c.Write(astikit.WriteWithLabel("gsi block", g.bytes())); err != nil {
 		return
 	}
 
 	// Loop through items
 	for idx, item := range s.Items {
 		// Write tti block
-		if _, err = o.Write(newTTIBlock(item, idx+1, g.displayStandardCode).bytes(g)); err != nil {
-			err = fmt.Errorf("astisub: writing tti block #%d failed: %w", idx+1, err)
+		if _, err = c.Write(astikit.WriteWithLabel("tti block", newTTIBlock(item, idx+1, g.displayStandardCode).bytes(g))); err != nil {
 			return
 		}
 	}

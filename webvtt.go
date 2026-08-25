@@ -13,6 +13,8 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/net/html"
+
+	"github.com/asticode/go-astikit"
 )
 
 // https://www.w3.org/TR/webvtt1/
@@ -416,11 +418,12 @@ func parseTextWebVTT(i string, sa *StyleAttributes) (o Line) {
 				}
 
 				// Push the tag to stack
-				sa.WebVTTTags = append(sa.WebVTTTags, WebVTTTag{
+				tag := WebVTTTag{
 					Name:       tagName,
 					Classes:    classes,
 					Annotation: annotation,
-				})
+				}
+				sa.WebVTTTags = append(sa.WebVTTTags, tag)
 			}
 
 		case html.TextToken:
@@ -428,7 +431,9 @@ func parseTextWebVTT(i string, sa *StyleAttributes) (o Line) {
 			var styleAttributes *StyleAttributes
 			if len(sa.WebVTTTags) > 0 {
 				tags := make([]WebVTTTag, len(sa.WebVTTTags))
-				copy(tags, sa.WebVTTTags)
+				for i, t := range sa.WebVTTTags {
+					tags[i] = t
+				}
 				styleAttributes = &StyleAttributes{
 					WebVTTTags: tags,
 				}
@@ -494,6 +499,7 @@ func formatDurationWebVTT(i time.Duration) string {
 }
 
 // WriteToWebVTT writes subtitles in .vtt format
+// if set true in second args write index as item index
 func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	// Do not write anything if no subtitles
 	if len(s.Items) == 0 {
@@ -501,19 +507,29 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 		return
 	}
 
+	// Init chainer
+	c := astikit.NewWriteChainer(o)
+
 	// Add header
-	var c []byte
-	c = append(c, []byte("WEBVTT")...)
+	if _, err = c.Write(astikit.WriteWithLabel("header", []byte("WEBVTT"))); err != nil {
+		return
+	}
 
 	// Write X-TIMESTAMP-MAP if set
 	if s.Metadata != nil {
 		webVTTTimestampMap := s.Metadata.WebVTTTimestampMap
 		if webVTTTimestampMap != nil {
-			c = append(c, []byte("\n")...)
-			c = append(c, []byte(webVTTTimestampMap.String())...)
+			if _, err = c.Write(
+				astikit.WriteWithLabel("newline", []byte("\n")),
+				astikit.WriteWithLabel("timestamp map", []byte(webVTTTimestampMap.String())),
+			); err != nil {
+				return
+			}
 		}
 	}
-	c = append(c, []byte("\n\n")...)
+	if _, err = c.Write(astikit.WriteWithLabel("newline", []byte("\n\n"))); err != nil {
+		return
+	}
 
 	var style []string
 	for _, s := range s.Styles {
@@ -523,7 +539,9 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	}
 
 	if len(style) > 0 {
-		c = append(c, []byte(fmt.Sprintf("STYLE\n%s\n\n", strings.Join(style, "\n")))...)
+		if _, err = c.Write(astikit.WriteWithLabel("style", []byte(fmt.Sprintf("STYLE\n%s\n\n", strings.Join(style, "\n"))))); err != nil {
+			return
+		}
 	}
 
 	// Add regions
@@ -534,137 +552,237 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	sort.Strings(k)
 	for _, id := range k {
-		c = append(c, []byte("Region: id="+s.Regions[id].ID)...)
-		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("lines="+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))...)
+		var r = s.Regions[id]
+		if _, err = c.Write(astikit.WriteWithLabel("region id", []byte("Region: id="+r.ID))); err != nil {
+			return
 		}
-		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].InlineStyle.WebVTTRegionAnchor)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("regionanchor="+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)...)
+
+		// Lines
+		lines := r.InlineStyle.WebVTTLines
+		if lines == 0 && r.Style != nil && r.Style.InlineStyle != nil {
+			lines = r.Style.InlineStyle.WebVTTLines
 		}
-		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].InlineStyle.WebVTTScroll)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("scroll="+s.Regions[id].Style.InlineStyle.WebVTTScroll)...)
+		if lines != 0 {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("lines", []byte("lines="+strconv.Itoa(lines))),
+			); err != nil {
+				return
+			}
 		}
-		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].InlineStyle.WebVTTViewportAnchor)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("viewportanchor="+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)...)
+
+		// Region anchor
+		ra := r.InlineStyle.WebVTTRegionAnchor
+		if ra == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			ra = r.Style.InlineStyle.WebVTTRegionAnchor
 		}
-		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].InlineStyle.WebVTTWidth)...)
-		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
-			c = append(c, bytesSpace...)
-			c = append(c, []byte("width="+s.Regions[id].Style.InlineStyle.WebVTTWidth)...)
+		if ra != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("regionanchor", []byte("regionanchor="+ra)),
+			); err != nil {
+				return
+			}
 		}
-		c = append(c, bytesLineSeparator...)
+
+		// Scroll
+		scroll := r.InlineStyle.WebVTTScroll
+		if scroll == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			scroll = r.Style.InlineStyle.WebVTTScroll
+		}
+		if scroll != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("scroll", []byte("scroll="+scroll)),
+			); err != nil {
+				return
+			}
+		}
+
+		// Viewport anchor
+		va := r.InlineStyle.WebVTTViewportAnchor
+		if va == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			va = r.Style.InlineStyle.WebVTTViewportAnchor
+		}
+		if va != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("viewportanchor", []byte("viewportanchor="+va)),
+			); err != nil {
+				return
+			}
+		}
+
+		// Width
+		width := r.InlineStyle.WebVTTWidth
+		if width == "" && r.Style != nil && r.Style.InlineStyle != nil {
+			width = r.Style.InlineStyle.WebVTTWidth
+		}
+		if width != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("space", bytesSpace),
+				astikit.WriteWithLabel("width", []byte("width="+width)),
+			); err != nil {
+				return
+			}
+		}
+
+		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+			return
+		}
 	}
 	if len(s.Regions) > 0 {
-		c = append(c, bytesLineSeparator...)
+		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+			return
+		}
 	}
 
 	// Loop through subtitles
 	for index, item := range s.Items {
 		// Add comments
 		if len(item.Comments) > 0 {
-			c = append(c, []byte("NOTE ")...)
-			for _, comment := range item.Comments {
-				c = append(c, []byte(comment)...)
-				c = append(c, bytesLineSeparator...)
+			if _, err = c.Write(astikit.WriteWithLabel("note", []byte("NOTE "))); err != nil {
+				return
 			}
-			c = append(c, bytesLineSeparator...)
+			for _, comment := range item.Comments {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("comment", []byte(comment)),
+					astikit.WriteWithLabel("line separator", bytesLineSeparator),
+				); err != nil {
+					return
+				}
+			}
+			if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+				return
+			}
 		}
 
 		// Add time boundaries
-		c = append(c, []byte(strconv.Itoa(index+1))...)
-		c = append(c, bytesLineSeparator...)
-		c = append(c, []byte(formatDurationWebVTT(item.StartAt))...)
-		c = append(c, bytesWebVTTTimeBoundariesSeparator...)
-		c = append(c, []byte(formatDurationWebVTT(item.EndAt))...)
+		if _, err = c.Write(
+			astikit.WriteWithLabel("index", []byte(strconv.Itoa(index+1))),
+			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("start at", []byte(formatDurationWebVTT(item.StartAt))),
+			astikit.WriteWithLabel("time boundaries separator", bytesWebVTTTimeBoundariesSeparator),
+			astikit.WriteWithLabel("end at", []byte(formatDurationWebVTT(item.EndAt))),
+		); err != nil {
+			return
+		}
 
 		// Add styles
 		if item.InlineStyle != nil {
-			if item.InlineStyle.WebVTTAlign != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("align:"+item.InlineStyle.WebVTTAlign)...)
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTAlign != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("align:"+item.Style.InlineStyle.WebVTTAlign)...)
+			// Align
+			align := item.InlineStyle.WebVTTAlign
+			if align == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				align = item.Style.InlineStyle.WebVTTAlign
 			}
-			if item.InlineStyle.WebVTTLine != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("line:"+item.InlineStyle.WebVTTLine)...)
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTLine != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("line:"+item.Style.InlineStyle.WebVTTLine)...)
+			if align != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("align", []byte("align:"+align)),
+				); err != nil {
+					return
+				}
 			}
-			if item.InlineStyle.WebVTTPosition != nil {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("position:"+item.InlineStyle.WebVTTPosition.String())...)
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTPosition != nil {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("position:"+item.Style.InlineStyle.WebVTTPosition.String())...)
+
+			// Line
+			line := item.InlineStyle.WebVTTLine
+			if line == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				line = item.Style.InlineStyle.WebVTTLine
 			}
+			if line != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("line", []byte("line:"+line)),
+				); err != nil {
+					return
+				}
+			}
+
+			// Position
+			pos := item.InlineStyle.WebVTTPosition
+			if pos == nil && item.Style != nil && item.Style.InlineStyle != nil {
+				pos = item.Style.InlineStyle.WebVTTPosition
+			}
+			if pos != nil {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("position", []byte("position:"+pos.String())),
+				); err != nil {
+					return
+				}
+			}
+
+			// Region
 			if item.Region != nil {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("region:"+item.Region.ID)...)
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("region", []byte("region:"+item.Region.ID)),
+				); err != nil {
+					return
+				}
 			}
-			if item.InlineStyle.WebVTTSize != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("size:"+item.InlineStyle.WebVTTSize)...)
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTSize != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("size:"+item.Style.InlineStyle.WebVTTSize)...)
+
+			// Size
+			size := item.InlineStyle.WebVTTSize
+			if size == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				size = item.Style.InlineStyle.WebVTTSize
 			}
-			if item.InlineStyle.WebVTTVertical != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("vertical:"+item.InlineStyle.WebVTTVertical)...)
-			} else if item.Style != nil && item.Style.InlineStyle != nil && item.Style.InlineStyle.WebVTTVertical != "" {
-				c = append(c, bytesSpace...)
-				c = append(c, []byte("vertical:"+item.Style.InlineStyle.WebVTTVertical)...)
+			if size != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("size", []byte("size:"+size)),
+				); err != nil {
+					return
+				}
+			}
+
+			// Vertical
+			vertical := item.InlineStyle.WebVTTVertical
+			if vertical == "" && item.Style != nil && item.Style.InlineStyle != nil {
+				vertical = item.Style.InlineStyle.WebVTTVertical
+			}
+			if vertical != "" {
+				if _, err = c.Write(
+					astikit.WriteWithLabel("space", bytesSpace),
+					astikit.WriteWithLabel("vertical", []byte("vertical:"+vertical)),
+				); err != nil {
+					return
+				}
 			}
 		}
 
-		// Add new line
-		c = append(c, bytesLineSeparator...)
+		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+			return
+		}
 
-		// Loop through lines
+		// Add lines
 		for _, l := range item.Lines {
-			c = append(c, l.webVTTBytes()...)
+			if err = l.writeWebVTT(c); err != nil {
+				return
+			}
 		}
 
 		// Add new line
-		c = append(c, bytesLineSeparator...)
-	}
-
-	// Remove last new line
-	c = c[:len(c)-1]
-
-	// Write
-	if _, err = o.Write(c); err != nil {
-		err = fmt.Errorf("astisub: writing failed: %w", err)
-		return
+		if index < len(s.Items)-1 {
+			if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+				return
+			}
+		}
 	}
 	return
 }
 
-func (l Line) webVTTBytes() (c []byte) {
+func (l Line) writeWebVTT(c *astikit.WriteChainer) (err error) {
+	// Voice name
 	if l.VoiceName != "" {
-		c = append(c, []byte("<v "+l.VoiceName+">")...)
+		if _, err = c.Write(
+			astikit.WriteWithLabel("voice start", []byte("<v "+l.VoiceName+">")),
+		); err != nil {
+			return
+		}
 	}
+
+	// Items
 	for idx := 0; idx < len(l.Items); idx++ {
 		var previous, next *LineItem
 		if idx > 0 {
@@ -673,16 +791,23 @@ func (l Line) webVTTBytes() (c []byte) {
 		if idx < len(l.Items)-1 {
 			next = &l.Items[idx+1]
 		}
-		c = append(c, l.Items[idx].webVTTBytes(previous, next)...)
+		if err = l.Items[idx].writeWebVTT(c, previous, next); err != nil {
+			return
+		}
 	}
-	c = append(c, bytesLineSeparator...)
+
+	if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+		return
+	}
 	return
 }
 
-func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
+func (li LineItem) writeWebVTT(c *astikit.WriteChainer, previous, next *LineItem) (err error) {
 	// Add timestamp
-	if li.StartAt > 0 {
-		c = append(c, []byte("<"+formatDurationWebVTT(li.StartAt)+">")...)
+	if _, err = c.Write(
+		astikit.WriteWithCondition("start at", []byte("<"+formatDurationWebVTT(li.StartAt)+">"), li.StartAt > 0),
+	); err != nil {
+		return
 	}
 
 	// Get color - only add TTMLColor-based tag if there are no WebVTT color tags
@@ -702,30 +827,40 @@ func (li LineItem) webVTTBytes(previous, next *LineItem) (c []byte) {
 		}
 	}
 
-	// Append
+	// Write
 	if color != "" {
-		c = append(c, []byte("<c."+color+">")...)
+		if _, err = c.Write(astikit.WriteWithLabel("color start", []byte("<c."+color+">"))); err != nil {
+			return
+		}
 	}
 	if li.InlineStyle != nil {
 		for idx, tag := range li.InlineStyle.WebVTTTags {
 			if previous != nil && previous.InlineStyle != nil && len(previous.InlineStyle.WebVTTTags) > idx && tag.Name == previous.InlineStyle.WebVTTTags[idx].Name {
 				continue
 			}
-			c = append(c, []byte(tag.startTag())...)
+			if _, err = c.Write(astikit.WriteWithLabel("tag start", []byte(tag.startTag()))); err != nil {
+				return
+			}
 		}
 	}
-	c = append(c, []byte(escapeHTML(li.Text))...)
+	if _, err = c.Write(astikit.WriteWithLabel("text", []byte(escapeHTML(li.Text)))); err != nil {
+		return
+	}
 	if li.InlineStyle != nil {
 		for i := len(li.InlineStyle.WebVTTTags) - 1; i >= 0; i-- {
 			tag := li.InlineStyle.WebVTTTags[i]
 			if next != nil && next.InlineStyle != nil && len(next.InlineStyle.WebVTTTags) > i && tag.Name == next.InlineStyle.WebVTTTags[i].Name {
 				continue
 			}
-			c = append(c, []byte(tag.endTag())...)
+			if _, err = c.Write(astikit.WriteWithLabel("tag end", []byte(tag.endTag()))); err != nil {
+				return
+			}
 		}
 	}
 	if color != "" {
-		c = append(c, []byte("</c>")...)
+		if _, err = c.Write(astikit.WriteWithLabel("color end", []byte("</c>"))); err != nil {
+			return
+		}
 	}
 	return
 }
