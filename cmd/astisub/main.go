@@ -19,6 +19,9 @@ var (
 	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
+	trimStart        = flag.Duration("trim-start", 0, "trim start duration")
+	trimEnd          = flag.Duration("trim-end", 0, "trim end duration")
+	trimShift        = flag.Bool("trim-shift", false, "shift timestamps when trimming")
 )
 
 func main() {
@@ -126,6 +129,14 @@ func main() {
 		if err = sub.Write(*outputPath); err != nil {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
+	case "trim":
+		// Trim
+		sub.Trim(*trimStart, *trimEnd, *trimShift)
+
+		// Write
+		if err = sub.Write(*outputPath); err != nil {
+			log.Fatalf("%s while writing to %s", err, *outputPath)
+		}
 	case "unfragment":
 		// Unfragment
 		sub.Unfragment()
@@ -134,6 +145,12 @@ func main() {
 		if err = sub.Write(*outputPath); err != nil {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
+	case "validate":
+		// Validate
+		if err = sub.Validate(); err != nil {
+			log.Fatalf("validation failed: %s", err)
+		}
+		log.Println("Validation successful")
 	default:
 		log.Fatalf("Invalid subcommand %s", cmd)
 	}

@@ -1,6 +1,7 @@
 package astisub
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -409,57 +410,141 @@ func (b *ssaScriptInfo) metadata() *Metadata {
 	}
 }
 
-// bytes returns the block as bytes
-func (b *ssaScriptInfo) bytes() (o []byte) {
-	o = []byte("[Script Info]")
-	o = append(o, bytesLineSeparator...)
+// write writes the block to the writer
+func (b *ssaScriptInfo) write(w io.Writer) (err error) {
+	if _, err = w.Write([]byte("[Script Info]")); err != nil {
+		return fmt.Errorf("astisub: writing script info header failed: %w", err)
+	}
+	if _, err = w.Write(bytesLineSeparator); err != nil {
+		return fmt.Errorf("astisub: writing line separator failed: %w", err)
+	}
 	for _, c := range b.comments {
-		o = appendStringToBytesWithNewLine(o, "; "+c)
+		if _, err = w.Write([]byte("; " + c)); err != nil {
+			return fmt.Errorf("astisub: writing comment failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.collisions) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameCollisions+": "+b.collisions)
+		if _, err = w.Write([]byte(ssaScriptInfoNameCollisions + ": " + b.collisions)); err != nil {
+			return fmt.Errorf("astisub: writing collisions failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.originalEditing) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameOriginalEditing+": "+b.originalEditing)
+		if _, err = w.Write([]byte(ssaScriptInfoNameOriginalEditing + ": " + b.originalEditing)); err != nil {
+			return fmt.Errorf("astisub: writing original editing failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.originalScript) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameOriginalScript+": "+b.originalScript)
+		if _, err = w.Write([]byte(ssaScriptInfoNameOriginalScript + ": " + b.originalScript)); err != nil {
+			return fmt.Errorf("astisub: writing original script failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.originalTiming) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameOriginalTiming+": "+b.originalTiming)
+		if _, err = w.Write([]byte(ssaScriptInfoNameOriginalTiming + ": " + b.originalTiming)); err != nil {
+			return fmt.Errorf("astisub: writing original timing failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.originalTranslation) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameOriginalTranslation+": "+b.originalTranslation)
+		if _, err = w.Write([]byte(ssaScriptInfoNameOriginalTranslation + ": " + b.originalTranslation)); err != nil {
+			return fmt.Errorf("astisub: writing original translation failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if b.playDepth != nil {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNamePlayDepth+": "+strconv.Itoa(*b.playDepth))
+		if _, err = w.Write([]byte(ssaScriptInfoNamePlayDepth + ": " + strconv.Itoa(*b.playDepth))); err != nil {
+			return fmt.Errorf("astisub: writing play depth failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if b.playResX != nil {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNamePlayResX+": "+strconv.Itoa(*b.playResX))
+		if _, err = w.Write([]byte(ssaScriptInfoNamePlayResX + ": " + strconv.Itoa(*b.playResX))); err != nil {
+			return fmt.Errorf("astisub: writing play res x failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if b.playResY != nil {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNamePlayResY+": "+strconv.Itoa(*b.playResY))
+		if _, err = w.Write([]byte(ssaScriptInfoNamePlayResY + ": " + strconv.Itoa(*b.playResY))); err != nil {
+			return fmt.Errorf("astisub: writing play res y failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.scriptType) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameScriptType+": "+b.scriptType)
+		if _, err = w.Write([]byte(ssaScriptInfoNameScriptType + ": " + b.scriptType)); err != nil {
+			return fmt.Errorf("astisub: writing script type failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.scriptUpdatedBy) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameScriptUpdatedBy+": "+b.scriptUpdatedBy)
+		if _, err = w.Write([]byte(ssaScriptInfoNameScriptUpdatedBy + ": " + b.scriptUpdatedBy)); err != nil {
+			return fmt.Errorf("astisub: writing script updated by failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.synchPoint) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameSynchPoint+": "+b.synchPoint)
+		if _, err = w.Write([]byte(ssaScriptInfoNameSynchPoint + ": " + b.synchPoint)); err != nil {
+			return fmt.Errorf("astisub: writing synch point failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if b.timer != nil {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameTimer+": "+strings.Replace(strconv.FormatFloat(*b.timer, 'f', -1, 64), ".", ",", -1))
+		if _, err = w.Write([]byte(ssaScriptInfoNameTimer + ": " + strings.Replace(strconv.FormatFloat(*b.timer, 'f', -1, 64), ".", ",", -1))); err != nil {
+			return fmt.Errorf("astisub: writing timer failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.title) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameTitle+": "+b.title)
+		if _, err = w.Write([]byte(ssaScriptInfoNameTitle + ": " + b.title)); err != nil {
+			return fmt.Errorf("astisub: writing title failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.updateDetails) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameUpdateDetails+": "+b.updateDetails)
+		if _, err = w.Write([]byte(ssaScriptInfoNameUpdateDetails + ": " + b.updateDetails)); err != nil {
+			return fmt.Errorf("astisub: writing update details failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	if len(b.wrapStyle) > 0 {
-		o = appendStringToBytesWithNewLine(o, ssaScriptInfoNameWrapStyle+": "+b.wrapStyle)
+		if _, err = w.Write([]byte(ssaScriptInfoNameWrapStyle + ": " + b.wrapStyle)); err != nil {
+			return fmt.Errorf("astisub: writing wrap style failed: %w", err)
+		}
+		if _, err = w.Write(bytesLineSeparator); err != nil {
+			return fmt.Errorf("astisub: writing line separator failed: %w", err)
+		}
 	}
 	return
 }
@@ -1173,10 +1258,13 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		return
 	}
 
+	// Init writer
+	w := bufio.NewWriter(o)
+	defer w.Flush()
+
 	// Write Script Info block
 	var si = newSSAScriptInfo(s.Metadata)
-	if _, err = o.Write(si.bytes()); err != nil {
-		err = fmt.Errorf("astisub: writing script info block failed: %w", err)
+	if err = si.write(w); err != nil {
 		return
 	}
 
@@ -1185,9 +1273,14 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 	// Write Styles block
 	if len(s.Styles) > 0 {
 		// Header
-		var b = []byte("\n[V4 Styles]\n")
 		if v4plus {
-			b = []byte("\n[V4+ Styles]\n")
+			if _, err = w.WriteString("\n[V4+ Styles]\n"); err != nil {
+				return fmt.Errorf("astisub: writing styles header failed: %w", err)
+			}
+		} else {
+			if _, err = w.WriteString("\n[V4 Styles]\n"); err != nil {
+				return fmt.Errorf("astisub: writing styles header failed: %w", err)
+			}
 		}
 
 		// Format
@@ -1201,25 +1294,25 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 			styles[ss.name] = ss
 			styleNames = append(styleNames, ss.name)
 		}
-		b = append(b, []byte("Format: "+strings.Join(format, ", ")+"\n")...)
+		if _, err = w.WriteString("Format: " + strings.Join(format, ", ") + "\n"); err != nil {
+			return fmt.Errorf("astisub: writing styles format failed: %w", err)
+		}
 
 		// Styles
 		sort.Strings(styleNames)
 		for _, n := range styleNames {
-			b = append(b, []byte("Style: "+styles[n].string(format)+"\n")...)
-		}
-
-		// Write
-		if _, err = o.Write(b); err != nil {
-			err = fmt.Errorf("astisub: writing styles block failed: %w", err)
-			return
+			if _, err = w.WriteString("Style: " + styles[n].string(format) + "\n"); err != nil {
+				return fmt.Errorf("astisub: writing style failed: %w", err)
+			}
 		}
 	}
 
 	// Write Events block
 	if len(s.Items) > 0 {
 		// Header
-		var b = []byte("\n[Events]\n")
+		if _, err = w.WriteString("\n[Events]\n"); err != nil {
+			return fmt.Errorf("astisub: writing events header failed: %w", err)
+		}
 
 		// Format
 		// We need to declare those 9 columns here otherwise VLC doesn't display subtitles properly
@@ -1242,17 +1335,15 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 			events = append(events, newSSAEventFromItem(*i))
 		}
 		format = append(format, ssaEventFormatNameText)
-		b = append(b, []byte("Format: "+strings.Join(format, ", ")+"\n")...)
+		if _, err = w.WriteString("Format: " + strings.Join(format, ", ") + "\n"); err != nil {
+			return fmt.Errorf("astisub: writing events format failed: %w", err)
+		}
 
 		// Styles
 		for _, e := range events {
-			b = append(b, []byte(ssaEventCategoryDialogue+": "+e.string(format)+"\n")...)
-		}
-
-		// Write
-		if _, err = o.Write(b); err != nil {
-			err = fmt.Errorf("astisub: writing events block failed: %w", err)
-			return
+			if _, err = w.WriteString(ssaEventCategoryDialogue + ": " + e.string(format) + "\n"); err != nil {
+				return fmt.Errorf("astisub: writing event failed: %w", err)
+			}
 		}
 	}
 	return

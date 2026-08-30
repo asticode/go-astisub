@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -1000,6 +1001,76 @@ func (s *Subtitles) Order() {
 	})
 }
 
+// ClipFrom clip items from input time
+func (s *Subtitles) ClipFrom(cf time.Duration) {
+	newIndex := 0
+	var items []*Item
+	for index := 0; index < len(s.Items); index++ {
+		s.Items[index].StartAt -= cf
+		s.Items[index].EndAt -= cf
+		s.Items[index].Index = newIndex
+		if s.Items[index].StartAt < 0 {
+			s.Items[index].StartAt = 0
+		}
+		if s.Items[index].EndAt > 0 {
+			items = append(items, s.Items[index])
+		}
+	}
+	s.Items = items
+}
+
+func copy(source interface{}, destin interface{}) {
+	x := reflect.ValueOf(source)
+	if x.Kind() == reflect.Ptr {
+		starX := x.Elem()
+		y := reflect.New(starX.Type())
+		starY := y.Elem()
+		starY.Set(starX)
+		reflect.ValueOf(destin).Elem().Set(y.Elem())
+	}
+}
+
+// Clone subtitles
+func (s *Subtitles) Clone() *Subtitles {
+	sub := &Subtitles{}
+	copy(s.Metadata, sub.Metadata)
+	for k, r := range s.Regions {
+		copy(r, sub.Regions[k])
+	}
+	for k, r := range s.Styles {
+		copy(r, sub.Styles[k])
+	}
+	for i := 0; i < len(s.Items); i++ {
+		n := &Item{}
+		copy(s.Items[i], n)
+		sub.Items = append(sub.Items, n)
+	}
+	return sub
+}
+
+// ClipFrom clip items until input time
+func (s *Subtitles) ClipTo(ct time.Duration) {
+	lastIndex := 0
+	for index := 0; index < len(s.Items); index++ {
+		lastIndex = index
+		if s.Items[index].StartAt > ct {
+			break
+		}
+		if s.Items[index].EndAt > ct {
+			s.Items[index].EndAt = ct
+			break
+		}
+	}
+	s.Items = s.Items[:lastIndex+1]
+}
+
+// FixIndex fix item index
+func (s *Subtitles) FixIndex() {
+	for i := 0; i < len(s.Items); i++ {
+		s.Items[i].Index = i + 1
+	}
+}
+
 // RemoveStyling removes the styling from the subtitles
 func (s *Subtitles) RemoveStyling() {
 	s.Regions = map[string]*Region{}
@@ -1015,6 +1086,69 @@ func (s *Subtitles) RemoveStyling() {
 			}
 		}
 	}
+}
+
+// Validate checks for invalid subtitle states that might cause playback issues
+func (s *Subtitles) Validate() error {
+	for i, item := range s.Items {
+		if item.StartAt < 0 || item.EndAt < 0 {
+			return fmt.Errorf("item %d has a negative timestamp", i+1)
+		}
+		if item.StartAt >= item.EndAt {
+			return fmt.Errorf("item %d has a start time greater than or equal to its end time", i+1)
+		}
+		
+		isEmpty := true
+		for _, line := range item.Lines {
+			for _, lineItem := range line.Items {
+				if strings.TrimSpace(lineItem.Text) != "" {
+					isEmpty = false
+					break
+				}
+			}
+			if !isEmpty {
+				break
+			}
+		}
+		if isEmpty {
+			return fmt.Errorf("item %d has no text content", i+1)
+		}
+	}
+	return nil
+}
+
+// Trim removes subtitles that fall outside of the [startAt, endAt] window.
+// It also truncates items that overlap with the boundaries.
+// If endAt is 0, it is ignored (no end boundary).
+// If shiftTimestamps is true, the remaining subtitles will have their timestamps shifted back by startAt.
+func (s *Subtitles) Trim(startAt time.Duration, endAt time.Duration, shiftTimestamps bool) {
+	var items []*Item
+	for _, item := range s.Items {
+		// Ignore if completely outside the window
+		if item.EndAt <= startAt {
+			continue
+		}
+		if endAt > 0 && item.StartAt >= endAt {
+			continue
+		}
+
+		// Truncate overlapping items
+		if item.StartAt < startAt {
+			item.StartAt = startAt
+		}
+		if endAt > 0 && item.EndAt > endAt {
+			item.EndAt = endAt
+		}
+
+		// Shift timestamps
+		if shiftTimestamps {
+			item.StartAt -= startAt
+			item.EndAt -= startAt
+		}
+
+		items = append(items, item)
+	}
+	s.Items = items
 }
 
 // Unfragment unfragments subtitles
