@@ -409,28 +409,28 @@ func (sa *StyleAttributes) propagateSRTAttributes() {
 	switch sa.SRTPosition {
 	case 7: // top-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 8: // top-center
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 9: // top-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 4: // middle-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 5: // middle-center
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 6: // middle-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 1: // bottom-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	case 2: // bottom-center
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	case 3: // bottom-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	}
 
 	sa.WebVTTBold = sa.SRTBold

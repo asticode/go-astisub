@@ -149,6 +149,96 @@ func TestSRTStyled(t *testing.T) {
 	assert.Equal(t, string(c), w.String())
 }
 
+func TestSRTOverrideTags(t *testing.T) {
+	testData := `1
+00:00:01,000 --> 00:00:02,000
+{\an8}A sign at the top
+
+2
+00:00:03,000 --> 00:00:04,000
+{\an1}A sign at the {\i1}bottom left
+
+3
+00:00:05,000 --> 00:00:06,000
+{\pos(400,570)}Positioning is dropped
+
+4
+00:00:07,000 --> 00:00:08,000
+Curly {braces} are not tags`
+
+	s, err := astisub.ReadFromSRT(strings.NewReader(testData))
+	require.NoError(t, err)
+	require.Len(t, s.Items, 4)
+
+	// Alignment applies to the whole item
+	assert.Equal(t, "A sign at the top", s.Items[0].Lines[0].String())
+	assert.Equal(t, byte(8), s.Items[0].InlineStyle.SRTPosition)
+	assert.Equal(t, "10%", s.Items[0].InlineStyle.WebVTTLine)
+	assert.Equal(t, "", s.Items[0].InlineStyle.WebVTTAlign)
+	assert.Nil(t, s.Items[0].Lines[0].Items[0].InlineStyle)
+
+	// Text level tags only style what follows them
+	assert.Equal(t, byte(1), s.Items[1].InlineStyle.SRTPosition)
+	assert.Equal(t, "90%", s.Items[1].InlineStyle.WebVTTLine)
+	assert.Equal(t, "left", s.Items[1].InlineStyle.WebVTTAlign)
+	require.Len(t, s.Items[1].Lines[0].Items, 2)
+	assert.Equal(t, "A sign at the ", s.Items[1].Lines[0].Items[0].Text)
+	assert.Nil(t, s.Items[1].Lines[0].Items[0].InlineStyle)
+	assert.Equal(t, "bottom left", s.Items[1].Lines[0].Items[1].Text)
+	assert.True(t, s.Items[1].Lines[0].Items[1].InlineStyle.SRTItalics)
+
+	// Tags that have no equivalent are dropped instead of being displayed
+	assert.Equal(t, "Positioning is dropped", s.Items[2].Lines[0].String())
+	assert.Nil(t, s.Items[2].InlineStyle)
+
+	// Braces are only special when they hold tags
+	assert.Equal(t, "Curly {braces} are not tags", s.Items[3].Lines[0].String())
+
+	// Write to srt
+	w := &bytes.Buffer{}
+	err = s.WriteToSRT(w)
+	assert.NoError(t, err)
+	assert.Equal(t, `1
+00:00:01,000 --> 00:00:02,000
+{\an8}A sign at the top
+
+2
+00:00:03,000 --> 00:00:04,000
+{\an1}A sign at the <i>bottom left</i>
+
+3
+00:00:05,000 --> 00:00:06,000
+Positioning is dropped
+
+4
+00:00:07,000 --> 00:00:08,000
+Curly {braces} are not tags
+`, strings.TrimPrefix(w.String(), string(astisub.BytesBOM)))
+
+	// Write to WebVTT
+	w = &bytes.Buffer{}
+	err = s.WriteToWebVTT(w)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:00:01.000 --> 00:00:02.000 line:10%
+A sign at the top
+
+2
+00:00:03.000 --> 00:00:04.000 align:left line:90%
+A sign at the <i>bottom left</i>
+
+3
+00:00:05.000 --> 00:00:06.000
+Positioning is dropped
+
+4
+00:00:07.000 --> 00:00:08.000
+Curly {braces} are not tags
+`, w.String())
+}
+
 func TestSRTMissingEndTimeBoundary(t *testing.T) {
 	testData := `1
 00:48:52,500 --> 
