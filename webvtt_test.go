@@ -359,3 +359,72 @@ Normal text with <c.magenta>magenta</c> and <c.orange>unknown color</c>`
 	assert.Nil(t, unknownColorItem.InlineStyle.TTMLColor) // Unknown color should not be converted
 	assert.Nil(t, unknownColorItem.InlineStyle.TTMLBackgroundColor)
 }
+
+func TestWebVTTRegionFormats(t *testing.T) {
+	// Test 1: New REGION format (W3C spec compliant)
+	newFormatData := `WEBVTT
+
+REGION
+id:testRegion
+width:50%
+lines:3
+regionanchor:0%,100%
+viewportanchor:10%,90%
+scroll:up
+
+00:00:01.000 --> 00:00:02.000 region:testRegion
+Test subtitle
+`
+
+	s1, err := astisub.ReadFromWebVTT(strings.NewReader(newFormatData))
+	require.NoError(t, err)
+	require.Len(t, s1.Regions, 1)
+	r1 := s1.Regions["testRegion"]
+	require.NotNil(t, r1)
+	assert.Equal(t, "testRegion", r1.ID)
+	assert.Equal(t, "50%", r1.InlineStyle.WebVTTWidth)
+	assert.Equal(t, 3, r1.InlineStyle.WebVTTLines)
+	assert.Equal(t, "0%,100%", r1.InlineStyle.WebVTTRegionAnchor)
+	assert.Equal(t, "10%,90%", r1.InlineStyle.WebVTTViewportAnchor)
+	assert.Equal(t, "up", r1.InlineStyle.WebVTTScroll)
+
+	// Test 2: Old Region: format (backward compatibility)
+	oldFormatData := `WEBVTT
+
+Region: id=testRegion width=50% lines=3 regionanchor=0%,100% viewportanchor=10%,90% scroll=up
+
+00:00:01.000 --> 00:00:02.000 region:testRegion
+Test subtitle
+`
+
+	s2, err := astisub.ReadFromWebVTT(strings.NewReader(oldFormatData))
+	require.NoError(t, err)
+	require.Len(t, s2.Regions, 1)
+	r2 := s2.Regions["testRegion"]
+	require.NotNil(t, r2)
+	assert.Equal(t, "testRegion", r2.ID)
+	assert.Equal(t, "50%", r2.InlineStyle.WebVTTWidth)
+	assert.Equal(t, 3, r2.InlineStyle.WebVTTLines)
+	assert.Equal(t, "0%,100%", r2.InlineStyle.WebVTTRegionAnchor)
+	assert.Equal(t, "10%,90%", r2.InlineStyle.WebVTTViewportAnchor)
+	assert.Equal(t, "up", r2.InlineStyle.WebVTTScroll)
+
+	// Test 3: Verify both formats parse to the same result
+	assert.Equal(t, r1.ID, r2.ID)
+	assert.Equal(t, r1.InlineStyle.WebVTTWidth, r2.InlineStyle.WebVTTWidth)
+	assert.Equal(t, r1.InlineStyle.WebVTTLines, r2.InlineStyle.WebVTTLines)
+	assert.Equal(t, r1.InlineStyle.WebVTTRegionAnchor, r2.InlineStyle.WebVTTRegionAnchor)
+	assert.Equal(t, r1.InlineStyle.WebVTTViewportAnchor, r2.InlineStyle.WebVTTViewportAnchor)
+	assert.Equal(t, r1.InlineStyle.WebVTTScroll, r2.InlineStyle.WebVTTScroll)
+
+	// Test 4: Verify writing always uses new REGION format
+	buf := &bytes.Buffer{}
+	err = s1.WriteToWebVTT(buf)
+	require.NoError(t, err)
+	output := buf.String()
+	assert.Contains(t, output, "REGION")
+	assert.Contains(t, output, "id:testRegion")
+	assert.Contains(t, output, "width:50%")
+	assert.NotContains(t, output, "Region:") // Should NOT contain old format
+	assert.NotContains(t, output, "id=") // Should NOT use equals signs
+}
