@@ -128,6 +128,13 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			if l := parseTextSrt(line, sa); len(l.Items) > 0 {
 				s.Lines = append(s.Lines, l)
 			}
+
+			// Alignment applies to the whole subtitle and not only to the text
+			// following it, and only its first occurrence is taken into account
+			if sa.SRTPosition != 0 && s.InlineStyle == nil {
+				s.InlineStyle = &StyleAttributes{SRTPosition: sa.SRTPosition}
+				s.InlineStyle.propagateSRTAttributes()
+			}
 		}
 	}
 	return
@@ -188,24 +195,35 @@ func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 				}
 			}
 		case html.TextToken:
-			if s := strings.TrimSpace(raw); s != "" {
-				// Get style attribute
-				var styleAttributes *StyleAttributes
-				if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
-					styleAttributes = &StyleAttributes{
-						SRTBold:      sa.SRTBold,
-						SRTColor:     sa.SRTColor,
-						SRTItalics:   sa.SRTItalics,
-						SRTUnderline: sa.SRTUnderline,
-					}
-					styleAttributes.propagateSRTAttributes()
+			// Override tags such as {\an8} are not part of the srt format but files
+			// ripped from ass subtitles keep them, in which case they must not be
+			// displayed as text. Splitting on them makes sure they only style what
+			// follows them.
+			for _, part := range splitSSAOverrides(raw) {
+				if part.tags != nil {
+					applySRTOverrideTags(sa, part.tags)
+					continue
 				}
 
-				// Append item
-				o.Items = append(o.Items, LineItem{
-					InlineStyle: styleAttributes,
-					Text:        unescapeHTML(raw),
-				})
+				if s := strings.TrimSpace(part.text); s != "" {
+					// Get style attribute
+					var styleAttributes *StyleAttributes
+					if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
+						styleAttributes = &StyleAttributes{
+							SRTBold:      sa.SRTBold,
+							SRTColor:     sa.SRTColor,
+							SRTItalics:   sa.SRTItalics,
+							SRTUnderline: sa.SRTUnderline,
+						}
+						styleAttributes.propagateSRTAttributes()
+					}
+
+					// Append item
+					o.Items = append(o.Items, LineItem{
+						InlineStyle: styleAttributes,
+						Text:        unescapeHTML(part.text),
+					})
+				}
 			}
 		}
 	}
@@ -238,6 +256,11 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 		c = append(c, bytesSRTTimeBoundariesSeparator...)
 		c = append(c, []byte(formatDurationSRT(v.EndAt))...)
 		c = append(c, bytesLineSeparator...)
+
+		// Add alignment, as an ass override tag since srt has none of its own
+		if v.InlineStyle != nil && v.InlineStyle.SRTPosition != 0 {
+			c = append(c, []byte(fmt.Sprintf(`{\an%d}`, v.InlineStyle.SRTPosition))...)
+		}
 
 		// Loop through lines
 		for _, l := range v.Lines {

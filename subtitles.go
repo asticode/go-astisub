@@ -450,28 +450,28 @@ func (sa *StyleAttributes) propagateSRTAttributes() {
 	switch sa.SRTPosition {
 	case 7: // top-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 8: // top-center
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 9: // top-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 4: // middle-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 5: // middle-center
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 6: // middle-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 1: // bottom-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	case 2: // bottom-center
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	case 3: // bottom-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	}
 
 	sa.WebVTTBold = sa.SRTBold
@@ -545,19 +545,39 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 			//cue settings
 			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
-			sa.WebVTTSize = dimensions[1]
+			sa.WebVTTSize = dimensions[0]
 			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTSize = dimensions[0]
+				sa.WebVTTSize = dimensions[1]
 			}
 		}
 	}
 	if sa.TTMLOrigin != nil {
 		//region settings
-		sa.WebVTTRegionAnchor = "0%,0%"
-		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
-		sa.WebVTTScroll = "up"
-		//cue settings
+		// Anchor at bottom-left (0%,100%) for bottom-aligned text
+		sa.WebVTTRegionAnchor = "0%,100%"
+
+		// Calculate viewport anchor at bottom edge for displayAlign="after"
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
+		if len(coordinates) > 1 && sa.TTMLExtent != nil {
+			dimensions := strings.Split(*sa.TTMLExtent, " ")
+			if len(dimensions) > 1 {
+				// Calculate bottom edge: origin Y + extent height
+				originY := strings.TrimSpace(coordinates[1])
+				extentHeight := strings.TrimSpace(dimensions[1])
+
+				originYVal, _ := strconv.ParseFloat(strings.ReplaceAll(originY, "%", ""), 64)
+				extentHeightVal, _ := strconv.ParseFloat(strings.ReplaceAll(extentHeight, "%", ""), 64)
+				bottomY := originYVal + extentHeightVal
+
+				sa.WebVTTViewportAnchor = fmt.Sprintf("%s,%.0f%%", strings.TrimSpace(coordinates[0]), bottomY)
+			} else {
+				sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+			}
+		} else {
+			sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+		}
+
+		//cue settings
 		if len(coordinates) > 1 {
 			sa.WebVTTLine = coordinates[0]
 			sa.WebVTTPosition = newWebVTTPosition(coordinates[1])
