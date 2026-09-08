@@ -145,12 +145,12 @@ func (i Item) String() string {
 type Color struct {
 	Alpha, Blue, Green, Red uint8
 
-	// raw preserves the original TTML/SRT color expression when it cannot be
+	// rawHTML preserves the original TTML/SRT color expression when it cannot be
 	// decoded into an RGBA triple (e.g. #RRGGBBAA with alpha, rgb()/rgba()
 	// functional notation, or a named color outside the recognized set).
 	// HTMLString returns it verbatim so these values round-trip losslessly
 	// instead of being silently dropped.
-	raw string
+	rawHTML string
 }
 
 // newColorFromSSAString builds a new color based on an SSA string
@@ -174,7 +174,7 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 // 6-digit hex and named colors (TTML1 §8.3.2) are decoded into RGBA. Any other
 // legal expression this parser does not decode — #RRGGBBAA, rgb()/rgba(),
 // "transparent", or a name outside the set below — is preserved verbatim in
-// Color.raw so it round-trips instead of being silently dropped (see
+// Color.rawHTML so it round-trips instead of being silently dropped (see
 // HTMLString). An empty or blank expression yields a nil color.
 func newColorFromHTMLString(s string) *Color {
 	if strings.TrimSpace(s) == "" {
@@ -237,7 +237,7 @@ func newColorFromHTMLString(s string) *Color {
 
 	// Anything else (e.g. #RRGGBBAA, rgb()/rgba(), "transparent", or an
 	// unrecognized name) is legal and preserved verbatim.
-	return &Color{raw: original}
+	return &Color{rawHTML: original}
 }
 
 func newColorFromWebVTTString(color string) (*Color, error) {
@@ -291,8 +291,8 @@ func (c *Color) HTMLString() string {
 	}
 	// A preserved original expression (alpha hex, rgb(), unrecognized name) is
 	// emitted verbatim to keep the value lossless.
-	if c.raw != "" {
-		return c.raw
+	if c.rawHTML != "" {
+		return c.rawHTML
 	}
 	// TODO Check named colors first
 	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
