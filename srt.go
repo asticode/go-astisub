@@ -191,9 +191,7 @@ func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 			case "font":
 				if c := htmlTokenAttribute(&token, "color"); c != nil {
 					// Parse the color string into a Color struct
-					if color, err := newColorFromHTMLString(*c); err == nil {
-						sa.SRTColor = color
-					}
+					sa.SRTColor = newColorFromHTMLString(*c)
 				}
 			}
 		case html.TextToken:

@@ -144,6 +144,13 @@ func (i Item) String() string {
 // Color represents a color
 type Color struct {
 	Alpha, Blue, Green, Red uint8
+
+	// rawHTML preserves the original TTML/SRT color expression when it cannot be
+	// decoded into an RGBA triple (e.g. #RRGGBBAA with alpha, rgb()/rgba()
+	// functional notation, or a named color outside the recognized set).
+	// HTMLString returns it verbatim so these values round-trip losslessly
+	// instead of being silently dropped.
+	rawHTML string
 }
 
 // newColorFromSSAString builds a new color based on an SSA string
@@ -162,46 +169,75 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 	return
 }
 
-// newColorFromHTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
-func newColorFromHTMLString(s string) (*Color, error) {
+// newColorFromHTMLString builds a color from a TTML/SRT color expression, e.g.
+// "#ffffff", "white", "#ffcc00ff", "orange" or "rgb(255,204,0)". Recognized
+// 6-digit hex and named colors (TTML1 §8.3.2) are decoded into RGBA. Any other
+// legal expression this parser does not decode — #RRGGBBAA, rgb()/rgba(),
+// "transparent", or a name outside the set below — is preserved verbatim in
+// Color.rawHTML so it round-trips instead of being silently dropped (see
+// HTMLString). An empty or blank expression yields a nil color.
+func newColorFromHTMLString(s string) *Color {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+
+	// Keep the original expression for verbatim preservation of undecoded values.
+	original := s
 	// Remove leading # if present
 	s = strings.TrimPrefix(s, "#")
 
-	// Check for named colors
+	// Named colors. "transparent" is intentionally omitted: it has no opaque
+	// RGBA equivalent, so it is preserved verbatim rather than flattened to
+	// #000000.
 	switch strings.ToLower(s) {
 	case "black":
-		return ColorBlack, nil
-	case "red":
-		return ColorRed, nil
-	case "green":
-		return ColorGreen, nil
-	case "yellow":
-		return ColorYellow, nil
-	case "blue":
-		return ColorBlue, nil
-	case "magenta":
-		return ColorMagenta, nil
-	case "cyan":
-		return ColorCyan, nil
+		return ColorBlack
+	case "silver":
+		return ColorSilver
+	case "gray":
+		return ColorGray
 	case "white":
-		return ColorWhite, nil
+		return ColorWhite
+	case "maroon":
+		return ColorMaroon
+	case "red":
+		return ColorRed
+	case "purple":
+		return ColorPurple
+	case "fuchsia", "magenta":
+		return ColorMagenta
+	case "green":
+		return ColorGreen
+	case "lime":
+		return ColorLime
+	case "olive":
+		return ColorOlive
+	case "yellow":
+		return ColorYellow
+	case "navy":
+		return ColorNavy
+	case "blue":
+		return ColorBlue
+	case "teal":
+		return ColorTeal
+	case "aqua", "cyan":
+		return ColorCyan
 	}
 
-	// Parse hex color (RRGGBB format)
-	if len(s) != 6 {
-		return nil, fmt.Errorf("invalid TTML color format: %s", s)
+	// Parse hex color (RRGGBB format).
+	if len(s) == 6 {
+		if i, err := strconv.ParseUint(s, 16, 32); err == nil {
+			return &Color{
+				Red:   uint8(i >> 16 & 0xff),
+				Green: uint8(i >> 8 & 0xff),
+				Blue:  uint8(i & 0xff),
+			}
+		}
 	}
 
-	i, err := strconv.ParseUint(s, 16, 32)
-	if err != nil {
-		return nil, fmt.Errorf("parsing TTML color %s failed: %w", s, err)
-	}
-
-	return &Color{
-		Red:   uint8(i >> 16 & 0xff),
-		Green: uint8(i >> 8 & 0xff),
-		Blue:  uint8(i & 0xff),
-	}, nil
+	// Anything else (e.g. #RRGGBBAA, rgb()/rgba(), "transparent", or an
+	// unrecognized name) is legal and preserved verbatim.
+	return &Color{rawHTML: original}
 }
 
 func newColorFromWebVTTString(color string) (*Color, error) {
@@ -252,6 +288,11 @@ func (c *Color) SSAString() string {
 func (c *Color) HTMLString() string {
 	if c == nil {
 		return ""
+	}
+	// A preserved original expression (alpha hex, rgb(), unrecognized name) is
+	// emitted verbatim to keep the value lossless.
+	if c.rawHTML != "" {
+		return c.rawHTML
 	}
 	// TODO Check named colors first
 	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
