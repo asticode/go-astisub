@@ -428,3 +428,219 @@ Test subtitle
 	assert.NotContains(t, output, "Region:") // Should NOT contain old format
 	assert.NotContains(t, output, "id=") // Should NOT use equals signs
 }
+
+func TestWebVTTRegionInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+REGION
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "REGION", s.Items[0].Lines[0].String())
+	assert.Empty(t, s.Regions)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+REGION
+`, b.String())
+}
+
+func TestWebVTTRegionThenSettingInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+REGION
+Speaker: hi
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 2)
+	assert.Equal(t, "REGION", s.Items[0].Lines[0].String())
+	assert.Equal(t, "Speaker: hi", s.Items[0].Lines[1].String())
+	assert.Empty(t, s.Regions)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+REGION
+Speaker: hi
+`, b.String())
+}
+
+func TestWebVTTLegacyRegionInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+Region: hi
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "Region: hi", s.Items[0].Lines[0].String())
+	assert.Empty(t, s.Regions)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+Region: hi
+`, b.String())
+}
+
+func TestWebVTTTimestampMapInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0", s.Items[0].Lines[0].String())
+	assert.Nil(t, s.Metadata)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0
+`, b.String())
+}
+
+func TestWebVTTStyleInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+STYLE
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "STYLE", s.Items[0].Lines[0].String())
+	assert.Empty(t, s.Styles)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+STYLE
+`, b.String())
+}
+
+func TestWebVTTStylePrefixInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+STYLEsomething
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "STYLEsomething", s.Items[0].Lines[0].String())
+	assert.Empty(t, s.Styles)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+STYLEsomething
+`, b.String())
+}
+
+func TestWebVTTNoteInCueText(t *testing.T) {
+	testData := `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+NOTE something
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Items, 1)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "NOTE something", s.Items[0].Lines[0].String())
+	assert.Empty(t, s.Items[0].Comments)
+
+	b := &bytes.Buffer{}
+	err = s.WriteToWebVTT(b)
+	assert.NoError(t, err)
+	assert.Equal(t, `WEBVTT
+
+1
+00:01:00.000 --> 00:02:00.000
+NOTE something
+`, b.String())
+}
+
+func TestWebVTTBlockHeadersStillParse(t *testing.T) {
+	testData := `WEBVTT
+
+REGION
+id:fred
+width:40%
+
+STYLE
+::cue { color: red }
+
+NOTE a comment
+
+1
+00:01:00.000 --> 00:02:00.000
+Hello
+`
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+
+	require.Len(t, s.Regions, 1)
+	assert.Equal(t, "fred", s.Regions["fred"].ID)
+	assert.Equal(t, "40%", s.Regions["fred"].InlineStyle.WebVTTWidth)
+
+	require.Len(t, s.Styles, 1)
+
+	require.Len(t, s.Items, 1)
+	assert.Equal(t, []string{"a comment"}, s.Items[0].Comments)
+	require.Len(t, s.Items[0].Lines, 1)
+	assert.Equal(t, "Hello", s.Items[0].Lines[0].String())
+}

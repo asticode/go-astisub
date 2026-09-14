@@ -186,9 +186,14 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			return
 		}
 
+		// When inside a cue's text, a line that looks like a block header
+		// (NOTE/REGION/STYLE/X-TIMESTAMP-MAP) is literal cue text, not a new
+		// block, so the guarded cases below skip themselves while inCue.
+		inCue := blockName == webvttBlockNameText
+
 		switch {
 		// Comment
-		case strings.HasPrefix(line, "NOTE "):
+		case strings.HasPrefix(line, "NOTE ") && !inCue:
 			blockName = webvttBlockNameComment
 			comments = append(comments, strings.TrimPrefix(line, "NOTE "))
 		// Empty line
@@ -213,12 +218,12 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			sa.WebVTTTags = []WebVTTTag{}
 
 		// New REGION block format (W3C spec compliant)
-		case line == "REGION":
+		case line == "REGION" && !inCue:
 			blockName = webvttBlockNameRegion
 			currentRegion = &Region{InlineStyle: &StyleAttributes{}}
 
 		// Old Region: format (backward compatibility)
-		case strings.HasPrefix(line, "Region: "):
+		case strings.HasPrefix(line, "Region: ") && !inCue:
 			// Add region styles
 			var r = &Region{InlineStyle: &StyleAttributes{}}
 			for _, part := range strings.Split(strings.TrimPrefix(line, "Region: "), " ") {
@@ -253,7 +258,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Add region
 			o.Regions[r.ID] = r
 		// Style
-		case strings.HasPrefix(line, "STYLE"):
+		case strings.HasPrefix(line, "STYLE") && !inCue:
 			blockName = webvttBlockNameStyle
 
 			if _, ok := o.Styles[webvttDefaultStyleID]; !ok {
@@ -344,7 +349,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Append item
 			o.Items = append(o.Items, item)
 
-		case strings.HasPrefix(line, webvttTimestampMapHeader):
+		case strings.HasPrefix(line, webvttTimestampMapHeader) && !inCue:
 			if len(item.Lines) > 0 {
 				err = errors.New("astisub: found timestamp map after processing subtitle items")
 				return
