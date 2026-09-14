@@ -429,32 +429,39 @@ Test subtitle
 	assert.NotContains(t, output, "id=") // Should NOT use equals signs
 }
 
-func TestWebVTTRegionInCueText(t *testing.T) {
-	testData := `WEBVTT
+// A cue-body line that looks like a block header must be kept as literal cue
+// text: no block is started, and no region/style/comment/metadata is captured.
+func TestWebVTTBlockKeywordsInCueText(t *testing.T) {
+	for _, line := range []string{
+		"REGION",         // new REGION block format (exact match)
+		"Region: hi",     // legacy Region: format
+		"STYLE",          // STYLE block (exact)
+		"STYLEsomething", // STYLE block (HasPrefix, not exact)
+		"NOTE something", // comment block
+	} {
+		t.Run(line, func(t *testing.T) {
+			testData := "WEBVTT\n\n1\n00:01:00.000 --> 00:02:00.000\n" + line + "\n"
 
-1
-00:01:00.000 --> 00:02:00.000
-REGION
-`
-	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
-	assert.NoError(t, err)
+			s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+			assert.NoError(t, err)
 
-	require.Len(t, s.Items, 1)
-	require.Len(t, s.Items[0].Lines, 1)
-	assert.Equal(t, "REGION", s.Items[0].Lines[0].String())
-	assert.Empty(t, s.Regions)
+			require.Len(t, s.Items, 1)
+			require.Len(t, s.Items[0].Lines, 1)
+			assert.Equal(t, line, s.Items[0].Lines[0].String())
+			assert.Empty(t, s.Regions)
+			assert.Empty(t, s.Styles)
+			assert.Empty(t, s.Items[0].Comments)
 
-	b := &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-REGION
-`, b.String())
+			b := &bytes.Buffer{}
+			err = s.WriteToWebVTT(b)
+			assert.NoError(t, err)
+			assert.Equal(t, testData, b.String())
+		})
+	}
 }
 
+// A REGION line followed by a "key: value" line inside a cue must stay literal
+// text and must not inject a bogus region into the header.
 func TestWebVTTRegionThenSettingInCueText(t *testing.T) {
 	testData := `WEBVTT
 
@@ -475,41 +482,11 @@ Speaker: hi
 	b := &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)
 	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-REGION
-Speaker: hi
-`, b.String())
+	assert.Equal(t, testData, b.String())
 }
 
-func TestWebVTTLegacyRegionInCueText(t *testing.T) {
-	testData := `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-Region: hi
-`
-	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
-	assert.NoError(t, err)
-
-	require.Len(t, s.Items, 1)
-	require.Len(t, s.Items[0].Lines, 1)
-	assert.Equal(t, "Region: hi", s.Items[0].Lines[0].String())
-	assert.Empty(t, s.Regions)
-
-	b := &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-Region: hi
-`, b.String())
-}
-
+// X-TIMESTAMP-MAP in a cue body must stay literal text: no parse error and no
+// Metadata.WebVTTTimestampMap capture.
 func TestWebVTTTimestampMapInCueText(t *testing.T) {
 	testData := `WEBVTT
 
@@ -528,92 +505,11 @@ X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0
 	b := &bytes.Buffer{}
 	err = s.WriteToWebVTT(b)
 	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0
-`, b.String())
+	assert.Equal(t, testData, b.String())
 }
 
-func TestWebVTTStyleInCueText(t *testing.T) {
-	testData := `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-STYLE
-`
-	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
-	assert.NoError(t, err)
-
-	require.Len(t, s.Items, 1)
-	require.Len(t, s.Items[0].Lines, 1)
-	assert.Equal(t, "STYLE", s.Items[0].Lines[0].String())
-	assert.Empty(t, s.Styles)
-
-	b := &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-STYLE
-`, b.String())
-}
-
-func TestWebVTTStylePrefixInCueText(t *testing.T) {
-	testData := `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-STYLEsomething
-`
-	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
-	assert.NoError(t, err)
-
-	require.Len(t, s.Items, 1)
-	require.Len(t, s.Items[0].Lines, 1)
-	assert.Equal(t, "STYLEsomething", s.Items[0].Lines[0].String())
-	assert.Empty(t, s.Styles)
-
-	b := &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-STYLEsomething
-`, b.String())
-}
-
-func TestWebVTTNoteInCueText(t *testing.T) {
-	testData := `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-NOTE something
-`
-	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
-	assert.NoError(t, err)
-
-	require.Len(t, s.Items, 1)
-	require.Len(t, s.Items[0].Lines, 1)
-	assert.Equal(t, "NOTE something", s.Items[0].Lines[0].String())
-	assert.Empty(t, s.Items[0].Comments)
-
-	b := &bytes.Buffer{}
-	err = s.WriteToWebVTT(b)
-	assert.NoError(t, err)
-	assert.Equal(t, `WEBVTT
-
-1
-00:01:00.000 --> 00:02:00.000
-NOTE something
-`, b.String())
-}
-
+// Regression: real REGION/STYLE/NOTE header blocks (between cues) still parse
+// into Regions/Styles/comments.
 func TestWebVTTBlockHeadersStillParse(t *testing.T) {
 	testData := `WEBVTT
 
