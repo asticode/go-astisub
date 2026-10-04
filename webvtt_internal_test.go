@@ -1,10 +1,12 @@
 package astisub
 
 import (
+	"bytes"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/asticode/go-astikit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,7 +167,8 @@ func TestCueVoiceSpanRegex(t *testing.T) {
 }
 
 func TestLineWebVTTBytes(t *testing.T) {
-	require.Equal(t, "<t1>1 <t2>2</t2> 3</t1>\n", string(Line{Items: []LineItem{
+	w := &bytes.Buffer{}
+	err := Line{Items: []LineItem{
 		{
 			InlineStyle: &StyleAttributes{WebVTTTags: []WebVTTTag{
 				{Name: "t1"},
@@ -185,5 +188,7 @@ func TestLineWebVTTBytes(t *testing.T) {
 			}},
 			Text: " 3",
 		},
-	}}.webVTTBytes()))
+	}}.writeWebVTT(astikit.NewWriteChainer(w))
+	require.NoError(t, err)
+	assert.Equal(t, "<t1>1 <t2>2</t2> 3</t1>\n", w.String())
 }

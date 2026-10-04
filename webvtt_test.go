@@ -540,3 +540,15 @@ Hello
 	require.Len(t, s.Items[0].Lines, 1)
 	assert.Equal(t, "Hello", s.Items[0].Lines[0].String())
 }
+func BenchmarkWriteToWebVTT(b *testing.B) {
+	s, err := astisub.OpenFile("./testdata/example-in.vtt")
+	if err != nil {
+		b.Fatal(err)
+	}
+	w := &bytes.Buffer{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w.Reset()
+		s.WriteToWebVTT(w)
+	}
+}
