@@ -411,155 +411,52 @@ func (b *ssaScriptInfo) metadata() *Metadata {
 
 // write writes the block to the writer
 func (b *ssaScriptInfo) write(c *astikit.WriteChainer) (err error) {
-	if _, err = c.Write(astikit.WriteWithLabel("script info header", []byte("[Script Info]"))); err != nil {
-		return
-	}
-	if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
+	if _, err = c.Write(
+		astikit.WriteWithLabel("script info header", []byte("[Script Info]")),
+		astikit.WriteWithLabel("line separator", bytesLineSeparator),
+	); err != nil {
 		return
 	}
 	for _, comment := range b.comments {
 		if _, err = c.Write(
-			astikit.WriteWithLabel("comment start", []byte("; ")),
-			astikit.WriteWithLabel("comment text", []byte(comment)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("comment", append([]byte("; "+comment), bytesLineSeparator...)),
 		); err != nil {
 			return
 		}
 	}
-	if len(b.collisions) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("collisions label", []byte(ssaScriptInfoNameCollisions+": ")),
-			astikit.WriteWithLabel("collisions", []byte(b.collisions)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.originalEditing) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("original editing label", []byte(ssaScriptInfoNameOriginalEditing+": ")),
-			astikit.WriteWithLabel("original editing", []byte(b.originalEditing)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.originalScript) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("original script label", []byte(ssaScriptInfoNameOriginalScript+": ")),
-			astikit.WriteWithLabel("original script", []byte(b.originalScript)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.originalTiming) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("original timing label", []byte(ssaScriptInfoNameOriginalTiming+": ")),
-			astikit.WriteWithLabel("original timing", []byte(b.originalTiming)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.originalTranslation) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("original translation label", []byte(ssaScriptInfoNameOriginalTranslation+": ")),
-			astikit.WriteWithLabel("original translation", []byte(b.originalTranslation)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
+	
+	var playDepth, playResX, playResY, timer string
 	if b.playDepth != nil {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("play depth label", []byte(ssaScriptInfoNamePlayDepth+": ")),
-			astikit.WriteWithLabel("play depth", []byte(strconv.Itoa(*b.playDepth))),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
+		playDepth = strconv.Itoa(*b.playDepth)
 	}
 	if b.playResX != nil {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("play res x label", []byte(ssaScriptInfoNamePlayResX+": ")),
-			astikit.WriteWithLabel("play res x", []byte(strconv.Itoa(*b.playResX))),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
+		playResX = strconv.Itoa(*b.playResX)
 	}
 	if b.playResY != nil {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("play res y label", []byte(ssaScriptInfoNamePlayResY+": ")),
-			astikit.WriteWithLabel("play res y", []byte(strconv.Itoa(*b.playResY))),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.scriptType) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("script type label", []byte(ssaScriptInfoNameScriptType+": ")),
-			astikit.WriteWithLabel("script type", []byte(b.scriptType)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.scriptUpdatedBy) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("script updated by label", []byte(ssaScriptInfoNameScriptUpdatedBy+": ")),
-			astikit.WriteWithLabel("script updated by", []byte(b.scriptUpdatedBy)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.synchPoint) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("synch point label", []byte(ssaScriptInfoNameSynchPoint+": ")),
-			astikit.WriteWithLabel("synch point", []byte(b.synchPoint)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
+		playResY = strconv.Itoa(*b.playResY)
 	}
 	if b.timer != nil {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("timer label", []byte(ssaScriptInfoNameTimer+": ")),
-			astikit.WriteWithLabel("timer", []byte(strings.Replace(strconv.FormatFloat(*b.timer, 'f', -1, 64), ".", ",", -1))),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
+		timer = strings.Replace(strconv.FormatFloat(*b.timer, 'f', -1, 64), ".", ",", -1)
 	}
-	if len(b.title) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("title label", []byte(ssaScriptInfoNameTitle+": ")),
-			astikit.WriteWithLabel("title", []byte(b.title)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.updateDetails) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("update details label", []byte(ssaScriptInfoNameUpdateDetails+": ")),
-			astikit.WriteWithLabel("update details", []byte(b.updateDetails)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
-	}
-	if len(b.wrapStyle) > 0 {
-		if _, err = c.Write(
-			astikit.WriteWithLabel("wrap style label", []byte(ssaScriptInfoNameWrapStyle+": ")),
-			astikit.WriteWithLabel("wrap style", []byte(b.wrapStyle)),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
-		); err != nil {
-			return
-		}
+
+	if _, err = c.Write(
+		astikit.WriteWithCondition("collisions", append([]byte(ssaScriptInfoNameCollisions+": "+b.collisions), bytesLineSeparator...), len(b.collisions) > 0),
+		astikit.WriteWithCondition("original editing", append([]byte(ssaScriptInfoNameOriginalEditing+": "+b.originalEditing), bytesLineSeparator...), len(b.originalEditing) > 0),
+		astikit.WriteWithCondition("original script", append([]byte(ssaScriptInfoNameOriginalScript+": "+b.originalScript), bytesLineSeparator...), len(b.originalScript) > 0),
+		astikit.WriteWithCondition("original timing", append([]byte(ssaScriptInfoNameOriginalTiming+": "+b.originalTiming), bytesLineSeparator...), len(b.originalTiming) > 0),
+		astikit.WriteWithCondition("original translation", append([]byte(ssaScriptInfoNameOriginalTranslation+": "+b.originalTranslation), bytesLineSeparator...), len(b.originalTranslation) > 0),
+		astikit.WriteWithCondition("play depth", append([]byte(ssaScriptInfoNamePlayDepth+": "+playDepth), bytesLineSeparator...), b.playDepth != nil),
+		astikit.WriteWithCondition("play res x", append([]byte(ssaScriptInfoNamePlayResX+": "+playResX), bytesLineSeparator...), b.playResX != nil),
+		astikit.WriteWithCondition("play res y", append([]byte(ssaScriptInfoNamePlayResY+": "+playResY), bytesLineSeparator...), b.playResY != nil),
+		astikit.WriteWithCondition("script type", append([]byte(ssaScriptInfoNameScriptType+": "+b.scriptType), bytesLineSeparator...), len(b.scriptType) > 0),
+		astikit.WriteWithCondition("script updated by", append([]byte(ssaScriptInfoNameScriptUpdatedBy+": "+b.scriptUpdatedBy), bytesLineSeparator...), len(b.scriptUpdatedBy) > 0),
+		astikit.WriteWithCondition("synch point", append([]byte(ssaScriptInfoNameSynchPoint+": "+b.synchPoint), bytesLineSeparator...), len(b.synchPoint) > 0),
+		astikit.WriteWithCondition("timer", append([]byte(ssaScriptInfoNameTimer+": "+timer), bytesLineSeparator...), b.timer != nil),
+		astikit.WriteWithCondition("title", append([]byte(ssaScriptInfoNameTitle+": "+b.title), bytesLineSeparator...), len(b.title) > 0),
+		astikit.WriteWithCondition("update details", append([]byte(ssaScriptInfoNameUpdateDetails+": "+b.updateDetails), bytesLineSeparator...), len(b.updateDetails) > 0),
+		astikit.WriteWithCondition("wrap style", append([]byte(ssaScriptInfoNameWrapStyle+": "+b.wrapStyle), bytesLineSeparator...), len(b.wrapStyle) > 0),
+	); err != nil {
+		return
 	}
 	return
 }
@@ -1308,9 +1205,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 			styleNames = append(styleNames, ss.name)
 		}
 		if _, err = c.Write(
-			astikit.WriteWithLabel("styles format label", []byte("Format: ")),
-			astikit.WriteWithLabel("styles format", []byte(strings.Join(format, ", "))),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("styles format", append([]byte("Format: "+strings.Join(format, ", ")), bytesLineSeparator...)),
 		); err != nil {
 			return
 		}
@@ -1319,9 +1214,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		sort.Strings(styleNames)
 		for _, n := range styleNames {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("style label", []byte("Style: ")),
-				astikit.WriteWithLabel("style", []byte(styles[n].string(format))),
-				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+				astikit.WriteWithLabel("style", append([]byte("Style: "+styles[n].string(format)), bytesLineSeparator...)),
 			); err != nil {
 				return
 			}
@@ -1357,9 +1250,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		}
 		format = append(format, ssaEventFormatNameText)
 		if _, err = c.Write(
-			astikit.WriteWithLabel("events format label", []byte("Format: ")),
-			astikit.WriteWithLabel("events format", []byte(strings.Join(format, ", "))),
-			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("events format", append([]byte("Format: "+strings.Join(format, ", ")), bytesLineSeparator...)),
 		); err != nil {
 			return
 		}
@@ -1367,9 +1258,7 @@ func (s Subtitles) WriteToSSA(o io.Writer) (err error) {
 		// Styles
 		for _, e := range events {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("event dialogue label", []byte(ssaEventCategoryDialogue+": ")),
-				astikit.WriteWithLabel("event dialogue", []byte(e.string(format))),
-				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+				astikit.WriteWithLabel("event dialogue", append([]byte(ssaEventCategoryDialogue+": "+e.string(format)), bytesLineSeparator...)),
 			); err != nil {
 				return
 			}
