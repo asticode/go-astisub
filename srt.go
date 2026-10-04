@@ -107,6 +107,10 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			}
 			// We do this to eliminate extra stuff like positions which are not documented anywhere
 			s2 := strings.Fields(s1[1])
+			if len(s2) == 0 {
+				err = fmt.Errorf("astisub: line %d: missing srt end time boundary", lineNum)
+				return
+			}
 
 			// Parse time boundaries
 			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {
@@ -124,6 +128,13 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			// Add text
 			if l := parseTextSrt(line, sa); len(l.Items) > 0 {
 				s.Lines = append(s.Lines, l)
+			}
+
+			// Alignment applies to the whole subtitle and not only to the text
+			// following it, and only its first occurrence is taken into account
+			if sa.SRTPosition != 0 && s.InlineStyle == nil {
+				s.InlineStyle = &StyleAttributes{SRTPosition: sa.SRTPosition}
+				s.InlineStyle.propagateSRTAttributes()
 			}
 		}
 	}
@@ -181,30 +192,39 @@ func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 			case "font":
 				if c := htmlTokenAttribute(&token, "color"); c != nil {
 					// Parse the color string into a Color struct
-					if color, err := newColorFromHTMLString(*c); err == nil {
-						sa.SRTColor = color
-					}
+					sa.SRTColor = newColorFromHTMLString(*c)
 				}
 			}
 		case html.TextToken:
-			if s := strings.TrimSpace(raw); s != "" {
-				// Get style attribute
-				var styleAttributes *StyleAttributes
-				if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
-					styleAttributes = &StyleAttributes{
-						SRTBold:      sa.SRTBold,
-						SRTColor:     sa.SRTColor,
-						SRTItalics:   sa.SRTItalics,
-						SRTUnderline: sa.SRTUnderline,
-					}
-					styleAttributes.propagateSRTAttributes()
+			// Override tags such as {\an8} are not part of the srt format but files
+			// ripped from ass subtitles keep them, in which case they must not be
+			// displayed as text. Splitting on them makes sure they only style what
+			// follows them.
+			for _, part := range splitSSAOverrides(raw) {
+				if part.tags != nil {
+					applySRTOverrideTags(sa, part.tags)
+					continue
 				}
 
-				// Append item
-				o.Items = append(o.Items, LineItem{
-					InlineStyle: styleAttributes,
-					Text:        unescapeHTML(raw),
-				})
+				if s := strings.TrimSpace(part.text); s != "" {
+					// Get style attribute
+					var styleAttributes *StyleAttributes
+					if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
+						styleAttributes = &StyleAttributes{
+							SRTBold:      sa.SRTBold,
+							SRTColor:     sa.SRTColor,
+							SRTItalics:   sa.SRTItalics,
+							SRTUnderline: sa.SRTUnderline,
+						}
+						styleAttributes.propagateSRTAttributes()
+					}
+
+					// Append item
+					o.Items = append(o.Items, LineItem{
+						InlineStyle: styleAttributes,
+						Text:        unescapeHTML(part.text),
+					})
+				}
 			}
 		}
 	}
@@ -244,6 +264,13 @@ func (s Subtitles) WriteToSRT(o io.Writer) (err error) {
 			astikit.WriteWithLabel("line separator", bytesLineSeparator),
 		); err != nil {
 			return
+		}
+
+		// Add alignment, as an ass override tag since srt has none of its own
+		if v.InlineStyle != nil && v.InlineStyle.SRTPosition != 0 {
+			if _, err = c.Write(astikit.WriteWithLabel("alignment", []byte(fmt.Sprintf(`{\an%d}`, v.InlineStyle.SRTPosition)))); err != nil {
+				return
+			}
 		}
 
 		// Loop through lines

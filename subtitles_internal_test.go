@@ -18,6 +18,33 @@ func TestColor(t *testing.T) {
 	assert.Equal(t, "12345678", c.SSAString())
 }
 
+func TestColorHTMLRoundTrip(t *testing.T) {
+	// Recognized 6-digit hex and named colors decode to RGBA (and normalize to
+	// hex on write); every other legal expression must survive a read -> write
+	// round-trip verbatim rather than being dropped. #RRGGBBAA is legal TTML1
+	// (§8.3.2) and the form IMSC1 mandates; "transparent" and names outside the
+	// recognized set are legal TTML/TTML2.
+	for _, tc := range []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "rrggbb parses", in: "#00ff00", want: "#00ff00"},
+		{name: "named color normalizes to hex", in: "white", want: "#ffffff"},
+		{name: "extended named color parses", in: "silver", want: "#c0c0c0"},
+		{name: "rrggbbaa preserved", in: "#ffcc00ff", want: "#ffcc00ff"},
+		{name: "transparent preserved", in: "transparent", want: "transparent"},
+		{name: "unrecognized name preserved", in: "orange", want: "orange"},
+		{name: "functional notation preserved", in: "rgb(255,204,0)", want: "rgb(255,204,0)"},
+		{name: "empty yields nil color", in: "", want: ""},
+		{name: "blank yields nil color", in: "   ", want: ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, newColorFromHTMLString(tc.in).HTMLString())
+		})
+	}
+}
+
 func TestParseDuration(t *testing.T) {
 	_, err := parseDuration("12:34:56,1234", ",", 3)
 	assert.EqualError(t, err, "astisub: Invalid number of millisecond digits detected in 12:34:56,1234")

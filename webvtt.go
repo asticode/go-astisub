@@ -177,6 +177,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 	var comments []string
 	var index int
 	var sa = &StyleAttributes{}
+	var currentRegion *Region
 
 	for scanner.Scan() {
 		// Fetch line
@@ -187,13 +188,25 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			return
 		}
 
+		// When inside a cue's text, a line that looks like a block header
+		// (NOTE/REGION/STYLE/X-TIMESTAMP-MAP) is literal cue text, not a new
+		// block, so the guarded cases below skip themselves while inCue.
+		inCue := blockName == webvttBlockNameText
+
 		switch {
 		// Comment
-		case strings.HasPrefix(line, "NOTE "):
+		case strings.HasPrefix(line, "NOTE ") && !inCue:
 			blockName = webvttBlockNameComment
 			comments = append(comments, strings.TrimPrefix(line, "NOTE "))
 		// Empty line
 		case len(line) == 0:
+			// If we were parsing a REGION block, finalize it
+			if blockName == webvttBlockNameRegion && currentRegion != nil && currentRegion.ID != "" {
+				currentRegion.InlineStyle.propagateWebVTTAttributes()
+				o.Regions[currentRegion.ID] = currentRegion
+				currentRegion = nil
+			}
+
 			// Reset block name, if we are not in the middle of CSS.
 			// If we are in STYLE block and the CSS is empty or we meet the right brace at the end of last line,
 			// then we are not in CSS and can switch to parse next WebVTT block.
@@ -206,8 +219,13 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Reset WebVTTTags
 			sa.WebVTTTags = []WebVTTTag{}
 
-		// Region
-		case strings.HasPrefix(line, "Region: "):
+		// New REGION block format (W3C spec compliant)
+		case line == "REGION" && !inCue:
+			blockName = webvttBlockNameRegion
+			currentRegion = &Region{InlineStyle: &StyleAttributes{}}
+
+		// Old Region: format (backward compatibility)
+		case strings.HasPrefix(line, "Region: ") && !inCue:
 			// Add region styles
 			var r = &Region{InlineStyle: &StyleAttributes{}}
 			for _, part := range strings.Split(strings.TrimPrefix(line, "Region: "), " ") {
@@ -242,7 +260,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Add region
 			o.Regions[r.ID] = r
 		// Style
-		case strings.HasPrefix(line, "STYLE"):
+		case strings.HasPrefix(line, "STYLE") && !inCue:
 			blockName = webvttBlockNameStyle
 
 			if _, ok := o.Styles[webvttDefaultStyleID]; !ok {
@@ -273,6 +291,10 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 
 			// Split line on space to get remaining of time data
 			var right = strings.Fields(left[1])
+			if len(right) == 0 {
+				err = fmt.Errorf("astisub: line %d: missing webvtt end time boundary", lineNum)
+				return
+			}
 
 			// Parse time boundaries
 			if item.StartAt, err = parseDurationWebVTT(left[0]); err != nil {
@@ -329,7 +351,7 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			// Append item
 			o.Items = append(o.Items, item)
 
-		case strings.HasPrefix(line, webvttTimestampMapHeader):
+		case strings.HasPrefix(line, webvttTimestampMapHeader) && !inCue:
 			if len(item.Lines) > 0 {
 				err = errors.New("astisub: found timestamp map after processing subtitle items")
 				return
@@ -352,6 +374,33 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 			switch blockName {
 			case webvttBlockNameComment:
 				comments = append(comments, line)
+			case webvttBlockNameRegion:
+				// Parse REGION block settings (multi-line format)
+				if currentRegion != nil {
+					var split = strings.Split(line, ":")
+					if len(split) > 1 {
+						key := strings.TrimSpace(split[0])
+						value := strings.TrimSpace(split[1])
+
+						switch key {
+						case "id":
+							currentRegion.ID = value
+						case "lines":
+							if currentRegion.InlineStyle.WebVTTLines, err = strconv.Atoi(value); err != nil {
+								err = fmt.Errorf("atoi of %s failed: %w", value, err)
+								return
+							}
+						case "regionanchor":
+							currentRegion.InlineStyle.WebVTTRegionAnchor = value
+						case "scroll":
+							currentRegion.InlineStyle.WebVTTScroll = value
+						case "viewportanchor":
+							currentRegion.InlineStyle.WebVTTViewportAnchor = value
+						case "width":
+							currentRegion.InlineStyle.WebVTTWidth = value
+						}
+					}
+				}
 			case webvttBlockNameStyle:
 				sa.WebVTTStyles = append(sa.WebVTTStyles, line)
 			case webvttBlockNameText:
@@ -548,86 +597,97 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 
 	sort.Strings(k)
 	for _, id := range k {
-		var r = s.Regions[id]
-		if _, err = c.Write(astikit.WriteWithLabel("region id", []byte("Region: id="+r.ID))); err != nil {
+		// W3C WebVTT Spec: REGION blocks use multi-line format with colon-separated settings
+		if _, err = c.Write(
+			astikit.WriteWithLabel("region", []byte("REGION")),
+			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			astikit.WriteWithLabel("region id", []byte("id:"+s.Regions[id].ID)),
+			astikit.WriteWithLabel("line separator", bytesLineSeparator),
+		); err != nil {
 			return
 		}
 
-		// Lines
-		lines := r.InlineStyle.WebVTTLines
-		if lines == 0 && r.Style != nil && r.Style.InlineStyle != nil {
-			lines = r.Style.InlineStyle.WebVTTLines
-		}
-		if lines != 0 {
+		if s.Regions[id].InlineStyle.WebVTTWidth != "" {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("space", bytesSpace),
-				astikit.WriteWithLabel("lines", []byte("lines="+strconv.Itoa(lines))),
+				astikit.WriteWithLabel("width", []byte("width:"+s.Regions[id].InlineStyle.WebVTTWidth)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			); err != nil {
+				return
+			}
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTWidth != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("width", []byte("width:"+s.Regions[id].Style.InlineStyle.WebVTTWidth)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
 			); err != nil {
 				return
 			}
 		}
 
-		// Region anchor
-		ra := r.InlineStyle.WebVTTRegionAnchor
-		if ra == "" && r.Style != nil && r.Style.InlineStyle != nil {
-			ra = r.Style.InlineStyle.WebVTTRegionAnchor
-		}
-		if ra != "" {
+		if s.Regions[id].InlineStyle.WebVTTLines != 0 {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("space", bytesSpace),
-				astikit.WriteWithLabel("regionanchor", []byte("regionanchor="+ra)),
+				astikit.WriteWithLabel("lines", []byte("lines:"+strconv.Itoa(s.Regions[id].InlineStyle.WebVTTLines))),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			); err != nil {
+				return
+			}
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTLines != 0 {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("lines", []byte("lines:"+strconv.Itoa(s.Regions[id].Style.InlineStyle.WebVTTLines))),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
 			); err != nil {
 				return
 			}
 		}
 
-		// Scroll
-		scroll := r.InlineStyle.WebVTTScroll
-		if scroll == "" && r.Style != nil && r.Style.InlineStyle != nil {
-			scroll = r.Style.InlineStyle.WebVTTScroll
-		}
-		if scroll != "" {
+		if s.Regions[id].InlineStyle.WebVTTViewportAnchor != "" {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("space", bytesSpace),
-				astikit.WriteWithLabel("scroll", []byte("scroll="+scroll)),
+				astikit.WriteWithLabel("viewportanchor", []byte("viewportanchor:"+s.Regions[id].InlineStyle.WebVTTViewportAnchor)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			); err != nil {
+				return
+			}
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("viewportanchor", []byte("viewportanchor:"+s.Regions[id].Style.InlineStyle.WebVTTViewportAnchor)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
 			); err != nil {
 				return
 			}
 		}
 
-		// Viewport anchor
-		va := r.InlineStyle.WebVTTViewportAnchor
-		if va == "" && r.Style != nil && r.Style.InlineStyle != nil {
-			va = r.Style.InlineStyle.WebVTTViewportAnchor
-		}
-		if va != "" {
+		if s.Regions[id].InlineStyle.WebVTTRegionAnchor != "" {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("space", bytesSpace),
-				astikit.WriteWithLabel("viewportanchor", []byte("viewportanchor="+va)),
+				astikit.WriteWithLabel("regionanchor", []byte("regionanchor:"+s.Regions[id].InlineStyle.WebVTTRegionAnchor)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			); err != nil {
+				return
+			}
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("regionanchor", []byte("regionanchor:"+s.Regions[id].Style.InlineStyle.WebVTTRegionAnchor)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
 			); err != nil {
 				return
 			}
 		}
 
-		// Width
-		width := r.InlineStyle.WebVTTWidth
-		if width == "" && r.Style != nil && r.Style.InlineStyle != nil {
-			width = r.Style.InlineStyle.WebVTTWidth
-		}
-		if width != "" {
+		if s.Regions[id].InlineStyle.WebVTTScroll != "" {
 			if _, err = c.Write(
-				astikit.WriteWithLabel("space", bytesSpace),
-				astikit.WriteWithLabel("width", []byte("width="+width)),
+				astikit.WriteWithLabel("scroll", []byte("scroll:"+s.Regions[id].InlineStyle.WebVTTScroll)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
+			); err != nil {
+				return
+			}
+		} else if s.Regions[id].Style != nil && s.Regions[id].Style.InlineStyle != nil && s.Regions[id].Style.InlineStyle.WebVTTScroll != "" {
+			if _, err = c.Write(
+				astikit.WriteWithLabel("scroll", []byte("scroll:"+s.Regions[id].Style.InlineStyle.WebVTTScroll)),
+				astikit.WriteWithLabel("line separator", bytesLineSeparator),
 			); err != nil {
 				return
 			}
 		}
 
-		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
-			return
-		}
-	}
-	if len(s.Regions) > 0 {
+		// Add blank line after each REGION block
 		if _, err = c.Write(astikit.WriteWithLabel("line separator", bytesLineSeparator)); err != nil {
 			return
 		}

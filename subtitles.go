@@ -145,6 +145,13 @@ func (i Item) String() string {
 // Color represents a color
 type Color struct {
 	Alpha, Blue, Green, Red uint8
+
+	// rawHTML preserves the original TTML/SRT color expression when it cannot be
+	// decoded into an RGBA triple (e.g. #RRGGBBAA with alpha, rgb()/rgba()
+	// functional notation, or a named color outside the recognized set).
+	// HTMLString returns it verbatim so these values round-trip losslessly
+	// instead of being silently dropped.
+	rawHTML string
 }
 
 // newColorFromSSAString builds a new color based on an SSA string
@@ -163,46 +170,75 @@ func newColorFromSSAString(s string, base int) (c *Color, err error) {
 	return
 }
 
-// newColorFromHTMLString builds a new color based on a TTML hex string (e.g., "#ffffff" or "white")
-func newColorFromHTMLString(s string) (*Color, error) {
+// newColorFromHTMLString builds a color from a TTML/SRT color expression, e.g.
+// "#ffffff", "white", "#ffcc00ff", "orange" or "rgb(255,204,0)". Recognized
+// 6-digit hex and named colors (TTML1 §8.3.2) are decoded into RGBA. Any other
+// legal expression this parser does not decode — #RRGGBBAA, rgb()/rgba(),
+// "transparent", or a name outside the set below — is preserved verbatim in
+// Color.rawHTML so it round-trips instead of being silently dropped (see
+// HTMLString). An empty or blank expression yields a nil color.
+func newColorFromHTMLString(s string) *Color {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+
+	// Keep the original expression for verbatim preservation of undecoded values.
+	original := s
 	// Remove leading # if present
 	s = strings.TrimPrefix(s, "#")
 
-	// Check for named colors
+	// Named colors. "transparent" is intentionally omitted: it has no opaque
+	// RGBA equivalent, so it is preserved verbatim rather than flattened to
+	// #000000.
 	switch strings.ToLower(s) {
 	case "black":
-		return ColorBlack, nil
-	case "red":
-		return ColorRed, nil
-	case "green":
-		return ColorGreen, nil
-	case "yellow":
-		return ColorYellow, nil
-	case "blue":
-		return ColorBlue, nil
-	case "magenta":
-		return ColorMagenta, nil
-	case "cyan":
-		return ColorCyan, nil
+		return ColorBlack
+	case "silver":
+		return ColorSilver
+	case "gray":
+		return ColorGray
 	case "white":
-		return ColorWhite, nil
+		return ColorWhite
+	case "maroon":
+		return ColorMaroon
+	case "red":
+		return ColorRed
+	case "purple":
+		return ColorPurple
+	case "fuchsia", "magenta":
+		return ColorMagenta
+	case "green":
+		return ColorGreen
+	case "lime":
+		return ColorLime
+	case "olive":
+		return ColorOlive
+	case "yellow":
+		return ColorYellow
+	case "navy":
+		return ColorNavy
+	case "blue":
+		return ColorBlue
+	case "teal":
+		return ColorTeal
+	case "aqua", "cyan":
+		return ColorCyan
 	}
 
-	// Parse hex color (RRGGBB format)
-	if len(s) != 6 {
-		return nil, fmt.Errorf("invalid TTML color format: %s", s)
+	// Parse hex color (RRGGBB format).
+	if len(s) == 6 {
+		if i, err := strconv.ParseUint(s, 16, 32); err == nil {
+			return &Color{
+				Red:   uint8(i >> 16 & 0xff),
+				Green: uint8(i >> 8 & 0xff),
+				Blue:  uint8(i & 0xff),
+			}
+		}
 	}
 
-	i, err := strconv.ParseUint(s, 16, 32)
-	if err != nil {
-		return nil, fmt.Errorf("parsing TTML color %s failed: %w", s, err)
-	}
-
-	return &Color{
-		Red:   uint8(i >> 16 & 0xff),
-		Green: uint8(i >> 8 & 0xff),
-		Blue:  uint8(i & 0xff),
-	}, nil
+	// Anything else (e.g. #RRGGBBAA, rgb()/rgba(), "transparent", or an
+	// unrecognized name) is legal and preserved verbatim.
+	return &Color{rawHTML: original}
 }
 
 func newColorFromWebVTTString(color string) (*Color, error) {
@@ -253,6 +289,11 @@ func (c *Color) SSAString() string {
 func (c *Color) HTMLString() string {
 	if c == nil {
 		return ""
+	}
+	// A preserved original expression (alpha hex, rgb(), unrecognized name) is
+	// emitted verbatim to keep the value lossless.
+	if c.rawHTML != "" {
+		return c.rawHTML
 	}
 	// TODO Check named colors first
 	return fmt.Sprintf("#%.6x", uint32(c.Red)<<16|uint32(c.Green)<<8|uint32(c.Blue))
@@ -410,28 +451,28 @@ func (sa *StyleAttributes) propagateSRTAttributes() {
 	switch sa.SRTPosition {
 	case 7: // top-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 8: // top-center
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 9: // top-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("10%")
+		sa.WebVTTLine = "10%"
 	case 4: // middle-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 5: // middle-center
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 6: // middle-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("50%")
+		sa.WebVTTLine = "50%"
 	case 1: // bottom-left
 		sa.WebVTTAlign = "left"
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	case 2: // bottom-center
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	case 3: // bottom-right
 		sa.WebVTTAlign = "right"
-		sa.WebVTTPosition = newWebVTTPosition("90%")
+		sa.WebVTTLine = "90%"
 	}
 
 	sa.WebVTTBold = sa.SRTBold
@@ -505,19 +546,39 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 			}
 			//cue settings
 			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
-			sa.WebVTTSize = dimensions[1]
+			sa.WebVTTSize = dimensions[0]
 			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
-				sa.WebVTTSize = dimensions[0]
+				sa.WebVTTSize = dimensions[1]
 			}
 		}
 	}
 	if sa.TTMLOrigin != nil {
 		//region settings
-		sa.WebVTTRegionAnchor = "0%,0%"
-		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
-		sa.WebVTTScroll = "up"
-		//cue settings
+		// Anchor at bottom-left (0%,100%) for bottom-aligned text
+		sa.WebVTTRegionAnchor = "0%,100%"
+
+		// Calculate viewport anchor at bottom edge for displayAlign="after"
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
+		if len(coordinates) > 1 && sa.TTMLExtent != nil {
+			dimensions := strings.Split(*sa.TTMLExtent, " ")
+			if len(dimensions) > 1 {
+				// Calculate bottom edge: origin Y + extent height
+				originY := strings.TrimSpace(coordinates[1])
+				extentHeight := strings.TrimSpace(dimensions[1])
+
+				originYVal, _ := strconv.ParseFloat(strings.ReplaceAll(originY, "%", ""), 64)
+				extentHeightVal, _ := strconv.ParseFloat(strings.ReplaceAll(extentHeight, "%", ""), 64)
+				bottomY := originYVal + extentHeightVal
+
+				sa.WebVTTViewportAnchor = fmt.Sprintf("%s,%.0f%%", strings.TrimSpace(coordinates[0]), bottomY)
+			} else {
+				sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+			}
+		} else {
+			sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
+		}
+
+		//cue settings
 		if len(coordinates) > 1 {
 			sa.WebVTTLine = coordinates[0]
 			sa.WebVTTPosition = newWebVTTPosition(coordinates[1])
