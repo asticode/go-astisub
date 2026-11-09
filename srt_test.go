@@ -271,3 +271,10 @@ func TestSRTParseDuration(t *testing.T) {
 	assert.Equal(t, 5*time.Second+985*time.Millisecond, s.Items[1].EndAt)
 	assert.Equal(t, "Duration without colon milliseconds", s.Items[1].Lines[0].String())
 }
+
+func TestSRTBlankLineInsideCue(t *testing.T) {
+	s, err := astisub.ReadFromSRT(strings.NewReader("1\n00:00:01,000 --> 00:00:02,000\nA\n\nB\n\n2\n00:00:03,000 --> 00:00:04,000\nC\n"))
+	assert.NoError(t, err)
+	assert.Len(t, s.Items, 2)
+	assert.Equal(t, "B", s.Items[0].Lines[len(s.Items[0].Lines)-1].String())
+}
