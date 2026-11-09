@@ -196,10 +196,13 @@ func ReadFromWebVTT(i io.Reader) (o *Subtitles, err error) {
 		case strings.HasPrefix(line, "NOTE ") && !inCue:
 			blockName = webvttBlockNameComment
 			comments = append(comments, strings.TrimPrefix(line, "NOTE "))
-		// A line of only spaces before a cue's text does not end the cue: YouTube's captions start with one
-		case inCue && len(line) == 0 && len(scanner.Text()) > 0 && len(item.Lines) == 0:
 		// Empty line
 		case len(line) == 0:
+			// A line of only spaces before a cue's text does not end the cue: YouTube's captions start with one
+			if inCue && len(scanner.Text()) > 0 && len(item.Lines) == 0 {
+				break
+			}
+
 			// If we were parsing a REGION block, finalize it
 			if blockName == webvttBlockNameRegion && currentRegion != nil && currentRegion.ID != "" {
 				currentRegion.InlineStyle.propagateWebVTTAttributes()
