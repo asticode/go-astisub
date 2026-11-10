@@ -540,3 +540,10 @@ Hello
 	require.Len(t, s.Items[0].Lines, 1)
 	assert.Equal(t, "Hello", s.Items[0].Lines[0].String())
 }
+
+func TestWebVTTSpaceOnlyLineInCue(t *testing.T) {
+	s, err := astisub.ReadFromWebVTT(strings.NewReader("WEBVTT\n\n00:01.000 --> 00:02.000\n \nHello\n\n00:03.000 --> 00:04.000\nC\n"))
+	assert.NoError(t, err)
+	assert.Len(t, s.Items, 2)
+	assert.Equal(t, "Hello", s.Items[0].String())
+}
