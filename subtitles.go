@@ -53,8 +53,7 @@ var (
 
 // HTML Escape
 var (
-	htmlEscaper   = strings.NewReplacer("&", "&amp;", "<", "&lt;", "\u00A0", "&nbsp;")
-	htmlUnescaper = strings.NewReplacer("&amp;", "&", "&lt;", "<", "&nbsp;", "\u00A0")
+	htmlEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", "\u00A0", "&nbsp;")
 )
 
 // Now allows testing functions using it
@@ -1273,7 +1272,7 @@ func escapeHTML(i string) string {
 }
 
 func unescapeHTML(i string) string {
-	return htmlUnescaper.Replace(i)
+	return html.UnescapeString(i)
 }
 
 func newScanner(i io.Reader) *bufio.Scanner {
