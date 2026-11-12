@@ -930,7 +930,7 @@ func newSSAEventFromItem(i Item) (e *ssaEvent) {
 		}
 		lines = append(lines, strings.Join(items, " "))
 	}
-	e.text = strings.Join(lines, "\\n")
+	e.text = strings.Join(lines, "\\N")
 	return
 }
 
