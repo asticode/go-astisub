@@ -547,3 +547,17 @@ func TestWebVTTSpaceOnlyLineInCue(t *testing.T) {
 	assert.Len(t, s.Items, 2)
 	assert.Equal(t, "Hello", s.Items[0].String())
 }
+
+func TestWebVTTUnescapesAllEntities(t *testing.T) {
+	testData := "WEBVTT\n\n1\n00:01:00.000 --> 00:02:00.000\n&gt;&gt; It&#39;s caf&eacute;\n"
+
+	s, err := astisub.ReadFromWebVTT(strings.NewReader(testData))
+	assert.NoError(t, err)
+	require.Len(t, s.Items, 1)
+	assert.Equal(t, ">> It's café", s.Items[0].Lines[0].String())
+
+	b := &bytes.Buffer{}
+	err = s.WriteToSRT(b)
+	assert.NoError(t, err)
+	assert.Contains(t, b.String(), ">> It's café\n")
+}
