@@ -928,7 +928,7 @@ func newSSAEventFromItem(i Item) (e *ssaEvent) {
 		if len(l.VoiceName) > 0 {
 			e.name = l.VoiceName
 		}
-		lines = append(lines, strings.Join(items, " "))
+		lines = append(lines, strings.Join(items, ""))
 	}
 	e.text = strings.Join(lines, "\\N")
 	return

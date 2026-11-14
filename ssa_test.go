@@ -153,3 +153,13 @@ Dialogue: Marked=0,0:01:39.00,0:01:41.04,,Cher,1234,2345,3456,test,First item{\p
 		Text:        "Second item",
 	}, s.Items[0].Lines[0].Items[1])
 }
+
+func TestWriteToSSAKeepsInlineStyleSpacing(t *testing.T) {
+	s, err := astisub.ReadFromSSA(bytes.NewReader([]byte(`[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:03.50,Default,,0,0,0,,Hello {\i1}world{\i0}!`)))
+	assert.NoError(t, err)
+	w := &bytes.Buffer{}
+	assert.NoError(t, s.WriteToSSA(w))
+	assert.Contains(t, w.String(), `,Hello {\i1}world{\i0}!`)
+}
