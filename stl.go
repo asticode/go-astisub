@@ -208,7 +208,6 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 	}
 
 	// Update metadata
-	// TODO Add more STL fields to metadata
 	o.Metadata = &Metadata{
 		Framerate:               g.framerate,
 		STLCountryOfOrigin:      g.countryOfOrigin,
@@ -268,7 +267,51 @@ func ReadFromSTL(i io.Reader, opts STLOptions) (o *Subtitles, err error) {
 			STLJustification: &justification,
 			STLPosition:      &position,
 		}
+
+		// 1. Propagate standard attributes first
 		styleAttributes.propagateSTLAttributes()
+
+		// =========================================================================
+		// PATCH START: Vertical & Horizontal Positioning (Applied LAST)
+		// =========================================================================
+
+		// DEBUG: Print what we found to confirm the loop is running
+		// fmt.Printf("DEBUG: Found TTI Block - VP: %d | Justification: %d\n", t.verticalPosition, t.justificationCode)
+
+		// 1. VERTICAL POSITIONING
+		// Standard Teletext is 23 rows. Row 1 = Top, Row 23 = Bottom.
+		const standardTeletextRows = 23.0
+		if t.verticalPosition >= 1 && t.verticalPosition <= 24 {
+			percent := (float64(t.verticalPosition) / standardTeletextRows) * 100.0
+			if percent > 100.0 {
+				percent = 95.0
+			}
+			// Apply "line:XX%" setting
+			// We set this AFTER propagation to ensure it sticks.
+			styleAttributes.WebVTTLine = fmt.Sprintf("%.0f%%", percent)
+		}
+
+		// 2. HORIZONTAL JUSTIFICATION
+		// Case 0 (Unchanged/Left), Case 1 (Left), Case 2 (Center), Case 3 (Right)
+		switch t.justificationCode {
+		case stlJustificationCodeLeftJustifiedText: // 0x01
+			styleAttributes.WebVTTAlign = "start"
+		case stlJustificationCodeRightJustifiedText: // 0x03
+			styleAttributes.WebVTTAlign = "end"
+		case stlJustificationCodeCentredText: // 0x02
+			styleAttributes.WebVTTAlign = "middle"
+		case stlJustificationCodeUnchangedPresentation: // 0x00
+			// Your logs showed mostly "0". Standard Teletext default is usually center-bottom
+			// or left depending on context. We will default to "middle" for safety
+			// unless you prefer "start" (Left).
+			styleAttributes.WebVTTAlign = "middle"
+		}
+
+		fmt.Printf("DEBUG: Found TTI Block - VP: %d | Justification: %d\n", t.verticalPosition, t.justificationCode)
+
+		// =========================================================================
+		// PATCH END
+		// =========================================================================
 
 		// Create item
 		var i = &Item{
