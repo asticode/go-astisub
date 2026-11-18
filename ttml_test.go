@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/asticode/go-astikit"
 
@@ -101,4 +102,18 @@ func TestTTMLMergeStyleAttributes(t *testing.T) {
 	assert.Equal(t, s.Items[2].Region.ID, "region_2")
 	assert.Equal(t, s.Items[2].Style.ID, "style_0")
 	assert.Equal(t, s.Items[3].InlineStyle.TTMLColor, astisub.ColorBlue)
+}
+
+func TestTTMLTiming(t *testing.T) {
+	s, err := astisub.ReadFromTTML(strings.NewReader(`<tt xmlns="http://www.w3.org/ns/ttml"><body>
+<div><p begin="00:00:01.000" dur="2s">Dur</p></div>
+<div begin="00:00:05.000" end="00:00:07.000"><p>From the div</p></div>
+</body></tt>`))
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(s.Items))
+	assert.Equal(t, []time.Duration{time.Second, 3 * time.Second}, []time.Duration{s.Items[0].StartAt, s.Items[0].EndAt})
+	assert.Equal(t, []time.Duration{5 * time.Second, 7 * time.Second}, []time.Duration{s.Items[1].StartAt, s.Items[1].EndAt})
+
+	_, err = astisub.ReadFromTTML(strings.NewReader(`<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">No end</p></div></body></tt>`))
+	assert.EqualError(t, err, `astisub: subtitle "" has no begin or end time`)
 }
