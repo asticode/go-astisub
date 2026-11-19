@@ -45,6 +45,9 @@ type TTMLInBodyDiv struct {
 	XMLName   xml.Name         `xml:"div"`
 	Subtitles []TTMLInSubtitle `xml:"p"`
 
+	Begin *TTMLInDuration `xml:"begin,attr,omitempty"`
+	End   *TTMLInDuration `xml:"end,attr,omitempty"`
+
 	Region string `xml:"region,attr,omitempty"`
 	Style  string `xml:"style,attr,omitempty"`
 	TTMLInStyleAttributes
@@ -176,9 +179,10 @@ type TTMLInStyle struct {
 
 // TTMLInSubtitle represents an input TTML subtitle
 type TTMLInSubtitle struct {
-	Begin *TTMLInDuration `xml:"begin,attr,omitempty"`
-	End   *TTMLInDuration `xml:"end,attr,omitempty"`
-	ID    string          `xml:"id,attr,omitempty"`
+	Begin    *TTMLInDuration `xml:"begin,attr,omitempty"`
+	Duration *TTMLInDuration `xml:"dur,attr,omitempty"`
+	End      *TTMLInDuration `xml:"end,attr,omitempty"`
+	ID       string          `xml:"id,attr,omitempty"`
 	// We must store inner XML temporarily here since there's no tag to describe both any tag and chardata
 	// Real unmarshal will be done manually afterwards
 	Items  string `xml:",innerxml"`
@@ -421,11 +425,25 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			div.Style = ttml.Body.Style
 		}
 		for _, ts := range div.Subtitles {
+			// A <p> without its own timing takes the <div>'s
+			if ts.Begin == nil {
+				ts.Begin = div.Begin
+			}
+			if ts.End == nil && ts.Duration == nil {
+				ts.End = div.End
+			}
+			if ts.Begin == nil || (ts.End == nil && ts.Duration == nil) {
+				err = fmt.Errorf("astisub: subtitle %q has no begin or end time", ts.ID)
+				return
+			}
+
 			// Init item
-			ts.Begin.framerate = ttml.Framerate
-			ts.Begin.tickrate = ttml.Tickrate
-			ts.End.framerate = ttml.Framerate
-			ts.End.tickrate = ttml.Tickrate
+			for _, d := range []*TTMLInDuration{ts.Begin, ts.Duration, ts.End} {
+				if d != nil {
+					d.framerate = ttml.Framerate
+					d.tickrate = ttml.Tickrate
+				}
+			}
 
 			itemInlineStyle := ts.TTMLInStyleAttributes.styleAttributes()
 
@@ -442,9 +460,13 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 			}
 
 			var s = &Item{
-				EndAt:       ts.End.duration(),
 				InlineStyle: itemInlineStyle,
 				StartAt:     ts.Begin.duration(),
+			}
+			if ts.End != nil {
+				s.EndAt = ts.End.duration()
+			} else {
+				s.EndAt = s.StartAt + ts.Duration.duration()
 			}
 
 			// Add region
