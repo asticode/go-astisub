@@ -192,7 +192,9 @@ func parseTextSrt(i string, sa *StyleAttributes) (o Line) {
 					continue
 				}
 
-				if s := strings.TrimSpace(part.text); s != "" {
+				// The line is trimmed, so text that is only spaces sits between
+				// two tags and must be kept: "<i>a</i> <i>b</i>" reads "a b"
+				if s := strings.TrimSpace(part.text); s != "" || (part.text != "" && len(o.Items) > 0) {
 					// Get style attribute
 					var styleAttributes *StyleAttributes
 					if sa.SRTBold || sa.SRTColor != nil || sa.SRTItalics || sa.SRTUnderline {
