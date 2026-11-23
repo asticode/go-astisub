@@ -140,6 +140,26 @@ func (i Item) String() string {
 	return strings.Join(os, " - ")
 }
 
+// removeTrailingEmptyLines removes trailing empty lines
+func (i *Item) removeTrailingEmptyLines() {
+	for idx := len(i.Lines) - 1; idx >= 0; idx-- {
+		if len(i.Lines[idx].Items) > 0 {
+			for j := len(i.Lines[idx].Items) - 1; j >= 0; j-- {
+				if len(i.Lines[idx].Items[j].Text) == 0 {
+					i.Lines[idx].Items = i.Lines[idx].Items[:j]
+				} else {
+					break
+				}
+			}
+			if len(i.Lines[idx].Items) == 0 {
+				i.Lines = i.Lines[:idx]
+			} else {
+				break
+			}
+		}
+	}
+}
+
 // Color represents a color
 type Color struct {
 	Alpha, Blue, Green, Red uint8

@@ -278,3 +278,17 @@ func TestSRTBlankLineInsideCue(t *testing.T) {
 	assert.Len(t, s.Items, 2)
 	assert.Equal(t, "B", s.Items[0].Lines[len(s.Items[0].Lines)-1].String())
 }
+
+func TestSRTTrailingBlankLines(t *testing.T) {
+	for _, i := range []string{
+		"1\n00:00:01,000 --> 00:00:02,000\nA\n\n",
+		"1\n00:00:01,000 --> 00:00:02,000\nA\n\n\n",
+		"1\r\n00:00:01,000 --> 00:00:02,000\r\nA\r\n\r\n",
+	} {
+		s, err := astisub.ReadFromSRT(strings.NewReader(i))
+		require.NoError(t, err)
+		require.Len(t, s.Items, 1)
+		assert.Len(t, s.Items[0].Lines, 1, "%q", i)
+		assert.Equal(t, "A", s.Items[0].String())
+	}
+}

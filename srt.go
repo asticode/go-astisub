@@ -72,24 +72,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			}
 
 			// Remove trailing empty lines
-			if len(s.Lines) > 0 {
-				for i := len(s.Lines) - 1; i >= 0; i-- {
-					if len(s.Lines[i].Items) > 0 {
-						for j := len(s.Lines[i].Items) - 1; j >= 0; j-- {
-							if len(s.Lines[i].Items[j].Text) == 0 {
-								s.Lines[i].Items = s.Lines[i].Items[:j]
-							} else {
-								break
-							}
-						}
-						if len(s.Lines[i].Items) == 0 {
-							s.Lines = s.Lines[:i]
-						} else {
-							break
-						}
-					}
-				}
-			}
+			s.removeTrailingEmptyLines()
 
 			// Init subtitle
 			s = &Item{}
@@ -138,6 +121,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			}
 		}
 	}
+
+	// Remove trailing empty lines of the last subtitle
+	s.removeTrailingEmptyLines()
 	return
 }
 
