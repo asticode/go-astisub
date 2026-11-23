@@ -1047,6 +1047,33 @@ func (s *Subtitles) removeUnusedRegionsAndStyles() {
 	}
 }
 
+// removeTrailingEmptyLines removes trailing empty lines of the last item
+func (s *Subtitles) removeTrailingEmptyLines() {
+	// Nothing to do if there are no items
+	if len(s.Items) == 0 {
+		return
+	}
+
+	// Loop through lines
+	item := s.Items[len(s.Items)-1]
+	for i := len(item.Lines) - 1; i >= 0; i-- {
+		if len(item.Lines[i].Items) > 0 {
+			for j := len(item.Lines[i].Items) - 1; j >= 0; j-- {
+				if len(item.Lines[i].Items[j].Text) == 0 {
+					item.Lines[i].Items = item.Lines[i].Items[:j]
+				} else {
+					break
+				}
+			}
+			if len(item.Lines[i].Items) == 0 {
+				item.Lines = item.Lines[:i]
+			} else {
+				break
+			}
+		}
+	}
+}
+
 // Order orders items
 func (s *Subtitles) Order() {
 	// Nothing to do if less than 1 element
