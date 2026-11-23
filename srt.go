@@ -72,7 +72,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 			}
 
 			// Remove trailing empty lines
-			o.removeTrailingEmptyLines()
+			s.removeTrailingEmptyLines()
 
 			// Init subtitle
 			s = &Item{}
@@ -123,7 +123,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	}
 
 	// Remove trailing empty lines of the last subtitle
-	o.removeTrailingEmptyLines()
+	s.removeTrailingEmptyLines()
 	return
 }
 

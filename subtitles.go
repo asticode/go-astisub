@@ -140,6 +140,26 @@ func (i Item) String() string {
 	return strings.Join(os, " - ")
 }
 
+// removeTrailingEmptyLines removes trailing empty lines
+func (i *Item) removeTrailingEmptyLines() {
+	for idx := len(i.Lines) - 1; idx >= 0; idx-- {
+		if len(i.Lines[idx].Items) > 0 {
+			for j := len(i.Lines[idx].Items) - 1; j >= 0; j-- {
+				if len(i.Lines[idx].Items[j].Text) == 0 {
+					i.Lines[idx].Items = i.Lines[idx].Items[:j]
+				} else {
+					break
+				}
+			}
+			if len(i.Lines[idx].Items) == 0 {
+				i.Lines = i.Lines[:idx]
+			} else {
+				break
+			}
+		}
+	}
+}
+
 // Color represents a color
 type Color struct {
 	Alpha, Blue, Green, Red uint8
@@ -1043,33 +1063,6 @@ func (s *Subtitles) removeUnusedRegionsAndStyles() {
 	for id, style := range s.Styles {
 		if _, ok := usedStyles[style.ID]; !ok {
 			delete(s.Styles, id)
-		}
-	}
-}
-
-// removeTrailingEmptyLines removes trailing empty lines of the last item
-func (s *Subtitles) removeTrailingEmptyLines() {
-	// Nothing to do if there are no items
-	if len(s.Items) == 0 {
-		return
-	}
-
-	// Loop through lines
-	item := s.Items[len(s.Items)-1]
-	for i := len(item.Lines) - 1; i >= 0; i-- {
-		if len(item.Lines[i].Items) > 0 {
-			for j := len(item.Lines[i].Items) - 1; j >= 0; j-- {
-				if len(item.Lines[i].Items[j].Text) == 0 {
-					item.Lines[i].Items = item.Lines[i].Items[:j]
-				} else {
-					break
-				}
-			}
-			if len(item.Lines[i].Items) == 0 {
-				item.Lines = item.Lines[:i]
-			} else {
-				break
-			}
 		}
 	}
 }
