@@ -1059,6 +1059,13 @@ func (s *Subtitles) removeUnusedRegionsAndStyles() {
 		}
 	}
 
+	// Keep the styles that used styles inherit from
+	for id := range usedStyles {
+		for st := s.Styles[id]; st != nil && st.Style != nil && !usedStyles[st.Style.ID]; st = s.Styles[st.Style.ID] {
+			usedStyles[st.Style.ID] = true
+		}
+	}
+
 	// Loop through style
 	for id, style := range s.Styles {
 		if _, ok := usedStyles[style.ID]; !ok {
