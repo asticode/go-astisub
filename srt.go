@@ -31,6 +31,18 @@ func parseDurationSRT(i string) (d time.Duration, err error) {
 	return
 }
 
+// isSRTTimeBoundariesLine checks whether the line holds time boundaries. A line
+// whose left side does not start with a digit (e.g. the cue text "A --> B")
+// is regular text and must not end the current cue.
+func isSRTTimeBoundariesLine(line string) bool {
+	i := strings.Index(line, srtTimeBoundariesSeparator)
+	if i < 0 {
+		return false
+	}
+	left := strings.TrimSpace(line[:i])
+	return left != "" && left[0] >= '0' && left[0] <= '9'
+}
+
 // ReadFromSRT parses an .srt content
 func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 	// Init
@@ -57,7 +69,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 		}
 
 		// Line contains time boundaries
-		if strings.Contains(line, srtTimeBoundariesSeparator) {
+		if isSRTTimeBoundariesLine(line) {
 			// Reset style attributes
 			sa = &StyleAttributes{}
 
