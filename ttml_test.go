@@ -117,3 +117,25 @@ func TestTTMLTiming(t *testing.T) {
 	_, err = astisub.ReadFromTTML(strings.NewReader(`<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">No end</p></div></body></tt>`))
 	assert.EqualError(t, err, `astisub: subtitle "" has no begin or end time`)
 }
+
+func TestTTMLStylesSharingAParent(t *testing.T) {
+	s, err := astisub.ReadFromTTML(strings.NewReader(`<tt xmlns="http://www.w3.org/ns/ttml" xmlns:tts="http://www.w3.org/ns/ttml#styling"><head><styling>
+<style xml:id="base" tts:color="white"/>
+<style xml:id="italic" style="base" tts:fontStyle="italic"/>
+<style xml:id="bold" style="base" tts:fontWeight="bold"/>
+<style xml:id="plain"/>
+</styling></head><body><div><p begin="00:00:01.000" end="00:00:02.000" style="italic">a</p></div></body></tt>`))
+	assert.NoError(t, err)
+	for _, id := range []string{"italic", "bold"} {
+		if assert.NotNil(t, s.Styles[id].Style, id) {
+			assert.Equal(t, "base", s.Styles[id].Style.ID)
+		}
+	}
+	assert.Nil(t, s.Styles["base"].Style)
+	assert.Nil(t, s.Styles["plain"].Style)
+
+	_, err = astisub.ReadFromTTML(strings.NewReader(`<tt xmlns="http://www.w3.org/ns/ttml"><head><styling>
+<style xml:id="a" style="missing"/>
+</styling></head><body/></tt>`))
+	assert.EqualError(t, err, "astisub: Style missing requested by style a doesn't exist")
+}

@@ -374,7 +374,7 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 	o.Metadata = ttml.metadata()
 
 	// Loop through styles
-	var parentStyles = make(map[string]*Style)
+	var parentStyles = make(map[*Style]string)
 	for _, ts := range ttml.Styles {
 		var s = &Style{
 			ID:          ts.ID,
@@ -382,12 +382,12 @@ func ReadFromTTML(i io.Reader) (o *Subtitles, err error) {
 		}
 		o.Styles[s.ID] = s
 		if len(ts.Style) > 0 {
-			parentStyles[ts.Style] = s
+			parentStyles[s] = ts.Style
 		}
 	}
 
 	// Take care of parent styles
-	for id, s := range parentStyles {
+	for s, id := range parentStyles {
 		if _, ok := o.Styles[id]; !ok {
 			err = fmt.Errorf("astisub: Style %s requested by style %s doesn't exist", id, s.ID)
 			return
