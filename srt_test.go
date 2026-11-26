@@ -292,3 +292,12 @@ func TestSRTTrailingBlankLines(t *testing.T) {
 		assert.Equal(t, "A", s.Items[0].String())
 	}
 }
+
+func TestSRTSpaceBetweenTags(t *testing.T) {
+	s, err := astisub.ReadFromSRT(strings.NewReader("1\n00:00:01,000 --> 00:00:02,000\n<b>a</b> <i>b</i>\n"))
+	require.NoError(t, err)
+	assert.Equal(t, "a b", s.Items[0].String())
+	w := &bytes.Buffer{}
+	require.NoError(t, s.WriteToSRT(w))
+	assert.Contains(t, w.String(), "<b>a</b> <i>b</i>")
+}
