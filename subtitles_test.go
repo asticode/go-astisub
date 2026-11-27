@@ -3,6 +3,7 @@ package astisub_test
 import (
 	"bytes"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -233,6 +234,52 @@ func TestSubtitles_Optimize(t *testing.T) {
 	s.Optimize()
 	assert.Len(t, s.Regions, 1)
 	assert.Len(t, s.Styles, 3)
+}
+
+func TestSubtitles_OptimizeKeepsParentStyles(t *testing.T) {
+	root := &astisub.Style{ID: "root"}
+	base := &astisub.Style{ID: "base", Style: root}
+	regionBase := &astisub.Style{ID: "regionBase"}
+	var s = &astisub.Subtitles{
+		Items: []*astisub.Item{
+			{Region: &astisub.Region{ID: "1"}, Style: &astisub.Style{ID: "italic"}},
+		},
+		Regions: map[string]*astisub.Region{
+			"1": {ID: "1", Style: &astisub.Style{ID: "regionStyle"}},
+		},
+		Styles: map[string]*astisub.Style{
+			"root":        root,
+			"base":        base,
+			"italic":      {ID: "italic", Style: base},
+			"bold":        {ID: "bold", Style: base},
+			"regionBase":  regionBase,
+			"regionStyle": {ID: "regionStyle", Style: regionBase},
+		},
+	}
+	s.Optimize()
+	assert.Len(t, s.Styles, 5)
+	for _, id := range []string{"root", "base", "italic", "regionBase", "regionStyle"} {
+		assert.Contains(t, s.Styles, id)
+	}
+
+	// A long chain is kept up to its root
+	var parent *astisub.Style
+	s = &astisub.Subtitles{Styles: map[string]*astisub.Style{}}
+	for i := 0; i < 20; i++ {
+		parent = &astisub.Style{ID: strconv.Itoa(i), Style: parent}
+		s.Styles[parent.ID] = parent
+	}
+	s.Items = []*astisub.Item{{Style: parent}}
+	s.Optimize()
+	assert.Len(t, s.Styles, 20)
+
+	// A parent cycle must not loop forever
+	a := &astisub.Style{ID: "a"}
+	b := &astisub.Style{ID: "b", Style: a}
+	a.Style = b
+	s = &astisub.Subtitles{Items: []*astisub.Item{{Style: a}}, Styles: map[string]*astisub.Style{"a": a, "b": b}}
+	s.Optimize()
+	assert.Len(t, s.Styles, 2)
 }
 
 func TestSubtitles_Order(t *testing.T) {
