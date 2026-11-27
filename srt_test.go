@@ -240,13 +240,15 @@ Curly {braces} are not tags
 }
 
 func TestSRTMissingEndTimeBoundary(t *testing.T) {
+	// A line whose time boundaries cannot be parsed is not a time boundaries
+	// line: it is regular text and does not start a cue
 	testData := `1
 00:48:52,500 --> 
 Some subtitle text`
 
-	_, err := astisub.ReadFromSRT(strings.NewReader(testData))
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing srt end time boundary")
+	s, err := astisub.ReadFromSRT(strings.NewReader(testData))
+	require.NoError(t, err)
+	require.Len(t, s.Items, 0)
 }
 
 func TestSRTParseDuration(t *testing.T) {
@@ -300,4 +302,14 @@ func TestSRTSpaceBetweenTags(t *testing.T) {
 	w := &bytes.Buffer{}
 	require.NoError(t, s.WriteToSRT(w))
 	assert.Contains(t, w.String(), "<b>a</b> <i>b</i>")
+}
+
+func TestSRTTextContainingArrow(t *testing.T) {
+	in := "1\n00:00:01,000 --> 00:00:02,000\nA --> B\n\n2\n00:00:03,000 --> 00:00:04,000\nhi\n"
+	s, err := astisub.ReadFromSRT(strings.NewReader(in))
+	require.NoError(t, err)
+	require.Len(t, s.Items, 2)
+	require.Equal(t, "A --> B", s.Items[0].Lines[0].String())
+	require.Equal(t, 3*time.Second, s.Items[1].StartAt)
+	require.Equal(t, "hi", s.Items[1].Lines[0].String())
 }
