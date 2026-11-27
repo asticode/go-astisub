@@ -36,9 +36,6 @@ func parseDurationSRT(i string) (d time.Duration, err error) {
 // in which case it is regular text and must not end the current cue.
 func parseTimeBoundariesLineSRT(line string) (startAt, endAt time.Duration, ok bool) {
 	// Split on the separator
-	if !strings.Contains(line, srtTimeBoundariesSeparator) {
-		return
-	}
 	s1 := strings.Split(line, srtTimeBoundariesSeparator)
 	if len(s1) < 2 {
 		return
