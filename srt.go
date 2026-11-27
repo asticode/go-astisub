@@ -31,16 +31,35 @@ func parseDurationSRT(i string) (d time.Duration, err error) {
 	return
 }
 
-// isSRTTimeBoundariesLine checks whether the line holds time boundaries. A line
-// whose left side does not start with a digit (e.g. the cue text "A --> B")
-// is regular text and must not end the current cue.
-func isSRTTimeBoundariesLine(line string) bool {
-	i := strings.Index(line, srtTimeBoundariesSeparator)
-	if i < 0 {
-		return false
+// parseTimeBoundariesLineSRT parses a line holding time boundaries. ok is false
+// when the line is not a time boundaries line (e.g. the cue text "A --> B"),
+// in which case it is regular text and must not end the current cue.
+func parseTimeBoundariesLineSRT(line string) (startAt, endAt time.Duration, ok bool) {
+	// Split on the separator
+	if !strings.Contains(line, srtTimeBoundariesSeparator) {
+		return
 	}
-	left := strings.TrimSpace(line[:i])
-	return left != "" && left[0] >= '0' && left[0] <= '9'
+	s1 := strings.Split(line, srtTimeBoundariesSeparator)
+	if len(s1) < 2 {
+		return
+	}
+
+	// We do this to eliminate extra stuff like positions which are not documented anywhere
+	s2 := strings.Fields(s1[1])
+	if len(s2) == 0 {
+		return
+	}
+
+	// Parse time boundaries
+	var err error
+	if startAt, err = parseDurationSRT(s1[0]); err != nil {
+		return
+	}
+	if endAt, err = parseDurationSRT(s2[0]); err != nil {
+		return
+	}
+	ok = true
+	return
 }
 
 // ReadFromSRT parses an .srt content
@@ -69,7 +88,7 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 		}
 
 		// Line contains time boundaries
-		if isSRTTimeBoundariesLine(line) {
+		if startAt, endAt, ok := parseTimeBoundariesLineSRT(line); ok {
 			// Reset style attributes
 			sa = &StyleAttributes{}
 
@@ -94,28 +113,9 @@ func ReadFromSRT(i io.Reader) (o *Subtitles, err error) {
 				s.Index, _ = strconv.Atoi(index)
 			}
 
-			// Extract time boundaries
-			s1 := strings.Split(line, srtTimeBoundariesSeparator)
-			if l := len(s1); l < 2 {
-				err = fmt.Errorf("astisub: line %d: time boundaries has only %d element(s)", lineNum, l)
-				return
-			}
-			// We do this to eliminate extra stuff like positions which are not documented anywhere
-			s2 := strings.Fields(s1[1])
-			if len(s2) == 0 {
-				err = fmt.Errorf("astisub: line %d: missing srt end time boundary", lineNum)
-				return
-			}
-
-			// Parse time boundaries
-			if s.StartAt, err = parseDurationSRT(s1[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, s1[0], err)
-				return
-			}
-			if s.EndAt, err = parseDurationSRT(s2[0]); err != nil {
-				err = fmt.Errorf("astisub: line %d: parsing srt duration %s failed: %w", lineNum, s2[0], err)
-				return
-			}
+			// Set time boundaries
+			s.StartAt = startAt
+			s.EndAt = endAt
 
 			// Append subtitle
 			o.Items = append(o.Items, s)

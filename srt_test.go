@@ -240,13 +240,15 @@ Curly {braces} are not tags
 }
 
 func TestSRTMissingEndTimeBoundary(t *testing.T) {
+	// A line whose time boundaries cannot be parsed is not a time boundaries
+	// line: it is regular text and does not start a cue
 	testData := `1
 00:48:52,500 --> 
 Some subtitle text`
 
-	_, err := astisub.ReadFromSRT(strings.NewReader(testData))
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing srt end time boundary")
+	s, err := astisub.ReadFromSRT(strings.NewReader(testData))
+	require.NoError(t, err)
+	require.Len(t, s.Items, 0)
 }
 
 func TestSRTParseDuration(t *testing.T) {
